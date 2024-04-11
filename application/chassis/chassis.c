@@ -55,10 +55,12 @@ static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left righ
 static uint8_t center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 
+extern uint8_t Super_flag;//超电的标志位
+
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 23,  // 50,//70, // 4.5
+    .Kp            = 17.5,  // 50,//70, // 4.5
     .Ki            = 0,   // 0
     .Kd            = 0.0, // 0.07,  // 0
     .DeadBand      = 0,   // 0.75,  //跟随模式设置了死区，防止抖动
@@ -133,8 +135,8 @@ void ChassisInit()
     SuperCap_Init_Config_s cap_conf = {
         .can_config = {
             .can_handle = &hcan2,
-            .tx_id      = 0x302, // 超级电容默认接收id
-            .rx_id      = 0x301, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
+            .tx_id      = 0X427, // 超级电容默认接收id
+            .rx_id      = 0x300, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
 
@@ -232,6 +234,91 @@ static void LimitChassisOutput()
     DJIMotorSetRef(motor_rb, vt_rb);
 }
 
+//没有任何的功率限制，用于消耗超电容
+void No_Limit_Control(){
+    DJIMotorSetRef(motor_lf, vt_lf);
+    DJIMotorSetRef(motor_rf, vt_rf);
+    DJIMotorSetRef(motor_lb, vt_lb);
+    DJIMotorSetRef(motor_rb, vt_rb);
+}
+
+//超电控制算法
+uint8_t UIflag = 1;
+uint8_t Super_Allow_Flag;
+int time_delay, time_delay1, time_delay2;
+void Super_Cap_control()
+{
+    if (cap->cap_msg_s.CapVot < 12.0f) {
+        Super_Allow_Flag = 0;
+    }
+    if (Super_flag == 0) {
+        Super_Allow_Flag = 1;
+
+        time_delay = 0;
+        LimitChassisOutput();
+        time_delay1++;
+        if (time_delay1 > 50) {
+            cap->cap_msg_g.power_relay_flag = 0;
+            time_delay1                     = 0;
+        }
+        
+    }
+    else if (Super_Allow_Flag) {
+        time_delay++;
+        if (time_delay < 60) {
+            LimitChassisOutput();
+        }
+        else 
+        {
+            No_Limit_Control();
+        }
+        cap->cap_msg_g.power_relay_flag = 1;
+    } else {
+        time_delay = 0;
+        LimitChassisOutput();
+        time_delay2++;
+        if (time_delay2 > 50) {
+            cap->cap_msg_g.power_relay_flag = 0;
+            time_delay2                     = 0;
+        }
+    }
+}
+
+void Power_level_get()//获取功率裆位
+{
+    if (referee_data->GameRobotState.chassis_power_limit == 55) {
+        cap->cap_msg_g.power_level = 2;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 60) {
+        cap->cap_msg_g.power_level = 3;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 65) {
+        cap->cap_msg_g.power_level = 4;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 70) {
+        cap->cap_msg_g.power_level = 5;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 75) {
+        cap->cap_msg_g.power_level = 5;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 80) {
+        cap->cap_msg_g.power_level = 6;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 85) {
+        cap->cap_msg_g.power_level = 6;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 90) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 95) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 100) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 105) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 110) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 115) {
+        cap->cap_msg_g.power_level = 7;
+    } else if (referee_data->GameRobotState.chassis_power_limit == 120) {
+        cap->cap_msg_g.power_level = 8;
+    } else {
+        cap->cap_msg_g.power_level = 0;
+    }
+}
+
 /**
  * @brief 根据每个轮子的速度反馈,计算底盘的实际运动速度,逆运动解算
  *        对于双板的情况,考虑增加来自底盘板IMU的数据
@@ -303,9 +390,10 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    LimitChassisOutput();
+    Super_Cap_control();
 
-    // 根据电机的反馈速度和IMU(如果有)计算真实速度
+    // 根据电机的反馈速度和IMU(如果有)计算真实速度，根据超电的状态来输出功率
+    
     EstimateSpeed();
 
     // 发送裁判UI

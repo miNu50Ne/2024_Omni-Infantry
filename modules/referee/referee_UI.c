@@ -17,6 +17,7 @@
 #include "robot_cmd.h"
 #include "gimbal.h"
 #include "dji_motor.h"
+#include "super_cap.h"
 
 extern referee_info_t referee_info;			  // 裁判系统数据
 extern Referee_Interactive_info_t Referee_Interactive_info;//绘制UI所需的数据
@@ -38,7 +39,9 @@ static uint32_t R_CRC_location[10] = {1283, 1, 1070, 347};
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
 static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 
-uint16_t yaw_angle;
+float yaw_angle;
+
+static SuperCapInstance *cap;
 
 /********************************************删除操作*************************************
 **参数：_id 对应的id结构体
@@ -470,6 +473,7 @@ uint32_t  Rect_De[4]={1540,555,1660,645};
 int16_t AIM_Rect_X,AIM_Rect_Y;//自瞄框中心点的坐标信息
 int16_t AIM_Rect_half_length=50;
 int16_t AIM_Rec_Color;
+
 void My_UIGraphRefresh()
 {
 	DeterminRobotID();
@@ -506,18 +510,19 @@ void My_UIGraphRefresh()
 		// sprintf(UI_State_sta[0].show_Data,"Rotate");
 		// UICharDraw(&UI_State_sta[0], "ss0", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 660, 100, "Rotate");
 		// UICharRefresh(&referee_info.referee_id,UI_State_sta[0]);
-		UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_ADD,9,UI_Color_White,10, 700, 160, 8);//UICircleDraw
+		UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_ADD,9,UI_Color_White,20, 700, 160, 8);
 		//摩擦轮
 		// sprintf(UI_State_sta[2].show_Data,"Fric");
 		// UICharDraw(&UI_State_sta[2], "ss2", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 1160,100, "Fric");
 		// UICharRefresh(&referee_info.referee_id, UI_State_sta[2]);
-		UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_ADD,9,UI_Color_White,10, 1180, 160, 8);  
+		UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_ADD,9,UI_Color_White,20, 1180, 160, 8); //摩擦轮是否开启显示 
+		UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_ADD,9,UI_Color_Orange,20, 1280, 160, 8);  //摩擦轮是否正常显示
 		//电容
-		// sprintf(UI_State_sta[3].show_Data,"Super Cap");
-		// UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "Super Cap");
-		// UICharRefresh(&referee_info.referee_id,UI_State_sta[3]);
-		// UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-		// 等待超级电容接入 UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,720,(SuperCap_Info.CapVot-12)/12*200+80,720);
+		sprintf(UI_State_sta[3].show_Data,"Super Cap");
+		UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "Super Cap");
+		UICharRefresh(&referee_info.referee_id,UI_State_sta[3]);
+		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
+		UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,720,(cap->cap_msg_g.chassic_power_remaining-12)/12*200+80,720);
 		//初始自瞄框
 		/*
 		if((NUC_Data.yaw_offset==0) & (NUC_Data.pit_offset==0))
@@ -541,12 +546,27 @@ void My_UIGraphRefresh()
 		// 	UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 8, UI_Color_Green, angle_start, mid_point_angle, 8, 960, 540, 100, 100);
 		// 	UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 8, UI_Color_Green, mid_point_angle, angle_end, 8, 960, 540, 100, 100);
 		// }
+		//pitch角度
+		sprintf(UI_State_sta[4].show_Data,"Pitch");
+		UICharDraw(&UI_State_sta[4], "ss4", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300,700, "Pitch");
+		UICharRefresh(&referee_info.referee_id, UI_State_sta[4]);
+
+		char str[20]; // 定义一个足够大的字符数组来存储转换后的字符串
+		sprintf(str, "%.2f", yaw_angle*10);// 使用sprintf函数将小数转换为字符串
+		sprintf(UI_State_sta[5].show_Data,str);
+		UICharDraw(&UI_State_sta[5], "ss5", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300+100,700, "Pitch");
+		UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
+        // char buf[16] = {0};
+        // gcvt(yaw_angle, 7, buf);
+		// sprintf(UI_State_sta[5].show_Data,buf);
+		// UICharDraw(&UI_State_sta[5], "ss4", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300,700, "Pitch");
+		// UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
 		//射击准点
-		UIGraphRefresh(&referee_info.referee_id, 2, UI_Deriction_line[0],UI_Deriction_line[1]);
-		UIGraphRefresh(&referee_info.referee_id, 2, UI_Deriction_line[2],UI_Deriction_line[3]);
+		UIGraphRefresh(&referee_info.referee_id, 7, UI_Deriction_line[0],UI_Deriction_line[1], UI_Deriction_line[2],UI_Deriction_line[3], UI_State_sta[0],UI_State_sta[2], UI_State_sta[4]);
 		//将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
 		//UIGraphRefresh(&referee_info.referee_id,5,UI_Deriction_line[0],UI_Deriction_line[1],UI_Circle_t[0],UI_Circle_t[1],UI_Circle_t[2]);
-		UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[0],UI_Circle_t[2]);
+		UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_State_sta[3],UI_Rectangle[1],&UI_Energy[1]);
+		UIGraphRefresh(&referee_info.referee_id, 1, UI_Circle_t[3]);
 
 		}	
 		
@@ -556,25 +576,34 @@ void My_UIGraphRefresh()
 			//底盘模式
 			if (Referee_Interactive_info.chassis_mode == CHASSIS_ROTATE)
 			{
-				UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_Change,9,UI_Color_Green,10, 700, 160, 8);
+				UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_Change,9,UI_Color_Green,20, 700, 160, 8);
 			}
 			else if(Referee_Interactive_info.chassis_mode == CHASSIS_FOLLOW_GIMBAL_YAW )
 			{
-				UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_Change,9,UI_Color_White,10, 700, 160, 8);
+				UICircleDraw(&UI_Circle_t[0],"sc0",UI_Graph_Change,9,UI_Color_White,20, 700, 160, 8);
 			}
 				//摩擦轮
+			if (Referee_Interactive_info.friction_mode == FRICTION_ON) // 摩擦轮开启模式下
+			{
+				UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_Change,9,UI_Color_Green,20, 1180, 160, 8);
+			}
+			else if (Referee_Interactive_info.friction_mode == FRICTION_OFF) // 摩擦轮关闭
+			{
+				UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_Change,9,UI_Color_White,20, 1180, 160, 8);
+			}
+
 			if (Referee_Interactive_info.shoot_mode == SHOOT_ON) // 摩擦轮开启模式下
 			{
-				UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_Change,9,UI_Color_Green,10, 1180, 160, 8);
+				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_ADD,9,UI_Color_Green,20, 1280, 160, 8);
 			}
 			else if (Referee_Interactive_info.shoot_mode == SHOOT_OFF) // 摩擦轮关闭
 			{
-				UICircleDraw(&UI_Circle_t[2],"sc2",UI_Graph_Change,9,UI_Color_White,10, 1180, 160, 8);
+				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_ADD,9,UI_Color_Orange,20, 1280, 160, 8);
 			}
 
 		//电容
-			//UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-			//等待电容模块 UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 8, UI_Color_Green, 20,80,720,(SuperCap_Info.CapVot-12)/12*200+80,720);
+		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
+		UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,720,(cap->cap_msg_g.chassic_power_remaining-12)/12*200+80,720);
 			/*中供弹没有弹舱盖，故删去
 			//弹舱盖
 			if (TIM1->CCR1 == LID_OPEN)
@@ -617,6 +646,7 @@ void My_UIGraphRefresh()
 			// UIGraphRefresh(&referee_info.referee_id,7,UI_Circle_t[0],UI_Circle_t[2],UI_Rectangle[1],UI_Energy[1],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1]);
 			// UIGraphRefresh(&referee_info.referee_id,2,UI_Circle_t[0],UI_Arco_t[0],UI_Arco_t[1]);
 			//UIGraphRefresh(&referee_info.referee_id,5,UI_Circle_t[0],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1],UI_Rectangle[1]);
-			UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[0],UI_Circle_t[2]);
+			UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Rectangle[1],&UI_Energy[1]);
+			UIGraphRefresh(&referee_info.referee_id, 1, UI_Circle_t[3]);
 	}
 }

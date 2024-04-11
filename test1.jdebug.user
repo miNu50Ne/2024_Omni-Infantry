@@ -1,9 +1,6 @@
 
 
-GraphedExpression="local_heat", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#e56a6f
-GraphedExpression="((referee_info).GameRobotState).shooter_id1_17mm_cooling_limit", Color=#35792b
-GraphedExpression="((referee_info).PowerHeatData).shooter_heat0", Color=#769dda
-OpenDocument="startup_stm32f407ighx.s", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Startup/startup_stm32f407ighx.s", Line=50
+OpenDocument="stm32f4xx_hal_spi.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c", Line=1272
 OpenDocument="main.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Src/main.c", Line=78
 OpenDocument="SEGGER_RTT.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.c", Line=473
 OpenDocument="bsp_dwt.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/bsp/dwt/bsp_dwt.c", Line=97
@@ -13,7 +10,7 @@ OpenDocument="shoot.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/application
 OpenDocument="gimbal.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/application/gimbal/gimbal.c", Line=0
 OpenDocument="motor_task.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/modules/motor/motor_task.c", Line=0
 OpenDocument="robot_cmd.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/application/cmd/robot_cmd.c", Line=45
-OpenDocument="stm32f4xx_hal_spi.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c", Line=1272
+OpenDocument="startup_stm32f407ighx.s", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Startup/startup_stm32f407ighx.s", Line=50
 OpenDocument="tasks.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3942
 OpenDocument="chassis.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/application/chassis/chassis.c", Line=272
 OpenDocument="bsp_can.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/bsp/can/bsp_can.c", Line=147
@@ -26,20 +23,23 @@ OpenDocument="stm32f4xx_hal_can.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry
 OpenDocument="gimbal.h", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/application/gimbal/gimbal.h", Line=0
 OpenDocument="SEGGER_RTT_printf.c", FilePath="c:/Users/ROG/Desktop/Omni_Infantry/Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c", Line=113
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=1, w=416, h=560, TabPos=1, TopOfStack=0, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=416, h=224, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=844, h=457, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x8
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=698, h=804, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=416, h=560, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=BOTTOM, x=0, y=0, w=1715, h=457, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="500 ms", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="18;0", DataGraphShowNamesAtCursor=0, PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1486;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="1502;0"
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=2, w=416, h=396, TabPos=1, TopOfStack=0, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=1, w=698, h=108, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=1, w=416, h=154, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=846, h=457, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x8
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=0, w=416, h=233, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=698, h=695, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=2, w=416, h=396, TabPos=0, TopOfStack=1, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=BOTTOM, x=0, y=0, w=1713, h=457, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="500 ms", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="18;0", DataGraphShowNamesAtCursor=0, PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="575;0", CodeGraphLegendShown=0, CodeGraphLegendPosition="526;0"
 SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
 TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[100;144;294]
 TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[345;100;104;149]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" local_heat";" ((referee_info).GameRobotState).shooter_id1_17mm_cooling_limit";" ((referee_info).PowerHeatData).shooter_heat0"], ColWidths=[100;100;100;100;100]
-TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[510;154;100;100;100;100;110;126;126]
-TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;340]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time"], ColWidths=[100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[510;100;100;100;100;100;110;126;126]
+TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[100;100;102;100;100;100]
+TableHeader="Source Files", SortCol="File", SortOrder="DESCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[223;100;100;100;100]
 WatchedExpression="friction_l", Window=Watched Data 1
 WatchedExpression="loader", RefreshRate=5, Window=Watched Data 1
 WatchedExpression="referee_info", Window=Watched Data 1
@@ -55,3 +55,4 @@ WatchedExpression="local_heat", RefreshRate=5, Window=Watched Data 1
 WatchedExpression="referee_info", Window=Watched Data 1
 WatchedExpression="derivative", RefreshRate=5, Window=Watched Data 1
 WatchedExpression="shoot_count", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="gimbal_IMU_data", RefreshRate=5, Window=Watched Data 1

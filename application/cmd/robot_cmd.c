@@ -67,6 +67,8 @@ Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数�
 extern char Send_Once_Flag;                          // 初始化UI标志
 
 int remote_work_condition = 0; // 遥控器是否离线判断
+
+uint8_t Super_flag            = 0; // 超电标志位
 void HOST_RECV_CALLBACK()
 {
     memcpy(vision_recv_data, host_instance->comm_instance, host_instance->RECV_SIZE);
@@ -351,11 +353,11 @@ static void GimbalSet()
 {
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     if ((rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c) && !(rc_data[TEMP].key[KEY_PRESS].v) && !(rc_data[TEMP].key[KEY_PRESS].x)) {
-        yaw_control -= rc_data[TEMP].mouse.x / 700.0f;
-        gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 15000.0f;
+        yaw_control -= rc_data[TEMP].mouse.x / 3500.0f;
+        gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 75000.0f;
     } else {
-        yaw_control -= rc_data[TEMP].mouse.x / 40.0f;
-        gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 3000.0f;
+        yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
+        gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 15000.0f;
     }
     YawControlProcess();
     gimbal_cmd_send.yaw = yaw_control;
@@ -482,6 +484,16 @@ static void KeyGetMode()
     }
 }
 
+static void SuperCapMode()
+{
+    if (rc_data[TEMP].key[KEY_PRESS].shift == 1) {
+        Super_flag = 1;
+    } 
+    else{
+        Super_flag = 0;
+    }
+}
+
 /**
  * @brief 输入为键鼠时模式和控制量设置
  * @todo 缺少打符模式（是否必要？）
@@ -494,6 +506,7 @@ static void MouseKeySet()
     KeyGetMode();
     SetShootMode();
     SetChassisMode();
+    SuperCapMode();
     // SetGimbalMode();
     PitchAngleLimit();
     RobotReset(); // 机器人复位处理
@@ -535,8 +548,8 @@ void UpDateUI()
     // 更新UI数据
     Referee_Interactive_info.chassis_mode  = chassis_cmd_send.chassis_mode;
     Referee_Interactive_info.gimbal_mode   = gimbal_cmd_send.gimbal_mode;
-    Referee_Interactive_info.shoot_mode    = shoot_cmd_send.shoot_mode;
-    Referee_Interactive_info.friction_mode = shoot_cmd_send.friction_mode;
+    Referee_Interactive_info.friction_mode    = shoot_cmd_send.friction_mode;
+    Referee_Interactive_info.shoot_mode     = shoot_cmd_send.shoot_mode;
     Referee_Interactive_info.lid_mode      = shoot_cmd_send.lid_mode;
     // Referee_Interactive_info.Chassis_Power_Data = ; 暂时没有，等待移植
 
