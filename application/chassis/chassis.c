@@ -355,6 +355,7 @@ void ChassisTask()
         DJIMotorEnable(motor_lb);
         DJIMotorEnable(motor_rb);
     }
+    
     float offset_angle;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
