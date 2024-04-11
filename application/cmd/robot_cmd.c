@@ -394,6 +394,7 @@ static void SetChassisMode()
  *
  *
  */
+
 static void RobotReset()
 {
     if (rc_data[TEMP].key[KEY_PRESS].shift && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].r) {
