@@ -189,14 +189,6 @@ uint16_t power_limit;
  */
 static void LimitChassisOutput()
 {
-    //西浦功率控制
-    // power_limit = referee_data->GameRobotState.chassis_power_limit;
-    // power->physical_quantity.max_power = power_limit;
-    // vt_lb= PowerControl(power,motor_lb->measure.real_current,motor_lb->measure.speed_aps);
-    // vt_lf= PowerControl(power,motor_lb->measure.real_current,motor_lf->measure.speed_aps);
-    // vt_rb= PowerControl(power,motor_lb->measure.real_current,motor_rb->measure.speed_aps);
-    // vt_rf= PowerControl(power,motor_lb->measure.real_current,motor_rf->measure.speed_aps);
-
     // 省赛功率控制
     Power_Buffer = referee_data->PowerHeatData.chassis_power_buffer;
     if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
@@ -284,6 +276,8 @@ void Super_Cap_control()
     }
 }
 
+
+
 void Power_level_get()//获取功率裆位
 {
     if (referee_data->GameRobotState.chassis_power_limit == 55) {
@@ -356,7 +350,7 @@ void ChassisTask()
         DJIMotorEnable(motor_rb);
     }
     
-    
+
     float offset_angle;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
