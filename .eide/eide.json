@@ -26,6 +26,7 @@
   "targets": {
     "Debug": {
       "excludeList": [
+        "Src/syscalls.c",
         "modules/algorithm/AHRS.lib"
       ],
       "toolchain": "GCC",
