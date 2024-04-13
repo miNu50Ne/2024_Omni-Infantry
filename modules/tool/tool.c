@@ -6,7 +6,10 @@ ramp_t rotate_ramp = RAMP_GEN_DAFAULT;
 ramp_t slow_ramp   = RAMP_GEN_DAFAULT;
 ramp_t close_ramp  = RAMP_GEN_DAFAULT;
 
-int heat_control    = 20; // 热量控制
+ramp_t auto_yaw_ramp = RAMP_GEN_DAFAULT;
+ramp_t auto_pitch_ramp = RAMP_GEN_DAFAULT;
+
+int heat_control    = 28; // 热量控制
 float heat_remain   = 0;  // 剩余热量
 float local_heat    = 0;  // 本地热量
 int One_bullet_heat = 10; // 打一发消耗热量
@@ -30,4 +33,3 @@ float ramp_calc(ramp_t *ramp)
     ramp->out = ramp->count / ((float)ramp->scale);
     return ramp->out;
 }
-
