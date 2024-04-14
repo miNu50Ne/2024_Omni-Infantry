@@ -24,6 +24,7 @@
 #include "arm_math.h"
 #include "power_control.h"
 
+
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
 #define HALF_TRACK_WIDTH (TRACK_WIDTH / 2.0f)    // 半轮距
@@ -134,7 +135,7 @@ void ChassisInit()
 
     SuperCap_Init_Config_s cap_conf = {
         .can_config = {
-            .can_handle = &hcan2,
+            .can_handle = &hcan1,
             .tx_id      = 0X427, // 超级电容默认接收id
             .rx_id      = 0x300, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
         }};
@@ -214,11 +215,6 @@ static void LimitChassisOutput()
     vt_rb       = 1 * vt_rb * Plimit * power_lecel;
 
     // 完成功率限制后进行电机参考输入设定
-    //飞坡速度，待测
-    // vt_lf *= 2.4;
-    // vt_rf *= 2.4;
-    // vt_lb *= 2.4;
-    // vt_rb *= 2.4;
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -228,6 +224,11 @@ static void LimitChassisOutput()
 
 //没有任何的功率限制，用于消耗超电容
 void No_Limit_Control(){
+    //飞坡速度，待测
+    vt_lf *= 2.4;
+    vt_rf *= 2.4;
+    vt_lb *= 2.4;
+    vt_rb *= 2.4;
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
@@ -275,8 +276,9 @@ void Super_Cap_control()
         }
     }
     if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
-        Super_Allow_Flag = SUPER_CLOSE;
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
     }
+
 }
 
 
@@ -360,14 +362,13 @@ void ChassisTask()
         case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
             chassis_cmd_recv.wz = 0;
             break;
-        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台,不单独设置pid,以误差角度平方为速度输出
-
+        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
+            chassis_cmd_recv.offset_angle += 360;//将角度映射到0-360度
             if (chassis_cmd_recv.offset_angle <= 90 || chassis_cmd_recv.offset_angle >= 270) // 0附近
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
                 offset_angle = chassis_cmd_recv.offset_angle - 180;
             chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
-
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
             chassis_cmd_recv.wz = 2200;
@@ -401,7 +402,8 @@ void ChassisTask()
     // // 当前只做了17mm热量的数据获取,后续根据robot_def中的宏切换双枪管和英雄42mm的情况
     // chassis_feedback_data.bullet_speed = referee_data->GameRobotState.shooter_id1_17mm_speed_limit;
     // chassis_feedback_data.rest_heat = referee_data->PowerHeatData.shooter_heat0;
-
+    Power_level_get();
+    SuperCapSend(cap, (uint8_t *)&cap->cap_msg_g);
     // 推送反馈消息
 #ifdef ONE_BOARD
     PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);
