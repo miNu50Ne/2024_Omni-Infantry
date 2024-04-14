@@ -245,7 +245,8 @@ void Super_Cap_control()
         Super_Allow_Flag = SUPER_RELAY_OPEN;
     }
 
-    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) // 电容在按键中开启
+    // User允许开启电容 且 电压充足
+    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) 
     {
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
     } else {
