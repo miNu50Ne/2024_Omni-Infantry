@@ -28,7 +28,7 @@ static void SuperCapRxCallback(CANInstance *_instance)
     rxbuff         = _instance->rx_buff;
     Msg            = &super_cap_instance->cap_msg_s;
     Msg->CapVot       = *(float *)rxbuff;
-    Msg->open_flag = rxbuff[4];
+    Msg->SuperCap_open_flag_from_real = rxbuff[4];
 }
 
 SuperCapInstance *SuperCapInit(SuperCap_Init_Config_s *supercap_config)

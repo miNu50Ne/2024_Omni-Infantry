@@ -241,20 +241,20 @@ int time_delay, time_delay1, time_delay2;
 void Super_Cap_control()
 {
     
-    if (Super_flag == 0)//pressed
+    if (Super_flag == SUPER_OPEN)//电容在按键中开启
     {
-        Super_Allow_Flag = 1;
+        Super_Allow_Flag = SUPER_OPEN;
 
         time_delay = 0;
         LimitChassisOutput();
         time_delay1++;
         if (time_delay1 > 50) {
-            cap->cap_msg_g.power_relay_flag = 0;
+            cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
             time_delay1                     = 0;
         }
         
     }
-    else if (Super_Allow_Flag) {
+    else if (Super_Allow_Flag == SUPER_OPEN ) {
         time_delay++;
         if (time_delay < 60) {
             LimitChassisOutput();
@@ -263,18 +263,19 @@ void Super_Cap_control()
         {
             No_Limit_Control();
         }
-        cap->cap_msg_g.power_relay_flag = 1;
-    } else {
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    } 
+    else {
         time_delay = 0;
         LimitChassisOutput();
         time_delay2++;
         if (time_delay2 > 50) {
-            cap->cap_msg_g.power_relay_flag = 0;
+            cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
             time_delay2                     = 0;
         }
     }
-    if (cap->cap_msg_s.CapVot < 12.0f) {
-        Super_Allow_Flag = 0;
+    if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
+        Super_Allow_Flag = SUPER_CLOSE;
     }
 }
 

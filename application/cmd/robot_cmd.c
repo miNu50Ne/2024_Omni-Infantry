@@ -10,6 +10,7 @@
 #include "dji_motor.h"
 #include "referee_UI.h"
 #include "tool.h"
+#include "super_cap.h"
 // bsp
 #include "bsp_dwt.h"
 #include "bsp_log.h"
@@ -487,11 +488,11 @@ static void KeyGetMode()
 
 static void SuperCapMode()
 {
-    if (rc_data[TEMP].key[KEY_PRESS].shift == 1) {
-        Super_flag = 1;
+    if (rc_data[TEMP].key[KEY_PRESS].shift) {
+        Super_flag = SUPER_OPEN;
     } 
     else{
-        Super_flag = 0;
+        Super_flag = SUPER_CLOSE;
     }
 }
 

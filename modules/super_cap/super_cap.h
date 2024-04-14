@@ -21,11 +21,22 @@
 #include "bsp_can.h"
 
 #pragma pack(1)
+
+#define SUPER_OPEN  1
+#define SUPER_CLOSE 0
+
+#define SUPER_RELAY_OPEN 1
+#define SUPER_RELAY_CLOSE 0
+
+#define SUPERCAP_OPEN_FLAG_FROM_REAL_Opened 0
+#define SUPERCAP_OPEN_FLAG_FROM_REAL_Closed 1
+
+#define SUPER_VOLT_MIN 12.0f
 /* 超级电容发送信息 */
 typedef struct
 {
     float CapVot;         // 电压
-    uint8_t open_flag;    // 开关指示
+    uint8_t SuperCap_open_flag_from_real;    // 开关指示 未开启为1
 } SuperCap_Msg_s;
 
 /* 超级电容接收信息 */
