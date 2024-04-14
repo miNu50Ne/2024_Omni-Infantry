@@ -41,8 +41,8 @@ typedef struct
 typedef struct
 {
     CANInstance *can_ins;     // CAN实例
-    SuperCap_Msg_s cap_msg_s; // 超级电容发送信息
-    SuperCap_Msg_g cap_msg_g; //超级电容接收信息
+    SuperCap_Msg_s cap_msg_s; // 超级电容发送,本机接受的信息
+    SuperCap_Msg_g cap_msg_g; //超级电容接收,本机发送的信息
 } SuperCapInstance;
 
 /* 超级电容初始化配置 */

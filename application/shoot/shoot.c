@@ -189,6 +189,8 @@ void ShootTask()
         DJIMotorSetRef(friction_r, -150);
     } else // 关闭摩擦轮
     {
+        DJIMotorOuterLoop(friction_l, SPEED_LOOP); // 切换到速度环
+        DJIMotorOuterLoop(friction_r, SPEED_LOOP); // 切换到速度环
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);
     }

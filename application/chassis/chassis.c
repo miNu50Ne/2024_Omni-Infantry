@@ -220,9 +220,6 @@ static void LimitChassisOutput()
     // vt_lb *= 2.4;
     // vt_rb *= 2.4;
 
-
-
-
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
@@ -243,10 +240,9 @@ uint8_t Super_Allow_Flag;
 int time_delay, time_delay1, time_delay2;
 void Super_Cap_control()
 {
-    if (cap->cap_msg_s.CapVot < 12.0f) {
-        Super_Allow_Flag = 0;
-    }
-    if (Super_flag == 0) {
+    
+    if (Super_flag == 0)//pressed
+    {
         Super_Allow_Flag = 1;
 
         time_delay = 0;
@@ -276,6 +272,9 @@ void Super_Cap_control()
             cap->cap_msg_g.power_relay_flag = 0;
             time_delay2                     = 0;
         }
+    }
+    if (cap->cap_msg_s.CapVot < 12.0f) {
+        Super_Allow_Flag = 0;
     }
 }
 

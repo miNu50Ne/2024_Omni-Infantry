@@ -234,7 +234,7 @@ static void RemoteControlSet()
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode     = LOAD_STOP;
     }
-    shoot_cmd_send.shoot_rate = 15;
+    shoot_cmd_send.shoot_rate = 25;
 
     if (switch_is_mid(rc_data[TEMP].rc.switch_left) && vision_recv_data[8] == 1) // 左侧开关状态为[中],视觉模式
     {
@@ -436,7 +436,7 @@ static void SetShootMode()
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
         // 打弹，单击左键单发，长按连发
-        shoot_cmd_send.shoot_rate = 3;
+        shoot_cmd_send.shoot_rate = 25;
         if (rc_data[TEMP].mouse.press_l) {
 
             shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
