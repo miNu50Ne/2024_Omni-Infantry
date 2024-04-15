@@ -12,6 +12,19 @@
 //屏幕长度
 #define SCREEN_LENGTH 1920
 
+//步兵机器人不同等级对应的功率（功率优先）
+#define robot_power_level_1 60
+#define robot_power_level_2 65
+#define robot_power_level_3 70
+#define robot_power_level_4 75
+#define robot_power_level_5 80
+#define robot_power_level_6 85
+#define robot_power_level_7 90
+#define robot_power_level_8 95
+#define robot_power_level_9to10 100
+#define robot_power_level_MAX 200//当机器人满级且获得最大功率增益（步兵机器人的功率上限）
+
+
 extern uint8_t UI_Seq;
 
 #pragma pack(1)

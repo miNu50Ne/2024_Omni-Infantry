@@ -21,6 +21,7 @@
 #include "general_def.h"
 #include "bsp_dwt.h"
 #include "referee_UI.h"
+#include "rm_referee.h"
 #include "arm_math.h"
 #include "power_control.h"
 
@@ -56,6 +57,8 @@ static uint8_t center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转�
 static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 
 extern uint8_t Super_flag; // 超电的标志位
+extern uint8_t Super_condition; // 超电的开关状态
+extern uint8_t Super_condition_volt; // 超电的电压
 
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
@@ -263,37 +266,48 @@ void Super_Cap_control()
 
 void Power_level_get() // 获取功率裆位
 {
-    if (referee_data->GameRobotState.chassis_power_limit == 55) {
+    switch (referee_data->GameRobotState.chassis_power_limit)
+    {
+    case robot_power_level_1:
+        cap->cap_msg_g.power_level = 1;
+        break;
+    case robot_power_level_2:
         cap->cap_msg_g.power_level = 2;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 60) {
+        break;
+    case robot_power_level_3:
         cap->cap_msg_g.power_level = 3;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 65) {
+        break;
+    case robot_power_level_4:
         cap->cap_msg_g.power_level = 4;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 70) {
+        break;
+    case robot_power_level_5:
         cap->cap_msg_g.power_level = 5;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 75) {
-        cap->cap_msg_g.power_level = 5;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 80) {
+        break;
+    case robot_power_level_6:
         cap->cap_msg_g.power_level = 6;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 85) {
-        cap->cap_msg_g.power_level = 6;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 90) {
+        break;
+    case robot_power_level_7:
         cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 95) {
-        cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 100) {
-        cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 105) {
-        cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 110) {
-        cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 115) {
-        cap->cap_msg_g.power_level = 7;
-    } else if (referee_data->GameRobotState.chassis_power_limit == 120) {
+        break;
+    case robot_power_level_8:
         cap->cap_msg_g.power_level = 8;
-    } else {
+        break;
+    case robot_power_level_9to10:
+        cap->cap_msg_g.power_level = 9;
+        break;
+    case robot_power_level_MAX:
+        cap->cap_msg_g.power_level = 10;
+        break;
+    default:
         cap->cap_msg_g.power_level = 0;
+        break;
     }
+    if(referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10){
+        cap->cap_msg_g.power_level = 9;
+    }
+
+    Super_condition = cap->cap_msg_s.SuperCap_open_flag_from_real;
+    Super_condition_volt = cap->cap_msg_s.CapVot;
 }
 
 /**
@@ -372,15 +386,11 @@ void ChassisTask()
 
     EstimateSpeed();
 
-    // 发送裁判UI
-    // // 获取裁判系统数据   建议将裁判系统与底盘分离，所以此处数据应使用消息中心发送
-    // // 我方颜色id小于7是红色,大于7是蓝色,注意这里发送的是对方的颜色, 0:blue , 1:red
-    // chassis_feedback_data.enemy_color = referee_data->GameRobotState.robot_id > 7 ? 1 : 0;
-    // // 当前只做了17mm热量的数据获取,后续根据robot_def中的宏切换双枪管和英雄42mm的情况
-    // chassis_feedback_data.bullet_speed = referee_data->GameRobotState.shooter_id1_17mm_speed_limit;
-    // chassis_feedback_data.rest_heat = referee_data->PowerHeatData.shooter_heat0;
+    // 获得给电容传输的电容吸取功率等级
     Power_level_get();
+    //给电容传输数据
     SuperCapSend(cap, (uint8_t *)&cap->cap_msg_g);
+
     // 推送反馈消息
 #ifdef ONE_BOARD
     PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);

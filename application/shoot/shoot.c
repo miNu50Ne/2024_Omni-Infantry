@@ -117,7 +117,7 @@ void ShootTask()
         UI_timer++;
     } else {
         UI_timer = 0;
-        //My_UIGraphRefresh();
+        My_UIGraphRefresh();
     }
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
