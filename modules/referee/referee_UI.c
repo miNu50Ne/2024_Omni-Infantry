@@ -39,11 +39,12 @@ static uint32_t R_CRC_location[10] = {1283, 1, 1070, 347};
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
 static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 
-float yaw_angle;
+char yaw_angle[20];
 
 static SuperCapInstance *cap;
 uint8_t Super_condition; // 超电的开关状态
-uint8_t Super_condition_volt; // 超电的电压
+float Super_condition_volt; // 超电的电压
+
 
 /********************************************删除操作*************************************
 **参数：_id 对应的id结构体
@@ -363,10 +364,10 @@ void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 	graph->Graph_Control.end_x = 0;
 	graph->Graph_Control.end_y = 0;
 
-	va_list ap;
-	va_start(ap, fmt);
+	//va_list ap;
+	//va_start(ap, fmt);
 	//vsprintf((char *)graph->show_Data, fmt, ap); // 使用参数列表进行格式化并输出到字符串
-	va_end(ap);
+	//va_end(ap);
 	graph->Graph_Control.end_angle = strlen((const char *)graph->show_Data);
 }
 
@@ -527,7 +528,7 @@ void My_UIGraphRefresh()
 		UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "SuperCap");
 		UICharRefresh(&referee_info.referee_id,UI_State_sta[3]);
 		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 10,80,711,(int)((Super_condition_volt)/14*200+80),729);
+		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 10,80,711,(int)((Super_condition_volt-12)/14*200+80),729);
 		//初始自瞄框
 		/*
 		if((NUC_Data.yaw_offset==0) & (NUC_Data.pit_offset==0))
@@ -556,9 +557,8 @@ void My_UIGraphRefresh()
 		UICharDraw(&UI_State_sta[4], "ss4", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300,700, "Pitch");
 		UICharRefresh(&referee_info.referee_id, UI_State_sta[4]);
 
-		// char str[20]; // 定义一个足够大的字符数组来存储转换后的字符串
-		// sprintf(str, "%.2f", yaw_angle*10);// 使用sprintf函数将小数转换为字符串
-		// sprintf(UI_State_sta[5].show_Data,str);
+		// char pitch_angle[6] = "PITCH";
+		// sprintf(UI_State_sta[5].show_Data,pitch_angle);
 		// UICharDraw(&UI_State_sta[5], "ss5", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300+100,700, "Pitch");
 		// UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
 
@@ -569,8 +569,7 @@ void My_UIGraphRefresh()
 		//将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
 		UIGraphRefresh(&referee_info.referee_id,5,UI_Deriction_line[0],UI_Deriction_line[1],UI_Circle_t[0],UI_Circle_t[1],UI_Circle_t[2]);
 		//UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Rectangle[1],&UI_Energy[1]);
-		UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[0],UI_Circle_t[2]);
-		UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[3],UI_Circle_t[4]);
+		UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2], UI_Circle_t[3],UI_Circle_t[4],UI_Energy[1]);
 
 		}	
 		
@@ -615,7 +614,7 @@ void My_UIGraphRefresh()
 
 		//电容
 		// UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,711,(int)((Super_condition_volt)/14*200+80),729);
+		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,711,(int)((Super_condition_volt-12)/14*200+80),729);
 			/*中供弹没有弹舱盖，故删去
 			//弹舱盖
 			if (TIM1->CCR1 == LID_OPEN)
@@ -658,8 +657,9 @@ void My_UIGraphRefresh()
 			// UIGraphRefresh(&referee_info.referee_id,7,UI_Circle_t[0],UI_Circle_t[2],UI_Rectangle[1],UI_Energy[1],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1]);
 			// UIGraphRefresh(&referee_info.referee_id,2,UI_Circle_t[0],UI_Arco_t[0],UI_Arco_t[1]);
 			//UIGraphRefresh(&referee_info.referee_id,5,UI_Circle_t[0],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1],UI_Rectangle[1]);
-			UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Rectangle[1],&UI_Energy[1]);
-			UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[0],UI_Circle_t[2]);
-			UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[3],UI_Circle_t[4]);
+
+			// 发送4个指示圈+超电剩余电压条
+			UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Circle_t[4],&UI_Energy[1]);
+			
 	}
 }

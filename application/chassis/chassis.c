@@ -262,37 +262,44 @@ void Super_Cap_control()
     } else {
         No_Limit_Control();
     }
+    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
 }
+void Define_Robot_Power_Limit(){
 
+}
 void Power_level_get() // 获取功率裆位
 {
-    switch (referee_data->GameRobotState.chassis_power_limit)
+    switch (referee_info.GameRobotState.robot_level)
     {
-    case robot_power_level_1:
+    case 1:
         cap->cap_msg_g.power_level = 1;
         break;
-    case robot_power_level_2:
+    case 2:
         cap->cap_msg_g.power_level = 2;
         break;
-    case robot_power_level_3:
+    case 3:
         cap->cap_msg_g.power_level = 3;
         break;
-    case robot_power_level_4:
+    case 4:
         cap->cap_msg_g.power_level = 4;
         break;
-    case robot_power_level_5:
+    case 5:
         cap->cap_msg_g.power_level = 5;
         break;
-    case robot_power_level_6:
+    case 6:
         cap->cap_msg_g.power_level = 6;
         break;
-    case robot_power_level_7:
+    case 7:
         cap->cap_msg_g.power_level = 7;
         break;
-    case robot_power_level_8:
+    case 8:
         cap->cap_msg_g.power_level = 8;
         break;
-    case robot_power_level_9to10:
+    case 9:
+        cap->cap_msg_g.power_level = 9;
+        break;
+    case 10:
         cap->cap_msg_g.power_level = 9;
         break;
     case robot_power_level_MAX:
@@ -306,8 +313,7 @@ void Power_level_get() // 获取功率裆位
         cap->cap_msg_g.power_level = 9;
     }
 
-    Super_condition = cap->cap_msg_s.SuperCap_open_flag_from_real;
-    Super_condition_volt = cap->cap_msg_s.CapVot;
+    //cap->cap_msg_g.power_level = 2;
 }
 
 /**
@@ -325,7 +331,8 @@ static void EstimateSpeed()
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-
+    Super_condition = cap->cap_msg_s.SuperCap_open_flag_from_real;
+    Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)
     // 获取新的控制信息
 #ifdef ONE_BOARD
