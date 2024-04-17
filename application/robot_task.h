@@ -85,14 +85,14 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
   }
 }
 
-// __attribute__((noreturn)) void _DaemonTask(void *argument)
-// {
-//   for(;;)
-//   {
-//     DaemonTask();
-//     osDelay(10);
-//   }
-// }
+__attribute__((noreturn)) void _DaemonTask(void *argument)
+{
+  for(;;)
+  {
+    DaemonTask();
+    osDelay(1);
+  }
+}
 
 // #include "robot.h"
 // __attribute__((noreturn)) void TestTask(void *argument)

@@ -69,7 +69,7 @@ extern char Send_Once_Flag;                          // 初始化UI标志
 
 int remote_work_condition = 0; // 遥控器是否离线判断
 
-uint8_t Super_flag            = 0; // 超电标志位
+uint8_t Super_flag = 0; // 超电标志位
 void HOST_RECV_CALLBACK()
 {
     memcpy(vision_recv_data, host_instance->comm_instance, host_instance->RECV_SIZE);
@@ -195,53 +195,62 @@ static void YawControlProcess()
  */
 static void RemoteControlSet()
 {
-    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+    shoot_cmd_send.shoot_mode = SHOOT_ON;    //发射机构常开
+    Super_flag                = SUPER_CLOSE; // 默认关闭超电
+    shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
 
+    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
     if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[上],小陀螺
     {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
         shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
         shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[中],底盘和云台分离,底盘保持不转动
+    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[中],底盘跟随云台
     {
         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
         shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
         shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_down(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[下],底盘跟随云台
+    } else if (switch_is_down(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[下],底盘云台分离
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
         shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
         shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_down(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[下],右侧开关状态[中],底盘和云台分离,底盘保持不转动，打开摩擦轮
+    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[中],底盘和云台分离,摩擦轮启动
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
         shoot_cmd_send.friction_mode  = FRICTION_ON;
         shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_down(rc_data[TEMP].rc.switch_left)) {
+    } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) { // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
         shoot_cmd_send.friction_mode  = FRICTION_ON;
-
-        shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+        shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
         if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
         {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
+    }
+    // 调试模式
+
+    // 左侧开关为[下]，右侧为[中]，开超电
+    else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+        chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+        gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
+        shoot_cmd_send.friction_mode  = FRICTION_OFF;
+        shoot_cmd_send.load_mode      = LOAD_STOP;
+        Super_flag                    = SUPER_OPEN;
     } else {
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode     = LOAD_STOP;
     }
-    shoot_cmd_send.shoot_rate = 25;
 
-    if (switch_is_mid(rc_data[TEMP].rc.switch_left) && vision_recv_data[8] == 1) // 左侧开关状态为[中],视觉模式
-    {
+    // 左侧开关为[下]右侧开关为[上]，且接收到上位机的绝对角度,视觉模式
+    if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) && vision_recv_data[8] == 1) {
         // 使用绝对角度控制
-        // // 将视觉传来的向量转为绝对角度
-
         static float rec_yaw, rec_pitch;
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
@@ -267,7 +276,7 @@ static void RemoteControlSet()
         // if (yaw_total_angle - yaw > 180) yaw += 180;
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
-    if (switch_is_down(rc_data[TEMP].rc.switch_left) || vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+    if (vision_recv_data[8] == 0 || switch_is_down(rc_data[TEMP].rc.switch_left)) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
         yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
         gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
@@ -293,8 +302,15 @@ int Chassis_Rotate_Flag = 0; // 底盘陀螺标志位
 int Shoot_Mode_Flag     = 0; // 发射模式标志位
 int Shoot_Mode          = 0; // 发射模式标志位
 int Shoot_Run_Flag      = 0; // 摩擦轮标志位
+int Rune_Mode_Flag      = 0; // 打符模式标志位
 #pragma message "TODO"
 int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
+
+// 底盘状态（按键用）
+Chassis_Status_Enum Chassis_Status = CHASSIS_STATUS_FOLLOW;
+
+// 云台状态（按键用）
+Gimbal_Status_Enum Gimbal_Status = GIMBAL_STATUS_GYRO;
 
 /**
  * @brief 键盘设定速度
@@ -352,7 +368,6 @@ static void ChassisSpeedSet()
  */
 static void GimbalSet()
 {
-    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     if ((rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c) && !(rc_data[TEMP].key[KEY_PRESS].v) && !(rc_data[TEMP].key[KEY_PRESS].x)) {
         yaw_control -= rc_data[TEMP].mouse.x / 3500.0f;
         gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 75000.0f;
@@ -362,16 +377,25 @@ static void GimbalSet()
     }
     YawControlProcess();
     gimbal_cmd_send.yaw = yaw_control;
+
+    // 打符模式判断
+    if (Rune_Mode_Flag > 20) {
+        Gimbal_Status = GIMBAL_STATUS_FREE;
+        Rune_Mode_Flag = 0;
+    } else if(Rune_Mode_Flag < -10){
+        Gimbal_Status = GIMBAL_STATUS_GYRO;
+        Rune_Mode_Flag = 0;
+    }
+
+    // 改变云台模式
+    if (Gimbal_Status == GIMBAL_STATUS_FREE) {
+        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+    } else if (Gimbal_Status == GIMBAL_STATUS_GYRO) {
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+    } else if (Gimbal_Status == GIMBAL_STATUS_AUTOAIM) {
+        gimbal_cmd_send.gimbal_mode = GIMBAL_AUTOAIM_MODE;
+    }
 }
-
-// 底盘状态标志位
-typedef enum {
-    CHASSIS_STATUS_ROTATE = 0,
-    CHASSIS_STATUS_FOLLOW,
-
-} Chassis_Status_Enum;
-// 底盘状态（按键用）
-Chassis_Status_Enum Chassis_Status = CHASSIS_STATUS_FOLLOW;
 
 static void SetChassisMode()
 {
@@ -383,10 +407,20 @@ static void SetChassisMode()
         Chassis_Rotate_Flag = 0;
     }
 
+    if (Rune_Mode_Flag > 20) {
+        Chassis_Status      = CHASSIS_STATUS_FREE;
+        Rune_Mode_Flag = 0;
+    } else if (Rune_Mode_Flag < -20) {
+        Chassis_Status      = CHASSIS_STATUS_FOLLOW;
+        Rune_Mode_Flag = 0;
+    }
+
     if (Chassis_Status == CHASSIS_STATUS_ROTATE) {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
     } else if (Chassis_Status == CHASSIS_STATUS_FOLLOW) {
         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+    } else if (Chassis_Status == CHASSIS_STATUS_FREE) {
+        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
     }
 }
 
@@ -420,19 +454,6 @@ static void SetShootMode()
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         Shoot_Run_Flag               = 0;
     }
-    // 按H键更改发射模式，目前为1:单发  2:连发
-    if (rc_data[TEMP].key[KEY_PRESS].h) {
-        Shoot_Mode_Flag++;
-    } else {
-        Shoot_Mode_Flag = 0;
-    }
-    if (Shoot_Mode_Flag > 10) {
-        if (Shoot_Mode == 0) {
-            Shoot_Mode = 1;
-        } else {
-            Shoot_Mode = 0;
-        }
-    }
 
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
@@ -448,10 +469,8 @@ static void SetShootMode()
     // 新热量管理
     if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
     {
-        if (!(rc_data[TEMP].key->r)) // 按着R则不限制热量
-        {
+
             shoot_cmd_send.load_mode = LOAD_STOP;
-        }
     }
 }
 
@@ -464,8 +483,6 @@ static void KeyGetMode()
 {
     // V键开启摩擦轮，Ctrl+V关闭摩擦轮
     if (rc_data[TEMP].key[KEY_PRESS].v && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) {
-#pragma message "TODO"
-
         Shoot_Run_Flag++;
     } else if (rc_data[TEMP].key[KEY_PRESS].v && (rc_data[TEMP].key[KEY_PRESS].ctrl)) {
         Shoot_Run_Flag--;
@@ -475,14 +492,23 @@ static void KeyGetMode()
     if (rc_data[TEMP].key[KEY_PRESS].ctrl) {
         Send_Once_Flag = 0; // UI重新发送
     }
+
     // C键开启小陀螺，Ctrl+C停止
     if ((rc_data[TEMP].key[KEY_PRESS].c) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) {
         Chassis_Rotate_Flag++;
     } else if (rc_data[TEMP].key[KEY_PRESS].c && (rc_data[TEMP].key[KEY_PRESS].ctrl)) {
-
         Chassis_Rotate_Flag--;
     } else {
         Chassis_Rotate_Flag = 0;
+    }
+
+    // G键开启小陀螺，Ctrl+G停止
+    if ((rc_data[TEMP].key[KEY_PRESS].g) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) {
+        Rune_Mode_Flag++;
+    } else if (rc_data[TEMP].key[KEY_PRESS].g && (rc_data[TEMP].key[KEY_PRESS].ctrl)) {
+        Rune_Mode_Flag--;
+    } else {
+        Rune_Mode_Flag = 0;
     }
 }
 
@@ -490,8 +516,7 @@ static void SuperCapMode()
 {
     if (rc_data[TEMP].key[KEY_PRESS].shift) {
         Super_flag = SUPER_OPEN;
-    } 
-    else{
+    } else {
         Super_flag = SUPER_CLOSE;
     }
 }
@@ -509,7 +534,6 @@ static void MouseKeySet()
     SetShootMode();
     SetChassisMode();
     SuperCapMode();
-    // SetGimbalMode();
     PitchAngleLimit();
     RobotReset(); // 机器人复位处理
 }
@@ -523,23 +547,14 @@ static void MouseKeySet()
  */
 static void EmergencyHandler()
 {
-    // 拨轮的向下拨超过一半进入急停模式.注意向打时下拨轮是正
-    if (rc_data[TEMP].rc.dial > 300 || robot_state == ROBOT_STOP) // 还需添加重要应用和模块离线的判断
-    {
-        robot_state                   = ROBOT_STOP;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
-        chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
-        shoot_cmd_send.shoot_mode     = SHOOT_OFF;
-        shoot_cmd_send.friction_mode  = FRICTION_OFF;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-        LOGERROR("[CMD] emergency stop!");
-    }
-    // 遥控器右侧开关为[中],恢复正常运行
-    if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-        robot_state               = ROBOT_READY;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
-        LOGINFO("[CMD] reinstate, robot ready");
-    }
+    // robot_state                   = ROBOT_STOP;
+    gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
+    chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
+    shoot_cmd_send.shoot_mode     = SHOOT_OFF;
+    shoot_cmd_send.friction_mode  = FRICTION_OFF;
+    shoot_cmd_send.load_mode      = LOAD_STOP;
+    Super_flag                    = SUPER_CLOSE;
+    LOGERROR("[CMD] emergency stop!");
 }
 
 /**
@@ -550,8 +565,8 @@ void UpDateUI()
     // 更新UI数据
     Referee_Interactive_info.chassis_mode  = chassis_cmd_send.chassis_mode;
     Referee_Interactive_info.gimbal_mode   = gimbal_cmd_send.gimbal_mode;
-    Referee_Interactive_info.friction_mode    = shoot_cmd_send.friction_mode;
-    Referee_Interactive_info.shoot_mode     = shoot_cmd_send.shoot_mode;
+    Referee_Interactive_info.friction_mode = shoot_cmd_send.friction_mode;
+    Referee_Interactive_info.shoot_mode    = shoot_cmd_send.shoot_mode;
     Referee_Interactive_info.lid_mode      = shoot_cmd_send.lid_mode;
     // Referee_Interactive_info.Chassis_Power_Data = ; 暂时没有，等待移植
 
@@ -581,23 +596,15 @@ void RobotCMDTask()
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
 
-    if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[上],键盘控制
+    if (switch_is_up(rc_data[TEMP].rc.switch_left) && (switch_is_down(rc_data[TEMP].rc.switch_right))) // 遥控器拨杆双[上],键鼠控制
         MouseKeySet();
     else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right)) {
-        RemoteControlSet();
-        // 之后删除_急停
-        robot_state                   = ROBOT_STOP;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
-        chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
-        // shoot_cmd_send.shoot_mode     = SHOOT_OFF;
-        shoot_cmd_send.friction_mode = FRICTION_OFF;
-        shoot_cmd_send.load_mode     = LOAD_STOP;
+        EmergencyHandler(); // 调试/疯车时急停
     } else {
         RemoteControlSet();
     }
 
     UpDateUI();
-    EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
     remote_work_condition = RemoteControlIsOnline();
 
     if (remote_work_condition == 0) {

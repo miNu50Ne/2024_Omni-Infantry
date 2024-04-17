@@ -204,7 +204,7 @@ static void LimitChassisOutput()
         Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
     else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
         Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
+    else if (referee_data->PowerHeatData.chassis_power_buffer >= 60)
         Plimit = 1;
 
     power_lecel = referee_data->GameRobotState.robot_level * 0.1 * 5 + 0.8 + 0.15; // TODO: 未稳定
@@ -226,17 +226,21 @@ static void LimitChassisOutput()
 void No_Limit_Control()
 {
     // 飞坡速度，待测
-    vt_lf *= 2.4;
-    vt_rf *= 2.4;
-    vt_lb *= 2.4;
-    vt_rb *= 2.4;
+    vt_lf *= 3;
+    vt_rf *= 3;
+    vt_lb *= 3;
+    vt_rb *= 3;
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
 }
 
-// 超电控制算法
+/**
+ * @brief 自制超电控制算法
+ * 
+ * 
+ */
 uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
 void Super_Cap_control()
@@ -263,7 +267,7 @@ void Super_Cap_control()
         No_Limit_Control();
     }
     // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
 }
 void Define_Robot_Power_Limit(){
 
