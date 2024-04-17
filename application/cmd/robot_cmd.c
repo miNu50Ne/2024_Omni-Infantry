@@ -11,6 +11,7 @@
 #include "referee_UI.h"
 #include "tool.h"
 #include "super_cap.h"
+#include "AHRS_MiddleWare.h"
 // bsp
 #include "bsp_dwt.h"
 #include "bsp_log.h"
@@ -66,6 +67,8 @@ static Robot_Status_e robot_state; // 机器人整体工作状态
 
 Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数据
 extern char Send_Once_Flag;                          // 初始化UI标志
+extern float Yaw_Angle;
+extern float Pitch_Angle;                           // 云台Pitch轴角度
 
 int remote_work_condition = 0; // 遥控器是否离线判断
 
@@ -489,7 +492,7 @@ static void KeyGetMode()
     } else {
         Shoot_Run_Flag = 0;
     }
-    if (rc_data[TEMP].key[KEY_PRESS].ctrl) {
+    if (rc_data[TEMP].key[KEY_PRESS].r) {
         Send_Once_Flag = 0; // UI重新发送
     }
 
@@ -502,7 +505,7 @@ static void KeyGetMode()
         Chassis_Rotate_Flag = 0;
     }
 
-    // G键开启小陀螺，Ctrl+G停止
+    // G键开启分离模式，Ctrl+G停止
     if ((rc_data[TEMP].key[KEY_PRESS].g) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) {
         Rune_Mode_Flag++;
     } else if (rc_data[TEMP].key[KEY_PRESS].g && (rc_data[TEMP].key[KEY_PRESS].ctrl)) {
@@ -577,6 +580,9 @@ void UpDateUI()
     Referee_Interactive_info.friction_last_mode      = Referee_Interactive_info.friction_mode;
     Referee_Interactive_info.lid_last_mode           = Referee_Interactive_info.lid_mode;
     Referee_Interactive_info.Chassis_last_Power_Data = Referee_Interactive_info.Chassis_Power_Data;
+
+    Pitch_Angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[1]*RAD_TO_ANGLE*(-1); //获得IMU的pitch绝对角度（角度制），用于绘制UI
+    Yaw_Angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[0]*RAD_TO_ANGLE;   //获得IMU的yaw绝对角度（角度制），用于绘制UI
 }
 
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */

@@ -29,21 +29,20 @@ static Graph_Data_t UI_Energy[3];								// 电容能量条
 static Graph_Data_t UI_Rectangle[10];           //矩形
 static Graph_Data_t UI_Circle_t[10];               //圆形
 static Graph_Data_t UI_Arco_t[10];								// 圆弧
+static Graph_Data_t UI_Number_t[10];								// 数字
 static String_Data_t UI_State_sta[10];							// 机器人状态,静态只需画一次
 //static String_Data_t UI_State_dyn[6];							// 机器人状态,动态先add才能change
-
-char char_pitch;
-static uint32_t L_CRC_location[10] = {631, 1, 863, 347};
-static uint32_t R_CRC_location[10] = {1283, 1, 1070, 347};
 
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
 static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 
-char yaw_angle[20];
 
-static SuperCapInstance *cap;
 uint8_t Super_condition; // 超电的开关状态
 float Super_condition_volt; // 超电的电压
+
+float Pitch_Angle; //pitch角度（角度制）
+float Yaw_Angle; //yaw角度（角度制）
+
 
 
 /********************************************删除操作*************************************
@@ -527,8 +526,8 @@ void My_UIGraphRefresh()
 		sprintf(UI_State_sta[3].show_Data,"SuperCap");
 		UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "SuperCap");
 		UICharRefresh(&referee_info.referee_id,UI_State_sta[3]);
-		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 10,80,711,(int)((Super_condition_volt-12)/14*200+80),729);
+		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_White,4,80,710,280,730);
+		UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 9, UI_Color_Green, 20,80,720,(uint32_t)((Super_condition_volt*Super_condition_volt - 144)/532*200+80),720);//超电电压在12V-26V之间
 		//初始自瞄框
 		/*
 		if((NUC_Data.yaw_offset==0) & (NUC_Data.pit_offset==0))
@@ -557,19 +556,16 @@ void My_UIGraphRefresh()
 		UICharDraw(&UI_State_sta[4], "ss4", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300,700, "Pitch");
 		UICharRefresh(&referee_info.referee_id, UI_State_sta[4]);
 
-		// char pitch_angle[6] = "PITCH";
-		// sprintf(UI_State_sta[5].show_Data,pitch_angle);
-		// UICharDraw(&UI_State_sta[5], "ss5", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 300+100,700, "Pitch");
-		// UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
-
+		UIFloatDraw(&UI_Number_t[0], "sm1", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 5,3, 300+100,700,Pitch_Angle*1000 );
 		
 		//射击准点
 		UIGraphRefresh(&referee_info.referee_id, 7, UI_Deriction_line[0],UI_Deriction_line[1], UI_Deriction_line[2],UI_Deriction_line[3], UI_State_sta[0],UI_State_sta[2], UI_State_sta[4]);
-		UIGraphRefresh(&referee_info.referee_id, 1, UI_State_sta[5]);
+		UIGraphRefresh(&referee_info.referee_id, 2, UI_State_sta[5],UI_Rectangle[1]);
 		//将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
 		UIGraphRefresh(&referee_info.referee_id,5,UI_Deriction_line[0],UI_Deriction_line[1],UI_Circle_t[0],UI_Circle_t[1],UI_Circle_t[2]);
 		//UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Rectangle[1],&UI_Energy[1]);
 		UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2], UI_Circle_t[3],UI_Circle_t[4],UI_Energy[1]);
+		UIGraphRefresh(&referee_info.referee_id, 1, UI_Number_t[0]);
 
 		}	
 		
@@ -597,11 +593,11 @@ void My_UIGraphRefresh()
 
 			if (Referee_Interactive_info.shoot_mode == SHOOT_ON) // 摩擦轮开启模式下
 			{
-				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_ADD,9,UI_Color_Green,20, 1280, 160, 8);
+				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_Change,9,UI_Color_Green,20, 1280, 160, 8);
 			}
 			else if (Referee_Interactive_info.shoot_mode == SHOOT_OFF) // 摩擦轮关闭
 			{
-				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_ADD,9,UI_Color_Orange,20, 1280, 160, 8);
+				UICircleDraw(&UI_Circle_t[3],"sc3",UI_Graph_Change,9,UI_Color_Orange,20, 1280, 160, 8);
 			}
 
 			//电容是否工作
@@ -613,23 +609,12 @@ void My_UIGraphRefresh()
 			}
 
 		//电容
-		// UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_Yellow,1,80,710,280,730);
-		UIRectangleDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20,80,711,(int)((Super_condition_volt-12)/14*200+80),729);
-			/*中供弹没有弹舱盖，故删去
-			//弹舱盖
-			if (TIM1->CCR1 == LID_OPEN)
-			{
-				UICharDraw(&UI_State_sta[5], "ss5", UI_Graph_ADD, 9, UI_Color_Purplish_red, 26, 2, 880, 820 ,"Cover_ON!!!");
-				UICircleDraw(&UI_Circle_t[1],"sc1",UI_Graph_Change,9,UI_Color_Purplish_red,10, 940, 160, 8);
-			}
-			else
-			{
-				UICharDraw(&UI_State_sta[5], "ss5", UI_Graph_Del, 9, UI_Color_Purplish_red, 26, 2, 880, 820 ,"Cover_ON!!!");
-				UICircleDraw(&UI_Circle_t[1],"sc1",UI_Graph_Change,9,UI_Color_White,10, 940, 160, 8);
-			}
-			UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
-			*/
-			// 云台朝向圆弧
+		UIRectangleDraw(&UI_Rectangle[1],"sr1",UI_Graph_ADD,9,UI_Color_White,4,80,710,280,730);
+		UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20,80,720,(uint32_t)((Super_condition_volt*Super_condition_volt - 144)/532*200+80),720);//超电电压在12V-26V之间
+			
+
+		UIFloatDraw(&UI_Number_t[0], "sm1", UI_Graph_Change, 9, UI_Color_Yellow, 20, 5,3, 300+100,700,Pitch_Angle*1000 );
+			// 云台朝向圆弧,中供弹暂时不需要
 			// if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f)
 			// {
 			// 	UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_Change, 8, UI_Color_Green, angle_start, 360, 8, 960, 540, 100, 100);
@@ -651,15 +636,10 @@ void My_UIGraphRefresh()
 				UIRectangleDraw(&UI_Rectangle[2],"sr2",UI_Graph_Change,9,(int)AIM_Rec_Color+1,2,AIM_Rect_X-AIM_Rect_half_length,AIM_Rect_Y-AIM_Rect_half_length,AIM_Rect_X+AIM_Rect_half_length,AIM_Rect_Y+AIM_Rect_half_length);
 			}
 			*/
-			//UIGraphRefresh(&referee_info.referee_id,1,UI_Circle_t[1]);  
-			//动态图形正好7个，打包一块发
-			// UIGraphRefresh(&referee_info.referee_id,1,UI_Rectangle[2]);
-			// UIGraphRefresh(&referee_info.referee_id,7,UI_Circle_t[0],UI_Circle_t[2],UI_Rectangle[1],UI_Energy[1],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1]);
-			// UIGraphRefresh(&referee_info.referee_id,2,UI_Circle_t[0],UI_Arco_t[0],UI_Arco_t[1]);
-			//UIGraphRefresh(&referee_info.referee_id,5,UI_Circle_t[0],UI_Circle_t[1],UI_Arco_t[0],UI_Arco_t[1],UI_Rectangle[1]);
 
 			// 发送4个指示圈+超电剩余电压条
 			UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Circle_t[4],&UI_Energy[1]);
-			
+			UIGraphRefresh(&referee_info.referee_id, 2, UI_Rectangle[1],UI_Energy[1]);
+			UIGraphRefresh(&referee_info.referee_id, 1, UI_Number_t[0]);
 	}
 }

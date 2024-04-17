@@ -18,7 +18,6 @@ static Subscriber_t *gimbal_sub;                  // cmd控制消息订阅者
 static Gimbal_Upload_Data_s gimbal_feedback_data; // 回传给cmd的云台状态信息
 static Gimbal_Ctrl_Cmd_s gimbal_cmd_recv;         // 来自cmd的控制信息
 
-extern char yaw_angle[20];
 void GimbalInit()
 {
     BMI088_Init_Config_s config = {
@@ -137,8 +136,6 @@ void GimbalInit()
 /* 机器人云台控制核心任务,后续考虑只保留IMU控制,不再需要电机的反馈 */
 void GimbalTask()
 {
-    //sprintf(yaw_angle, "%.2f", gimbal_IMU_data->output.INS_angle[1]*10); // 将小数转换为字符串，保留两位小数
-
     // 获取云台控制数据
     // 后续增加未收到数据的处理
     SubGetMessage(gimbal_sub, &gimbal_cmd_recv);

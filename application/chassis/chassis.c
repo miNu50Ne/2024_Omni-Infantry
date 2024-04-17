@@ -58,7 +58,7 @@ static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转�
 
 extern uint8_t Super_flag; // 超电的标志位
 extern uint8_t Super_condition; // 超电的开关状态
-extern uint8_t Super_condition_volt; // 超电的电压
+extern float Super_condition_volt; // 超电的电压
 
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
