@@ -204,7 +204,7 @@ static void YawControlProcess()
  */
 static void RemoteControlSet()
 {
-    shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
+    shoot_cmd_send.shoot_mode = SHOOT_OFF;   // 发射机构常关
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
     shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
 
@@ -231,11 +231,13 @@ static void RemoteControlSet()
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
+        shoot_cmd_send.shoot_mode     = SHOOT_ON;
         shoot_cmd_send.friction_mode  = FRICTION_ON;
         shoot_cmd_send.load_mode      = LOAD_STOP;
     } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) { // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
+        shoot_cmd_send.shoot_mode     = SHOOT_ON;
         shoot_cmd_send.friction_mode  = FRICTION_ON;
         shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
         if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
@@ -473,6 +475,7 @@ static void RobotReset()
  */
 static void SetShootMode()
 {
+    shoot_cmd_send.shoot_mode = SHOOT_ON;
     // V按下超过100ms，开启摩擦轮，清空标志位
     // 其他同理
     if (Shoot_Run_Flag > 10) { // 20*5 = 100ms
@@ -580,10 +583,9 @@ static void MouseKeySet()
  */
 static void EmergencyHandler()
 {
-    // robot_state                   = ROBOT_STOP;
     gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
     chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
-    // shoot_cmd_send.shoot_mode     = SHOOT_OFF;
+    shoot_cmd_send.shoot_mode     = SHOOT_OFF;
     shoot_cmd_send.friction_mode = FRICTION_OFF;
     shoot_cmd_send.load_mode     = LOAD_STOP;
     Super_flag                   = SUPER_CLOSE;
