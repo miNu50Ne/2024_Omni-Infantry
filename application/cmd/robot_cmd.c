@@ -128,6 +128,7 @@ void RobotCMDInit()
 /**
  * @brief 根据gimbal app传回的当前电机角度计算和零位的误差
  *        单圈绝对角度的范围是0~360,说明文档中有图示
+ * @todo  将单圈角度修改为-180~180
  *
  */
 static void CalcOffsetAngle()
@@ -246,11 +247,15 @@ static void RemoteControlSet()
 
     // 左侧开关为[下]，右侧为[中]，开超电
     else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-        chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
-        shoot_cmd_send.friction_mode  = FRICTION_OFF;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-        Super_flag                    = SUPER_OPEN;
+        if (rc_data[TEMP].rc.dial > 400) {
+            chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        } else {
+            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+        }
+        gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
+        shoot_cmd_send.friction_mode = FRICTION_OFF;
+        shoot_cmd_send.load_mode     = LOAD_STOP;
+        Super_flag                   = SUPER_OPEN;
     } else {
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode     = LOAD_STOP;
@@ -285,7 +290,7 @@ static void RemoteControlSet()
         // if (yaw_total_angle - yaw > 180) yaw += 180;
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
-    if (vision_recv_data[8] == 0 ) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+    if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
         yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
         gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
@@ -429,7 +434,7 @@ static void SetChassisMode()
         Chassis_Rotate_Flag = 0;
     }
 
-    // 底盘跟随云台
+    // 底盘云台分离
     if (Rune_Mode_Flag > 10) {
         Chassis_Status = CHASSIS_STATUS_FREE;
         Rune_Mode_Flag = 0;
@@ -438,7 +443,6 @@ static void SetChassisMode()
         Rune_Mode_Flag = 0;
     }
 
-    //
     if (Chassis_Status == CHASSIS_STATUS_ROTATE) {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
     } else if (Chassis_Status == CHASSIS_STATUS_FOLLOW) {

@@ -56,8 +56,8 @@ static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left righ
 static uint8_t center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 
-extern uint8_t Super_flag; // 超电的标志位
-extern uint8_t Super_condition; // 超电的开关状态
+extern uint8_t Super_flag;         // 超电的标志位
+extern uint8_t Super_condition;    // 超电的开关状态
 extern float Super_condition_volt; // 超电的电压
 
 // 跟随模式底盘的pid
@@ -238,14 +238,14 @@ void No_Limit_Control()
 
 /**
  * @brief 自制超电控制算法
- * 
- * 
+ *
+ *
  */
 uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
 void Super_Cap_control()
 {
-    //小于12V关闭
+    // 小于12V关闭
     if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
         Super_Allow_Flag = SUPER_RELAY_CLOSE;
     } else {
@@ -253,14 +253,13 @@ void Super_Cap_control()
     }
 
     // User允许开启电容 且 电压充足
-    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) 
-    {
+    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
     } else {
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
     }
 
-    //物理层继电器状态改变，功率限制状态改变
+    // 物理层继电器状态改变，功率限制状态改变
     if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_Closed) {
         LimitChassisOutput();
     } else {
@@ -269,55 +268,51 @@ void Super_Cap_control()
     // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
     // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
 }
-void Define_Robot_Power_Limit(){
-
-}
 void Power_level_get() // 获取功率裆位
 {
-    switch (referee_info.GameRobotState.robot_level)
-    {
-    case 1:
-        cap->cap_msg_g.power_level = 1;
-        break;
-    case 2:
-        cap->cap_msg_g.power_level = 2;
-        break;
-    case 3:
-        cap->cap_msg_g.power_level = 3;
-        break;
-    case 4:
-        cap->cap_msg_g.power_level = 4;
-        break;
-    case 5:
-        cap->cap_msg_g.power_level = 5;
-        break;
-    case 6:
-        cap->cap_msg_g.power_level = 6;
-        break;
-    case 7:
-        cap->cap_msg_g.power_level = 7;
-        break;
-    case 8:
-        cap->cap_msg_g.power_level = 8;
-        break;
-    case 9:
-        cap->cap_msg_g.power_level = 9;
-        break;
-    case 10:
-        cap->cap_msg_g.power_level = 9;
-        break;
-    case robot_power_level_MAX:
-        cap->cap_msg_g.power_level = 10;
-        break;
-    default:
-        cap->cap_msg_g.power_level = 0;
-        break;
+    switch (referee_info.GameRobotState.robot_level) {
+        case 1:
+            cap->cap_msg_g.power_level = 1;
+            break;
+        case 2:
+            cap->cap_msg_g.power_level = 2;
+            break;
+        case 3:
+            cap->cap_msg_g.power_level = 3;
+            break;
+        case 4:
+            cap->cap_msg_g.power_level = 4;
+            break;
+        case 5:
+            cap->cap_msg_g.power_level = 5;
+            break;
+        case 6:
+            cap->cap_msg_g.power_level = 6;
+            break;
+        case 7:
+            cap->cap_msg_g.power_level = 7;
+            break;
+        case 8:
+            cap->cap_msg_g.power_level = 8;
+            break;
+        case 9:
+            cap->cap_msg_g.power_level = 9;
+            break;
+        case 10:
+            cap->cap_msg_g.power_level = 9;
+            break;
+        case robot_power_level_MAX:
+            cap->cap_msg_g.power_level = 10;
+            break;
+        default:
+            cap->cap_msg_g.power_level = 0;
+            break;
     }
-    if(referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10){
+    if (referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10) {
         cap->cap_msg_g.power_level = 9;
     }
 
-    //cap->cap_msg_g.power_level = 2;
+    // cap->cap_msg_g.power_level = 2;
 }
 
 /**
@@ -332,10 +327,12 @@ static void EstimateSpeed()
     //  ...
 }
 
+float offangle_watch;
+
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-    Super_condition = cap->cap_msg_s.SuperCap_open_flag_from_real;
+    Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
     Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)
     // 获取新的控制信息
@@ -370,6 +367,7 @@ void ChassisTask()
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
                 offset_angle = chassis_cmd_recv.offset_angle - 180;
+             offangle_watch = offset_angle;
             chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
@@ -399,7 +397,7 @@ void ChassisTask()
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();
-    //给电容传输数据
+    // 给电容传输数据
     SuperCapSend(cap, (uint8_t *)&cap->cap_msg_g);
 
     // 推送反馈消息
