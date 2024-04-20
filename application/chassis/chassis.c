@@ -47,8 +47,6 @@ static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数�
 extern referee_info_t referee_info;
 static referee_info_t *referee_data; // 用于获取裁判系统的数据
 
-PowerControlInstance *power; // 功率控制实例，包含所需所有参数
-
 static SuperCapInstance *cap;                                       // 超级电容
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
@@ -63,7 +61,7 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 17.5, // 50,//70, // 4.5
+    .Kp            = 18.5, // 50,//70, // 4.5
     .Ki            = 0,    // 0
     .Kd            = 0.0,  // 0.07,  // 0
     .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动
@@ -81,11 +79,6 @@ static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出
 
 void ChassisInit()
 {
-    PowerControlInstance power_init = {
-        .coefficient.reduction_ratio = 0.0769230769230769f,
-    };
-    power = PowerControlInit(&power_init);
-
     // 四个轮子的参数一样,改tx_id和反转标志位即可
     Motor_Init_Config_s chassis_motor_config = {
         .can_init_config.can_handle   = &hcan1,
@@ -188,6 +181,11 @@ uint16_t power_limit;
  * @param
  *
  */
+float lf_limit, rf_limit, lb_limit, rb_limit;
+static float Power_Max = 60.0f;
+
+float lf_power, lb_power, rf_power, rb_power;
+float vt_lf_Now, vt_rf_Now, vt_lb_Now, vt_rb_Now;
 static void LimitChassisOutput()
 {
     // 省赛功率控制
@@ -204,17 +202,35 @@ static void LimitChassisOutput()
         Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
     else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
         Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer >= 60)
+    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
         Plimit = 1;
 
-    power_lecel = referee_data->GameRobotState.robot_level * 0.1 * 5 + 0.8 + 0.15; // TODO: 未稳定
+    power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15; // TODO: 未稳定
 
     vt_lf = 1 * vt_lf * Plimit * power_lecel;
     vt_rf = 1 * vt_rf * Plimit * power_lecel;
     vt_lb = 1 * vt_lb * Plimit * power_lecel;
     vt_rb = 1 * vt_rb * Plimit * power_lecel;
 
-    // 完成功率限制后进行电机参考输入设定
+    // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1);
+
+    // lf_power = PowerInputCalc(motor_lf->measure.speed_aps, vt_lf);
+    // lb_power = PowerInputCalc(motor_lb->measure.speed_aps, vt_lb);
+    // rf_power = PowerInputCalc(-motor_rf->measure.speed_aps, vt_rf);
+    // rb_power = PowerInputCalc(-motor_rb->measure.speed_aps, vt_rb);
+
+    // TotalPowerCalc(lf_power, lb_power, rf_power, rb_power);
+
+    // vt_lf_Now = PowerCalc(lf_power, motor_lf->measure.speed_aps, vt_lf);
+    // vt_lb_Now = PowerCalc(lb_power, motor_lb->measure.speed_aps, vt_lb);
+    // vt_rf_Now = PowerCalc(rf_power, -motor_rf->measure.speed_aps, vt_rf);
+    // vt_rb_Now = PowerCalc(rb_power, -motor_rb->measure.speed_aps, vt_rb);
+    // // 完成功率限制后进行电机参考输入设定
+
+    // DJIMotorSetRef(motor_lf, vt_lf_Now);
+    // DJIMotorSetRef(motor_rf, vt_rf_Now);
+    // DJIMotorSetRef(motor_lb, vt_lb_Now);
+    // DJIMotorSetRef(motor_rb, vt_rb_Now);
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -367,8 +383,9 @@ void ChassisTask()
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
                 offset_angle = chassis_cmd_recv.offset_angle - 180;
-             offangle_watch = offset_angle;
+            offangle_watch      = offset_angle;
             chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
+            chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
             chassis_cmd_recv.wz = 2200;

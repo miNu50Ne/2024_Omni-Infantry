@@ -275,7 +275,9 @@ static void RemoteControlSet()
         // gimbal_cmd_send.pitch += rec_pitch / 10.0f ;
 
         vision_recv_data[8] = 0;
-
+        // // 视觉未识别到目标,纯遥控器拨杆控制
+        // if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+        // }
         // float x, y, z;
         // memcpy(&x, vision_recv_data, sizeof(float));
         // memcpy(&y, vision_recv_data + 4, sizeof(float));
@@ -291,11 +293,8 @@ static void RemoteControlSet()
         // yaw                   = yaw + yaw_total_round * 360.0;
         // if (yaw_total_angle - yaw > 180) yaw += 180;
     }
-    // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
-    if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
-        yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
-        gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
-    }
+    yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
+    gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     YawControlProcess();
     gimbal_cmd_send.yaw = yaw_control;
     // 底盘参数
@@ -586,9 +585,9 @@ static void EmergencyHandler()
     gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
     chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
     shoot_cmd_send.shoot_mode     = SHOOT_OFF;
-    shoot_cmd_send.friction_mode = FRICTION_OFF;
-    shoot_cmd_send.load_mode     = LOAD_STOP;
-    Super_flag                   = SUPER_CLOSE;
+    shoot_cmd_send.friction_mode  = FRICTION_OFF;
+    shoot_cmd_send.load_mode      = LOAD_STOP;
+    Super_flag                    = SUPER_CLOSE;
     LOGERROR("[CMD] emergency stop!");
 }
 

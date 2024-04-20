@@ -31,7 +31,7 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 10, // 2.5,//23, // 20
+                .Kp            = 12, // 2.5,//23, // 20
                 .Ki            = 0,  // 0.4, // 0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
@@ -39,8 +39,8 @@ void ShootInit()
                 .MaxOut        = 20000,
             },
             .current_PID = {
-                .Kp            = 1.2, // 2.0, // 0.7
-                .Ki            = 0.1, // 0.1
+                .Kp            = 2.0, // 2.0, // 0.7
+                .Ki            = 0, // 0.1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 10000,
@@ -182,8 +182,8 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 45000);
-        DJIMotorSetRef(friction_r, 45000);
+        DJIMotorSetRef(friction_l, 42000);
+        DJIMotorSetRef(friction_r, 42000);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
         DJIMotorSetRef(friction_l, -150);
         DJIMotorSetRef(friction_r, -150);
