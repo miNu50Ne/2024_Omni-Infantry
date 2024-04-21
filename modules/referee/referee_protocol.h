@@ -94,9 +94,9 @@ typedef enum
 	LEN_event_data = 4,							 // 0x0101
 	LEN_supply_projectile_action = 4,			 // 0x0102
 	LEN_game_robot_state = 13,					 // 0x0201
-	LEN_power_heat_data = 14,					 // 0x0202
+	LEN_power_heat_data = 16,//14,				 // 0x0202
 	LEN_game_robot_pos = 16,					 // 0x0203
-	LEN_buff_musk = 1,							 // 0x0204
+	LEN_buff_musk = 6,//1,						 // 0x0204
 	LEN_aerial_robot_energy = 1,				 // 0x0205
 	LEN_robot_hurt = 1,							 // 0x0206
 	LEN_shoot_data = 7,							 // 0x0207
@@ -179,15 +179,16 @@ typedef struct
 	uint8_t mains_power_shooter_output : 1;
 } ext_game_robot_state_t;
 
-/* ID: 0X0202  Byte: 14    实时功率热量数据 */
+/* ID: 0X0202  Byte: 16    实时功率热量数据 */
 typedef struct
 {
 	uint16_t chassis_volt;
 	uint16_t chassis_current;
-	float chassis_power;		   // 瞬时功率
+	float chassis_power;		   // 底盘瞬时功率
 	uint16_t chassis_power_buffer; // 60焦耳缓冲能量
-	uint16_t shooter_heat0;		   // 17mm
-	uint16_t shooter_heat1;
+	uint16_t shooter_17mm_heat0;   // 17mm枪口热量
+	uint16_t shooter_17mm_heat1;
+	uint16_t shooter_42mm_heat;	   // 42mm枪口热量
 } ext_power_heat_data_t;
 
 /* ID: 0x0203  Byte: 16    机器人位置数据 */
@@ -199,10 +200,14 @@ typedef struct
 	float yaw;
 } ext_game_robot_pos_t;
 
-/* ID: 0x0204  Byte:  1    机器人增益数据 */
+/* ID: 0x0204  Byte:  6    机器人增益数据 */
 typedef struct
 {
-	uint8_t power_rune_buff;
+	uint8_t recovery_buff; 		//回血增益
+	uint8_t cooling_buff;  		//枪口冷却倍率
+	uint8_t defence_buff;  		//防御增益 
+	uint8_t vulnerability_buff;	//负防御增益	
+	uint16_t attack_buff;		//攻击增益	
 } ext_buff_musk_t;
 
 /* ID: 0x0205  Byte:  1    空中机器人能量状态数据 */

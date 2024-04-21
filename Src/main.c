@@ -215,9 +215,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if (local_heat < 0) {
             local_heat = 0;
         }
-        if (referee_info.PowerHeatData.shooter_heat0 - referee_info.GameRobotState.shooter_id1_17mm_cooling_limit >= 15) // 裁判系统判断已经超了热量
+        if (referee_info.PowerHeatData.shooter_17mm_heat0 - referee_info.GameRobotState.shooter_id1_17mm_cooling_limit >= 15) // 裁判系统判断已经超了热量
         {
-            local_heat = referee_info.PowerHeatData.shooter_heat0;
+            local_heat = referee_info.PowerHeatData.shooter_17mm_heat0;
         }
         Shoot_Fric_data_process();
     }

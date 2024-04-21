@@ -182,7 +182,7 @@ uint16_t power_limit;
  *
  */
 float lf_limit, rf_limit, lb_limit, rb_limit;
-static float Power_Max = 60.0f;
+// static float Power_Max = 60.0f;
 
 float lf_power, lb_power, rf_power, rb_power;
 float vt_lf_Now, vt_rf_Now, vt_lb_Now, vt_rb_Now;
