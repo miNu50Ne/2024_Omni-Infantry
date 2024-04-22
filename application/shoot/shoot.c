@@ -110,10 +110,25 @@ void ShootInit()
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
 
+float Block_Time ; // 堵转时间
+float speed_record[6] = {0, 0, 0, 0, 0, 0}; // 第五个为最近的射速 第六个为平均射速
+float Shoot_Speed; // 射速
+float speed_adj;   // 摩擦轮调速
+/**
+ * @brief 堵转，弹速检测
+ * 
+ */
+// static void ShootCtrl(){
+//     //堵转时间检测
+//     //平均射速
+//     //摩擦轮调速
+
+// }
+
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
-    if (UI_timer < 20) {
+    if (UI_timer < 10) {
         UI_timer++;
     } else {
         UI_timer = 0;

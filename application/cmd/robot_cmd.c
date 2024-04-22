@@ -204,7 +204,7 @@ static void YawControlProcess()
  */
 static void RemoteControlSet()
 {
-    shoot_cmd_send.shoot_mode = SHOOT_OFF;   // 发射机构常关
+    shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
     shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
 
@@ -277,6 +277,8 @@ static void RemoteControlSet()
         vision_recv_data[8] = 0;
         // // 视觉未识别到目标,纯遥控器拨杆控制
         // if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+        //     yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
+        //     gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
         // }
         // float x, y, z;
         // memcpy(&x, vision_recv_data, sizeof(float));
@@ -315,7 +317,6 @@ static void RemoteControlSet()
 int Cover_Open_Flag     = 0; // 弹舱打开标志位
 int Chassis_Rotate_Flag = 0; // 底盘陀螺标志位
 int Shoot_Mode_Flag     = 0; // 发射模式标志位
-int Shoot_Mode          = 0; // 发射模式标志位
 int Shoot_Run_Flag      = 0; // 摩擦轮标志位
 int Rune_Mode_Flag      = 0; // 打符模式标志位
 #pragma message "TODO"
@@ -383,7 +384,7 @@ static void ChassisSpeedSet()
  */
 static void GimbalSet()
 {
-    if (vision_recv_data[8] == 0 && rc_data[TEMP].mouse.press_r) {
+    if (vision_recv_data[8] == 1 && rc_data[TEMP].mouse.press_r) {
         // 开启自瞄
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
@@ -490,7 +491,6 @@ static void SetShootMode()
         // 打弹，单击左键单发，长按连发
         shoot_cmd_send.shoot_rate = 25;
         if (rc_data[TEMP].mouse.press_l) {
-
             // 打符，单发
             if (Rune_Mode_Flag > 10) {
                 shoot_cmd_send.load_mode = LOAD_1_BULLET;

@@ -10,11 +10,19 @@
 #define MOTOR_RF 2
 #define MOTOR_RB 3
 
-float k1 = 1.23e-07;
-float k2 = 1.453e-07;
+
+//v2.0
+float k1 = 2.432e-07;
+float k2 = 1.322e-07;
+float constant = 0.6989f;
+float toque_coefficient = 2.949745771e-6f;
+
+//v1,0
+// float k1 = 1.23e-07;
+// float k2 = 1.453e-07;
+// float constant = 0;
+// float toque_coefficient = 1.99688994e-6f;
 // float constant = 4.081f;
-float constant          = 0;
-float toque_coefficient = 1.99688994e-6f;
 float reduction_ratio, total_power;
 float power_data[4];
 float motor_current_output;
