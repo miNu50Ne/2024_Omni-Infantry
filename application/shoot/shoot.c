@@ -224,7 +224,7 @@ void ShootTask()
 // 热量控制算法
 // #pragma messsage "TODO"
 uint32_t shoot_count = 0;
-// float d_watch;
+float d_watch;
 
 void Shoot_Fric_data_process(void)
 {
@@ -261,7 +261,8 @@ void Shoot_Fric_data_process(void)
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
         /*导数比较*/
-        if (derivative < -260) {
+        d_watch = derivative;
+        if (derivative < -300) {
             bullet_waiting_confirm = true;
         } else if (derivative > -100) {
             if (bullet_waiting_confirm == true) {

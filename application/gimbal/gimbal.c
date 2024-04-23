@@ -99,17 +99,17 @@ void GimbalInit()
             .angle_PID = {
                 .Kp            = 35, // 40, // 10
                 .Ki            = 0,
-                .Kd            = 0,
+                .Kd            = 0.1,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 10500, // 13000,//10500,  // 10500
-                .Ki            = 12000, // 10000, // 10000
-                .Kd            = 0,     // 0
+                .Kp            = 30000, // 13000,//10500,  // 10500
+                .Ki            = 0,//900, //12000, // 10000, // 10000
+                .Kd            = 5.0,     // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
-                .IntegralLimit = 3000,
+                .IntegralLimit = 6000,
                 .MaxOut        = 20000,
             },
             .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET],//pitch反馈弧度制
@@ -170,15 +170,6 @@ void GimbalTask()
             DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
             DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
             break;
-        case GIMBAL_AUTOAIM_MODE: // 自瞄
-            DJIMotorEnable(yaw_motor);
-            DJIMotorEnable(pitch_motor);
-            DJIMotorChangeFeed(yaw_motor, ANGLE_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(yaw_motor, SPEED_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(pitch_motor, ANGLE_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(pitch_motor, SPEED_LOOP, OTHER_FEED);
-            DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
-            DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
         default:
             break;
     }

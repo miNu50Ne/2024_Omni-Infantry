@@ -185,7 +185,8 @@ static void PitchAngleLimit()
     gimbal_cmd_send.pitch = current;
 }
 
-float yaw_control; // 遥控器YAW自由度输入值
+float yaw_control;   // 遥控器YAW自由度输入值
+float pitch_control; // 遥控器PITCH自由度输入值
 /**
  * @brief 云台Yaw轴反馈值改单圈角度后过圈处理
  *
@@ -198,6 +199,7 @@ static void YawControlProcess()
         yaw_control += 360;
     }
 }
+
 /**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  *
@@ -208,107 +210,89 @@ static void RemoteControlSet()
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
     shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
 
-    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
-    if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[上],小陀螺
-    {
-        chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
-        shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[中],底盘跟随云台
-    {
-        chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
-        shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_down(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[下],底盘云台分离
-    {
-        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
-        shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[中],底盘和云台分离,摩擦轮启动
-    {
-        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
-        shoot_cmd_send.shoot_mode     = SHOOT_ON;
-        shoot_cmd_send.friction_mode  = FRICTION_ON;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-    } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) { // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
-        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
-        shoot_cmd_send.shoot_mode     = SHOOT_ON;
-        shoot_cmd_send.friction_mode  = FRICTION_ON;
-        shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
-        if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
-        {
-            shoot_cmd_send.load_mode = LOAD_STOP;
-        }
-    }
-    // 调试模式
-
-    // 左侧开关为[下]，右侧为[中]，开超电
-    else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-        if (rc_data[TEMP].rc.dial > 400) {
-            chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-        } else {
-            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-        }
-        gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
-        shoot_cmd_send.friction_mode = FRICTION_OFF;
-        shoot_cmd_send.load_mode     = LOAD_STOP;
-        Super_flag                   = SUPER_OPEN;
-    } else {
-        shoot_cmd_send.friction_mode = FRICTION_OFF;
-        shoot_cmd_send.load_mode     = LOAD_STOP;
-    }
-
     // 左侧开关为[下]右侧开关为[上]，且接收到上位机的相对角度,视觉模式
     if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) && vision_recv_data[8] == 1) {
         // 使用相对角度控制
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
 
-        test_rec_yaw   = rec_yaw;
-        test_rec_pitch = rec_pitch;
-        // gimbal_cmd_send.yaw   += rec_yaw / 10.0f ;
-        // gimbal_cmd_send.pitch += rec_pitch / 10.0f ;
-
         vision_recv_data[8] = 0;
-        // // 视觉未识别到目标,纯遥控器拨杆控制
-        // if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
-        //     yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
-        //     gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
-        // }
-        // float x, y, z;
-        // memcpy(&x, vision_recv_data, sizeof(float));
-        // memcpy(&y, vision_recv_data + 4, sizeof(float));
-        // memcpy(&z, vision_recv_data + 8, sizeof(float));
 
-        // // 对向量进行解析，化为欧拉角
-        // yaw   = atan2f(x, z) * 180.0 / M_PI;
-        // pitch = asinf(y); // 很离谱，看了下云台PID里pitch用弧度yaw用角度……//对不起。。。。
+        // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
+        yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
+        pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
 
-        // 由于云台是使用多圈角度进行闭环，对于视觉的绝对角度需做些处理
-        // float yaw_total_angle = gimbal_fetch_data.gimbal_imu_data->output.Yaw_total_angle_deg;
-        // float yaw_total_round = yaw_total_angle / 360.0;
-        // yaw                   = yaw + yaw_total_round * 360.0;
-        // if (yaw_total_angle - yaw > 180) yaw += 180;
+        // 视觉未识别到目标,纯遥控器拨杆控制
+        if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+            yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
+            pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
+        }
+    } else {
+        // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+        if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[上],小陀螺
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
+            shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
+        } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[中],底盘跟随云台
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
+            shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
+        } else if (switch_is_down(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[下],底盘云台分离
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
+            shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
+        } else if (switch_is_mid(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[中],底盘和云台分离,摩擦轮启动
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
+            shoot_cmd_send.shoot_mode     = SHOOT_ON;
+            shoot_cmd_send.friction_mode  = FRICTION_ON;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
+        } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
+            shoot_cmd_send.shoot_mode     = SHOOT_ON;
+            shoot_cmd_send.friction_mode  = FRICTION_ON;
+            shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
+            if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
+            {
+                shoot_cmd_send.load_mode = LOAD_STOP;
+            }
+        }
+        // 左侧开关为[下]，右侧为[中]，开超电
+        else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+            if (rc_data[TEMP].rc.dial > 400) {
+                chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+            } else {
+                chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+            }
+            gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
+            shoot_cmd_send.friction_mode = FRICTION_OFF;
+            shoot_cmd_send.load_mode     = LOAD_STOP;
+            Super_flag                   = SUPER_OPEN;
+        } else {
+            shoot_cmd_send.friction_mode = FRICTION_OFF;
+            shoot_cmd_send.load_mode     = LOAD_STOP;
+        }
+        // 控制云台旋转
+        yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
+        pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
-    yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
-    gimbal_cmd_send.pitch -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
-    YawControlProcess();
-    gimbal_cmd_send.yaw = yaw_control;
     // 底盘参数
     chassis_cmd_send.vx = 20.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
     chassis_cmd_send.vy = 20.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
 
-// 云台参数,确定云台控制数据
-//     if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中],视觉模式
-//     {
-#pragma message "Vision AUTOAIM"
-    // 待添加,视觉会发来和目标的误差,同样将其转化为total angle的增量进行控制
-    //     }
+    // 云台参数
+    YawControlProcess();
+    gimbal_cmd_send.yaw   = yaw_control;
+    gimbal_cmd_send.pitch = pitch_control;
 
     // 云台软件限位
     PitchAngleLimit(); // PITCH限位
@@ -384,27 +368,25 @@ static void ChassisSpeedSet()
  */
 static void GimbalSet()
 {
+    // 按住鼠标右键且视觉识别到目标
     if (vision_recv_data[8] == 1 && rc_data[TEMP].mouse.press_r) {
-        // 开启自瞄
+        // 相对角度控制
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
 
-        test_rec_yaw   = rec_yaw;
-        test_rec_pitch = rec_pitch;
-        // gimbal_cmd_send.yaw   += rec_yaw / 10.0f ;
-        // gimbal_cmd_send.pitch += rec_pitch / 10.0f ;
+        vision_recv_data[8] = 0;
+
+        // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
+        yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
+        pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
     } else {
-        if ((rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c) && !(rc_data[TEMP].key[KEY_PRESS].v) && !(rc_data[TEMP].key[KEY_PRESS].x)) {
-            yaw_control -= rc_data[TEMP].mouse.x / 3500.0f;
-            gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 75000.0f;
-        } else {
-            yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
-            gimbal_cmd_send.pitch -= -rc_data[TEMP].mouse.y / 15000.0f;
-        }
+        yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
+        pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
     }
 
     YawControlProcess();
-    gimbal_cmd_send.yaw = yaw_control;
+    gimbal_cmd_send.yaw   = yaw_control;
+    gimbal_cmd_send.pitch = pitch_control;
 
     // 打符模式判断
     if (Rune_Mode_Flag > 10) {
@@ -420,8 +402,6 @@ static void GimbalSet()
         gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
     } else if (Gimbal_Status == GIMBAL_STATUS_GYRO) {
         gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-    } else if (Gimbal_Status == GIMBAL_STATUS_AUTOAIM) {
-        gimbal_cmd_send.gimbal_mode = GIMBAL_AUTOAIM_MODE;
     }
 }
 
@@ -575,7 +555,7 @@ static void MouseKeySet()
 
 /**
  * @brief  紧急停止,包括遥控器左上侧拨轮打满/重要模块离线/双板通信失效等
- *         停止的阈值'300'待修改成合适的值,或改为开关控制.
+ *   
  *
  * @todo   后续修改为遥控器离线则电机停止(关闭遥控器急停),通过给遥控器模块添加daemon实现
  *
@@ -632,7 +612,6 @@ void RobotCMDTask()
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
-
     if (switch_is_up(rc_data[TEMP].rc.switch_left) && (switch_is_down(rc_data[TEMP].rc.switch_right))) // 遥控器拨杆双[上],键鼠控制
         MouseKeySet();
     else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right)) {
@@ -651,7 +630,6 @@ void RobotCMDTask()
         shoot_cmd_send.load_mode      = LOAD_STOP;
     }
     // 设置视觉发送数据,还需增加加速度和角速度数据
-    // VisionSetFlag(chassis_fetch_data.enemy_color,,chassis_fetch_data.bullet_speed)
 
     // 推送消息,双板通信,视觉通信等
     // 其他应用所需的控制数据在remotecontrolsetmode和mousekeysetmode中完成设置
