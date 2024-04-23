@@ -60,7 +60,7 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 0.24, // 0.31, // 0.45
+                .Kp            = 0.3,//0.24, // 0.31, // 0.45
                 .Ki            = 0,
                 .Kd            = 0.001,
                 .DeadBand      = 0.0f,
@@ -70,7 +70,7 @@ void GimbalInit()
                 .MaxOut = 10,
             },
             .speed_PID = {
-                .Kp            = 18000, // 10500,//1000,//10000,// 11000
+                .Kp            = 20000,//18000, // 10500,//1000,//10000,// 11000
                 .Ki            = 0,     // 0
                 .Kd            = 30,    // 10, // 30
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
@@ -97,19 +97,19 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 35, // 40, // 10
-                .Ki            = 0,
-                .Kd            = 0.1,
+                .Kp            = 40,//35, // 40, // 10
+                .Ki            = 0.3,
+                .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 30000, // 13000,//10500,  // 10500
-                .Ki            = 0,//900, //12000, // 10000, // 10000
-                .Kd            = 5.0,     // 0
+                .Kp            = 13000,//10500, // 13000,//10500,  // 10500
+                .Ki            = 0,//12000, // 10000, // 10000
+                .Kd            = 0,     // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
-                .IntegralLimit = 6000,
+                .IntegralLimit = 3000,
                 .MaxOut        = 20000,
             },
             .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET],//pitch反馈弧度制

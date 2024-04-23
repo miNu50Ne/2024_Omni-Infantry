@@ -50,7 +50,7 @@ static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
 
 static HostInstance *host_instance; // 上位机接口
 // 这里的四元数以wxyz的顺序
-static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
+static uint8_t vision_recv_data[10];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
 static uint8_t vision_send_data[21]; // 给视觉上位机发送的数据-四元数
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
@@ -72,7 +72,9 @@ extern float Pitch_Angle; // 云台Pitch轴角度
 
 int remote_work_condition = 0; // 遥控器是否离线判断
 
-float rec_yaw, rec_pitch;
+float rec_yaw, rec_pitch; 
+
+bool shoot_cmd; //接受上位机的火控指令
 
 float test_rec_yaw;
 float test_rec_pitch;
@@ -153,6 +155,8 @@ static void CalcOffsetAngle()
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #endif
 }
+float yaw_control;   // 遥控器YAW自由度输入值
+float pitch_control; // 遥控器PITCH自由度输入值
 
 /**
  * @brief 对Pitch轴角度变化进行限位
@@ -160,8 +164,7 @@ static void CalcOffsetAngle()
  */
 static void PitchAngleLimit()
 {
-    float current, limit_min, limit_max;
-    current = gimbal_cmd_send.pitch;
+    float limit_min, limit_max;
 #if PITCH_INS_FEED_TYPE
     limit_min = PITCH_LIMIT_ANGLE_DOWN * DEGREE_2_RAD;
     limit_max = PITCH_LIMIT_ANGLE_UP * DEGREE_2_RAD;
@@ -176,17 +179,16 @@ static void PitchAngleLimit()
     if (current < limit_min)
         current = limit_min;
 #else
-    if (current < limit_max)
-        current = limit_max;
-    if (current > limit_min)
-        current = limit_min;
+    if (pitch_control < limit_max)
+        pitch_control = limit_max;
+    if (pitch_control > limit_min)
+        pitch_control = limit_min;
 #endif
 
-    gimbal_cmd_send.pitch = current;
+    gimbal_cmd_send.pitch = pitch_control;
 }
 
-float yaw_control;   // 遥控器YAW自由度输入值
-float pitch_control; // 遥控器PITCH自由度输入值
+
 /**
  * @brief 云台Yaw轴反馈值改单圈角度后过圈处理
  *
@@ -198,6 +200,8 @@ static void YawControlProcess()
     } else if (yaw_control - gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] < -180) {
         yaw_control += 360;
     }
+
+    
 }
 
 /**
@@ -211,19 +215,22 @@ static void RemoteControlSet()
     shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
 
     // 左侧开关为[下]右侧开关为[上]，且接收到上位机的相对角度,视觉模式
-    if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) && vision_recv_data[8] == 1) {
+    if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) ) {
         // 使用相对角度控制
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
+        //接受发射指令
+        memccpy(&shoot_cmd, vision_recv_data + 8, sizeof(uint8_t), 1);
 
-        vision_recv_data[8] = 0;
+        vision_recv_data[9] = 0;
 
+        if(vision_recv_data[9] == 1){
         // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
         yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
         pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-
+        }
         // 视觉未识别到目标,纯遥控器拨杆控制
-        if (vision_recv_data[8] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+        if (vision_recv_data[9] == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
             yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
             pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
         }

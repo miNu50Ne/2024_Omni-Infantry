@@ -200,8 +200,8 @@ void ShootTask()
         DJIMotorSetRef(friction_l, 42000);
         DJIMotorSetRef(friction_r, 42000);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
-        DJIMotorSetRef(friction_l, -150);
-        DJIMotorSetRef(friction_r, -150);
+        DJIMotorSetRef(friction_l, 0);
+        DJIMotorSetRef(friction_r, 0);
     } else // 关闭摩擦轮
     {
         DJIMotorOuterLoop(friction_l, SPEED_LOOP); // 切换到速度环
@@ -224,7 +224,7 @@ void ShootTask()
 // 热量控制算法
 // #pragma messsage "TODO"
 uint32_t shoot_count = 0;
-float d_watch;
+float d_watch; //创建一个全局变量来记录微分值，便于调试
 
 void Shoot_Fric_data_process(void)
 {
