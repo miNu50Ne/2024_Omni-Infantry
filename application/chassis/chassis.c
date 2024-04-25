@@ -61,7 +61,7 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 18.5, // 50,//70, // 4.5
+    .Kp            = 17.5, // 50,//70, // 4.5
     .Ki            = 0,    // 0
     .Kd            = 0.0,  // 0.07,  // 0
     .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动

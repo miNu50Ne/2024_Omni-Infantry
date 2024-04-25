@@ -79,6 +79,8 @@ bool shoot_cmd; //接受上位机的火控指令
 float test_rec_yaw;
 float test_rec_pitch;
 
+uint8_t Shoot_Flag = 0;
+
 uint8_t Super_flag = 0; // 超电标志位
 void HOST_RECV_CALLBACK()
 {
@@ -212,7 +214,7 @@ static void RemoteControlSet()
 {
     shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
-    shoot_cmd_send.shoot_rate = 25;          // 射频默认25Hz
+    shoot_cmd_send.shoot_rate = 20;          // 射频默认25Hz
 
     // 左侧开关为[下]右侧开关为[上]，且接收到上位机的相对角度,视觉模式
     if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) ) {
@@ -268,9 +270,19 @@ static void RemoteControlSet()
             shoot_cmd_send.shoot_mode     = SHOOT_ON;
             shoot_cmd_send.friction_mode  = FRICTION_ON;
             shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
-            if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
-            {
-                shoot_cmd_send.load_mode = LOAD_STOP;
+            // if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
+            // {
+            //     Shoot_Flag = 40;
+            //     shoot_cmd_send.load_mode = LOAD_STOP;
+            // }
+            if(referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control){
+                    shoot_cmd_send.shoot_rate = 0;
+                }
+            else if(referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= 75){
+                shoot_cmd_send.shoot_rate = (int)(20*((referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat )/75));
+            }
+            else{
+                shoot_cmd_send.shoot_rate = 20;
             }
         }
         // 左侧开关为[下]，右侧为[中]，开超电
@@ -484,15 +496,21 @@ static void SetShootMode()
             } else {
                 shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
             }
+            
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
+            
         }
     }
     // 新热量管理
-    if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
-    {
-
-        shoot_cmd_send.load_mode = LOAD_STOP;
+    if(referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control){
+                    shoot_cmd_send.shoot_rate = 0;
+    }
+    else if(referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= 75){
+        shoot_cmd_send.shoot_rate = (int)(20*((referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat )/75));
+    }
+    else{
+        shoot_cmd_send.shoot_rate = 20;
     }
 }
 

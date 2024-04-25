@@ -110,12 +110,18 @@ typedef enum
 /* ID: 0x0001  Byte:  3    比赛状态数据 */
 typedef struct
 {
-	uint8_t game_type : 4;
-	uint8_t game_progress : 4;
-	uint16_t stage_remain_time;
+	uint8_t game_type : 4;       // 比赛类型
+	uint8_t game_progress : 4;   // 当前比赛阶段
+	uint16_t stage_remain_time;  // 当前阶段剩余时间
+	uint64_t SyncTimeStamp;      // UNIX时间，当机器人正确连接到裁判系统的NTP服务器后生效
 } ext_game_state_t;
 
 /* ID: 0x0002  Byte:  1    比赛结果数据 */
+/*
+	0：平局 
+	1：红方胜利 
+	2：蓝方胜利
+*/
 typedef struct
 {
 	uint8_t winner;
@@ -194,10 +200,9 @@ typedef struct
 /* ID: 0x0203  Byte: 16    机器人位置数据 */
 typedef struct
 {
-	float x;
-	float y;
-	float z;
-	float yaw;
+	float x;	  //本机器人位置x坐标，单位：m
+	float y;      //本机器人位置y坐标，单位：m
+	float angle;  //本机器人测速模块的朝向，单位：度。正北为0度
 } ext_game_robot_pos_t;
 
 /* ID: 0x0204  Byte:  6    机器人增益数据 */
@@ -213,14 +218,15 @@ typedef struct
 /* ID: 0x0205  Byte:  1    空中机器人能量状态数据 */
 typedef struct
 {
-	uint8_t attack_time;
+	uint8_t airforce_status;  //空中机器人状态（0为正在冷却，1为冷却完毕，2为正在空中支援）
+	uint8_t time_remain;      //此状态的剩余时间
 } aerial_robot_energy_t;
 
 /* ID: 0x0206  Byte:  1    伤害状态数据 */
 typedef struct
 {
 	uint8_t armor_id : 4;
-	uint8_t hurt_type : 4;
+	uint8_t hurt_type : 4;  //血量变化类型
 } ext_robot_hurt_t;
 
 /* ID: 0x0207  Byte:  7    实时射击数据 */
