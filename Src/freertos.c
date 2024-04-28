@@ -117,6 +117,13 @@ const osThreadAttr_t Daemon_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh7,
 };
+/* Definitions for UIDraw */
+osThreadId_t UIDrawHandle;
+const osThreadAttr_t UIDraw_attributes = {
+  .name = "UIDraw",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -133,6 +140,7 @@ void _ChassisTask(void *argument);
 void _ShootTask(void *argument);
 void motorControlTask(void *argument);
 void _DaemonTask(void *argument);
+void _My_UIGraphRefresh(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -193,6 +201,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Daemon */
   DaemonHandle = osThreadNew(_DaemonTask, NULL, &Daemon_attributes);
+
+  /* creation of UIDraw */
+  UIDrawHandle = osThreadNew(_My_UIGraphRefresh, NULL, &UIDraw_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -383,6 +394,24 @@ __weak void _DaemonTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END _DaemonTask */
+}
+
+/* USER CODE BEGIN Header__My_UIGraphRefresh */
+/**
+* @brief Function implementing the UIDraw thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header__My_UIGraphRefresh */
+__weak void _My_UIGraphRefresh(void *argument)
+{
+  /* USER CODE BEGIN _My_UIGraphRefresh */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END _My_UIGraphRefresh */
 }
 
 /* Private application code --------------------------------------------------*/

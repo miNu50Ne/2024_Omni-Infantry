@@ -40,7 +40,6 @@ static void JudgeReadData(uint8_t *buff)
 
 	// 写入帧头数据(5-byte),用于判断是否开始存储裁判数据
 	memcpy(&referee_info.FrameHeader, buff, LEN_HEADER);
-
 	// 判断帧头数据(0)是否为0xA5
 	if (buff[SOF] == REFEREE_SOF)
 	{

@@ -26,7 +26,7 @@ uint8_t UI_Seq;                           // 包序号，供整个referee文件�
 static Graph_Data_t UI_shoot_dot[10];     // 射击准线
 static Graph_Data_t UI_Deriction_line[4]; // 射击准线
 static Graph_Data_t UI_Energy[3];         // 电容能量条
-static Graph_Data_t UI_Rectangle[10];     // 矩形
+Graph_Data_t UI_Rectangle[10];     // 矩形
 static Graph_Data_t UI_Circle_t[10];      // 圆形
 static Graph_Data_t UI_Arco_t[10];        // 圆弧
 static Graph_Data_t UI_Number_t[10];      // 数字

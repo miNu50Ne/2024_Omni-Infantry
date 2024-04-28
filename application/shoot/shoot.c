@@ -32,7 +32,7 @@ void ShootInit()
         .controller_param_init_config = {
             .speed_PID = {
                 .Kp            = 10, // 2.5,//23, // 20
-                .Ki            = 0,  // 0.4, // 0.5, // 1
+                .Ki            = 0.3,  // 0.4, // 0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 10000,
@@ -73,13 +73,13 @@ void ShootInit()
             .angle_PID = {
                 // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
                 .Kp     = 10, // 10
-                .Ki     = 1,
+                .Ki     = 1,//1,
                 .Kd     = 0,
                 .MaxOut = 200,
             },
             .speed_PID = {
                 .Kp            = 10,  // 10
-                .Ki            = 0.5, // 1
+                .Ki            = 0,//0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
                 .IntegralLimit = 5000,
@@ -134,6 +134,7 @@ void ShootTask()
         UI_timer = 0;
         My_UIGraphRefresh();
     }
+    
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 

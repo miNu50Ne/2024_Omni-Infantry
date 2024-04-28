@@ -223,7 +223,8 @@ static void RemoteControlSet()
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
         //接受发射指令
         memccpy(&shoot_cmd, vision_recv_data + 8, sizeof(uint8_t), 1);
-
+        //检测是否允许开火
+        shoot_cmd = vision_recv_data[8];
         vision_recv_data[9] = 0;
 
         if(vision_recv_data[9] == 1){
@@ -303,6 +304,10 @@ static void RemoteControlSet()
         // 控制云台旋转
         yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
         pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
+    }
+    //防止拨弹盘在摩擦轮没有开启的情况下转动
+    if(shoot_cmd_send.friction_mode  == FRICTION_OFF){
+        shoot_cmd_send.load_mode     = LOAD_STOP;
     }
     // 底盘参数
     chassis_cmd_send.vx = 20.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
@@ -388,12 +393,14 @@ static void ChassisSpeedSet()
 static void GimbalSet()
 {
     // 按住鼠标右键且视觉识别到目标
-    if (vision_recv_data[8] == 1 && rc_data[TEMP].mouse.press_r) {
+    if (vision_recv_data[9] == 1 && rc_data[TEMP].mouse.press_r) {
         // 相对角度控制
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
 
-        vision_recv_data[8] = 0;
+        //检测是否允许开火
+        shoot_cmd = vision_recv_data[8];
+        vision_recv_data[9] = 0;
 
         // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
         yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
@@ -489,15 +496,20 @@ static void SetShootMode()
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
         // 打弹，单击左键单发，长按连发
         shoot_cmd_send.shoot_rate = 25;
-        if (rc_data[TEMP].mouse.press_l) {
+        if (rc_data[TEMP].mouse.press_l && shoot_cmd && vision_recv_data[9] == 1) {
+            //自瞄模式
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+            
+        }
+        else if(rc_data[TEMP].mouse.press_l){
             // 打符，单发
             if (Rune_Mode_Flag > 10) {
                 shoot_cmd_send.load_mode = LOAD_1_BULLET;
             } else {
                 shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
             }
-            
-        } else {
+        }
+        else {
             shoot_cmd_send.load_mode = LOAD_STOP;
             
         }
@@ -549,6 +561,10 @@ static void KeyGetMode()
         Rune_Mode_Flag--;
     } else {
         Rune_Mode_Flag = 0;
+    }
+    //防止拨弹盘在摩擦轮没有开启的情况下转动
+    if(shoot_cmd_send.friction_mode  == FRICTION_OFF){
+        shoot_cmd_send.load_mode     = LOAD_STOP;
     }
 }
 

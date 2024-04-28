@@ -189,28 +189,30 @@ float vt_lf_Now, vt_rf_Now, vt_lb_Now, vt_rb_Now;
 static void LimitChassisOutput()
 {
     // 省赛功率控制
-    Power_Buffer = referee_data->PowerHeatData.chassis_power_buffer;
-    if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
-        Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
-        Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
-        Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
-        Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
-        Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
-        Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
-        Plimit = 1;
+    // Power_Buffer = referee_data->PowerHeatData.chassis_power_buffer;
+    // if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
+    //     Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
+    //     Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
+    //     Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
+    //     Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
+    //     Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
+    //     Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
+    // else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
+    //     Plimit = 1;
 
-    power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15; // TODO: 未稳定
+    // power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15; // TODO: 未稳定
 
-    vt_lf = 1 * vt_lf * Plimit * power_lecel;
-    vt_rf = 1 * vt_rf * Plimit * power_lecel;
-    vt_lb = 1 * vt_lb * Plimit * power_lecel;
-    vt_rb = 1 * vt_rb * Plimit * power_lecel;
+    // vt_lf = 1 * vt_lf * Plimit * power_lecel;
+    // vt_rf = 1 * vt_rf * Plimit * power_lecel;
+    // vt_lb = 1 * vt_lb * Plimit * power_lecel;
+    // vt_rb = 1 * vt_rb * Plimit * power_lecel;
+
+
 
     // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1);
 
@@ -232,10 +234,10 @@ static void LimitChassisOutput()
     // DJIMotorSetRef(motor_lb, vt_lb_Now);
     // DJIMotorSetRef(motor_rb, vt_rb_Now);
 
-    DJIMotorSetRef(motor_lf, vt_lf);
-    DJIMotorSetRef(motor_rf, vt_rf);
-    DJIMotorSetRef(motor_lb, vt_lb);
-    DJIMotorSetRef(motor_rb, vt_rb);
+    // DJIMotorSetRef(motor_lf, vt_lf);
+    // DJIMotorSetRef(motor_rf, vt_rf);
+    // DJIMotorSetRef(motor_lb, vt_lb);
+    // DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 // 没有任何的功率限制，用于消耗超电容

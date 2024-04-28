@@ -17,6 +17,7 @@
 #include "led.h"
 #include "buzzer.h"
 #include "ins_task.h"
+#include "referee_UI.h"
 
 #include "robot_cmd.h"
 #include "gimbal.h"
@@ -91,6 +92,15 @@ __attribute__((noreturn)) void _DaemonTask(void *argument)
   {
     DaemonTask();
     osDelay(1);
+  }
+}
+
+__attribute__((noreturn)) void _My_UIGraphRefresh(void *argument)
+{
+  for(;;)
+  {
+    My_UIGraphRefresh();
+    osDelay(50);
   }
 }
 
