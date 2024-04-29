@@ -7,19 +7,23 @@
 float k1                = 2.432e-07f;
 float k2                = 1.322e-07f;
 float constant          = 0.6989f;
-float toque_coefficient = 3.834669502e-05f; // (20/16384) * (0.3) / (9.55)
+float toque_coefficient = 2.949745771e-06f; // (20/16384) * (0.3) / (9.55)
 float reduction_ratio, total_power;
 uint16_t max_power;
 
 void PowerControlInit(uint16_t max_power_init, float reduction_ratio_init)
 {
+    int cnt   = 0;
     max_power = max_power_init;
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
         reduction_ratio = (187.0f / 3591.0f);
     }
-    toque_coefficient *= reduction_ratio;
+    // if (cnt == 0) {
+    //     toque_coefficient *= reduction_ratio;
+    //     cnt++;
+    // }
 }
 
 float PowerInputCalc(float motor_speed, float motor_current)
@@ -32,7 +36,7 @@ float PowerInputCalc(float motor_speed, float motor_current)
 
 float TotalPowerCalc(float input_power[])
 {
-    total_power   = 0;
+    total_power = 0;
     for (int i = 0; i < 4; i++) {
         if (input_power[i] < 0) {
             continue;
@@ -49,6 +53,12 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
         float power_scale = max_power / total_power;
         motor_power *= power_scale;
         if (motor_power < 0) {
+            if (motor_current > 12000) {
+                motor_current = 12000;
+            }
+            if (motor_current < -12000) {
+                motor_current = -12000;
+            }
             return motor_current;
         }
         float a = k1;
@@ -61,13 +71,19 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
             float temp    = (-b - sqrtf(b * b - 4 * a * c)) / (2 * a);
             motor_current = temp;
         }
-        if (motor_current > 15000) {
-            motor_current = 15000;
+        if (motor_current > 12000) {
+            motor_current = 12000;
         }
-        if (motor_current < -15000) {
-            motor_current = -15000;
+        if (motor_current < -12000) {
+            motor_current = -12000;
         }
         return motor_current;
+    }
+    if (motor_current > 12000) {
+        motor_current = 12000;
+    }
+    if (motor_current < -15000) {
+        motor_current = -15000;
     }
     return motor_current;
 }

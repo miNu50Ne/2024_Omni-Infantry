@@ -116,13 +116,13 @@ void ChassisInit()
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     motor_rf                                                               = DJIMotorInit(&chassis_motor_config);
 
-    chassis_motor_config.can_init_config.tx_id                             = 4;
-    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
-    motor_lb                                                               = DJIMotorInit(&chassis_motor_config);
-
     chassis_motor_config.can_init_config.tx_id                             = 3;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     motor_rb                                                               = DJIMotorInit(&chassis_motor_config);
+
+    chassis_motor_config.can_init_config.tx_id                             = 4;
+    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    motor_lb                                                               = DJIMotorInit(&chassis_motor_config);
 
     referee_data = RefereeHardwareInit(&huart6); // 裁判系统初始化,会同时初始化UI
 
@@ -323,7 +323,7 @@ float offangle_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-    PowerControlInit(referee_data->GameRobotState.chassis_power_limit,1/REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    PowerControlInit(referee_data->GameRobotState.chassis_power_limit,1.0f/REDUCTION_RATIO_WHEEL); // 初始化功率控制
     Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
     Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)

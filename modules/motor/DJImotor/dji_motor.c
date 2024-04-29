@@ -297,6 +297,9 @@ void DJIMotorControl()
             power_data.wheel_speed[power_data.count]    = motor->measure.speed_aps;
             power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
             power_data.count++;
+            if (power_data.count > 3) {
+                power_data.count = 0;
+            }
         }
 
         // 若该电机处于停止状态,直接将buff置零
@@ -306,6 +309,9 @@ void DJIMotorControl()
     power_data.total_power = TotalPowerCalc(power_data.input_power);
     for (int i = 0; i < 4; i++) {
         set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+        if (dji_motor_instance[i]->stop_flag == MOTOR_STOP) {
+            set = 0;
+        }
         sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
         sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
     }
