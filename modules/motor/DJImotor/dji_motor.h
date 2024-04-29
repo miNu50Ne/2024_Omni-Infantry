@@ -20,6 +20,7 @@
 #include "motor_def.h"
 #include "stdint.h"
 #include "daemon.h"
+#include "power_calc.h"
 
 #define DJI_MOTOR_CNT 12
 

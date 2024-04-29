@@ -23,7 +23,7 @@
 #include "referee_UI.h"
 #include "rm_referee.h"
 #include "arm_math.h"
-#include "power_control.h"
+
 
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
@@ -207,37 +207,10 @@ static void LimitChassisOutput()
 
     power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15; // TODO: 未稳定
 
-    // vt_lf = 1 * vt_lf * Plimit * power_lecel;
-    // vt_rf = 1 * vt_rf * Plimit * power_lecel;
-    // vt_lb = 1 * vt_lb * Plimit * power_lecel;
-    // vt_rb = 1 * vt_rb * Plimit * power_lecel;
-
-
-
-    PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1);
-
-    lf_power = PowerInputCalc(motor_lf->measure.speed_aps, vt_lf);
-    lb_power = PowerInputCalc(motor_lb->measure.speed_aps, vt_lb);
-    rf_power = PowerInputCalc(-motor_rf->measure.speed_aps, vt_rf);
-    rb_power = PowerInputCalc(-motor_rb->measure.speed_aps, vt_rb);
-
-    TotalPowerCalc(lf_power, lb_power, rf_power, rb_power);
-
-    vt_lf_Now = PowerCalc(lf_power, motor_lf->measure.speed_aps, vt_lf);
-    vt_lb_Now = PowerCalc(lb_power, motor_lb->measure.speed_aps, vt_lb);
-    vt_rf_Now = PowerCalc(rf_power, -motor_rf->measure.speed_aps, vt_rf);
-    vt_rb_Now = PowerCalc(rb_power, -motor_rb->measure.speed_aps, vt_rb);
-    // 完成功率限制后进行电机参考输入设定
-
-    DJIMotorSetRef(motor_lf, vt_lf_Now);
-    DJIMotorSetRef(motor_rf, vt_rf_Now);
-    DJIMotorSetRef(motor_lb, vt_lb_Now);
-    DJIMotorSetRef(motor_rb, vt_rb_Now);
-
-    // DJIMotorSetRef(motor_lf, vt_lf);
-    // DJIMotorSetRef(motor_rf, vt_rf);
-    // DJIMotorSetRef(motor_lb, vt_lb);
-    // DJIMotorSetRef(motor_rb, vt_rb);
+    DJIMotorSetRef(motor_lf, vt_lf);
+    DJIMotorSetRef(motor_rf, vt_rf);
+    DJIMotorSetRef(motor_lb, vt_lb);
+    DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 // 没有任何的功率限制，用于消耗超电容
@@ -350,6 +323,7 @@ float offangle_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
+    PowerControlInit(referee_data->GameRobotState.chassis_power_limit,1/REDUCTION_RATIO_WHEEL); // 初始化功率控制
     Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
     Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)
