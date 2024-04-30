@@ -12,8 +12,8 @@
 
 
 //v2.0
-float k1 = 2.432e-07;
-float k2 = 1.322e-07;
+float k1 = 2.432e-07f;
+float k2 = 1.322e-07f;
 float constant = 0.6989f;
 float toque_coefficient = 2.949745771e-6f;
 
@@ -56,11 +56,12 @@ void TotalPowerCalc(float power_lf, float power_lb, float power_rf,
     power_data[2] = power_rf;
     power_data[3] = power_rb;
     for (int i = 0; i < 4; i++) {
-        if (power_data[i] < 0) {
-            continue;
-        } else {
-            total_power += power_data[i];
-        }
+        // if (power_data[i] < 0) {
+        //     continue;
+        // } else {
+        //     total_power += power_data[i];
+        // }
+        total_power += power_data[i];
     }
 }
 float PowerCalc(float motor_power, float motor_speed, float motor_current)
@@ -68,9 +69,9 @@ float PowerCalc(float motor_power, float motor_speed, float motor_current)
     if (total_power > max_power) {
         power_scale = max_power / total_power;
         motor_power *= power_scale;
-        if (motor_power < 0) {
-            return motor_current;
-        }
+        // if (motor_power < 0) {
+        //     return motor_current;
+        // }
         a          = k1;
         b          = toque_coefficient * motor_speed;
         c          = k2 * motor_speed * motor_speed - motor_power + constant;

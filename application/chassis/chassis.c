@@ -212,30 +212,30 @@ static void LimitChassisOutput()
     vt_lb = 1 * vt_lb * Plimit * power_lecel;
     vt_rb = 1 * vt_rb * Plimit * power_lecel;
 
+    DJIMotorSetRef(motor_lf, vt_lf);
+    DJIMotorSetRef(motor_rf, vt_rf);
+    DJIMotorSetRef(motor_lb, vt_lb);
+    DJIMotorSetRef(motor_rb, vt_rb);
+
     // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1);
 
     // lf_power = PowerInputCalc(motor_lf->measure.speed_aps, vt_lf);
     // lb_power = PowerInputCalc(motor_lb->measure.speed_aps, vt_lb);
-    // rf_power = PowerInputCalc(-motor_rf->measure.speed_aps, vt_rf);
-    // rb_power = PowerInputCalc(-motor_rb->measure.speed_aps, vt_rb);
+    // rf_power = PowerInputCalc(motor_rf->measure.speed_aps, vt_rf);
+    // rb_power = PowerInputCalc(motor_rb->measure.speed_aps, vt_rb);
 
     // TotalPowerCalc(lf_power, lb_power, rf_power, rb_power);
 
     // vt_lf_Now = PowerCalc(lf_power, motor_lf->measure.speed_aps, vt_lf);
     // vt_lb_Now = PowerCalc(lb_power, motor_lb->measure.speed_aps, vt_lb);
-    // vt_rf_Now = PowerCalc(rf_power, -motor_rf->measure.speed_aps, vt_rf);
-    // vt_rb_Now = PowerCalc(rb_power, -motor_rb->measure.speed_aps, vt_rb);
+    // vt_rf_Now = PowerCalc(rf_power, motor_rf->measure.speed_aps, vt_rf);
+    // vt_rb_Now = PowerCalc(rb_power, motor_rb->measure.speed_aps, vt_rb);
     // // 完成功率限制后进行电机参考输入设定
 
     // DJIMotorSetRef(motor_lf, vt_lf_Now);
     // DJIMotorSetRef(motor_rf, vt_rf_Now);
     // DJIMotorSetRef(motor_lb, vt_lb_Now);
     // DJIMotorSetRef(motor_rb, vt_rb_Now);
-
-    DJIMotorSetRef(motor_lf, vt_lf);
-    DJIMotorSetRef(motor_rf, vt_rf);
-    DJIMotorSetRef(motor_lb, vt_lb);
-    DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 // 没有任何的功率限制，用于消耗超电容
