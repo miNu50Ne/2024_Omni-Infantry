@@ -24,7 +24,6 @@
 #include "rm_referee.h"
 #include "arm_math.h"
 
-
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
 #define HALF_TRACK_WIDTH (TRACK_WIDTH / 2.0f)    // 半轮距
@@ -61,7 +60,7 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 17.5, // 50,//70, // 4.5
+    .Kp            = 23.5, // 50,//70, // 4.5
     .Ki            = 0,    // 0
     .Kd            = 0.0,  // 0.07,  // 0
     .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动
@@ -188,6 +187,8 @@ float lf_power, lb_power, rf_power, rb_power;
 float vt_lf_Now, vt_rf_Now, vt_lb_Now, vt_rb_Now;
 static void LimitChassisOutput()
 {
+    PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+
     // 省赛功率控制
     Power_Buffer = referee_data->PowerHeatData.chassis_power_buffer;
     // if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
@@ -323,7 +324,7 @@ float offangle_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-    PowerControlInit(referee_data->GameRobotState.chassis_power_limit,1.0f/REDUCTION_RATIO_WHEEL); // 初始化功率控制
+
     Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
     Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)

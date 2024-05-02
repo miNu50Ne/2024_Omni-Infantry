@@ -46,7 +46,7 @@
 #define RADIUS_WHEEL           153   // 轮子半径
 #define REDUCTION_RATIO_WHEEL  13.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
-#define CHASSIS_SPEED          9000  //9500 //键盘控制不限功率时底盘最大移动速度
+#define CHASSIS_SPEED          15000  //9500 //键盘控制不限功率时底盘最大移动速度
 // #define YAW_
 
 // 模拟小电脑负重 652.2
@@ -124,13 +124,13 @@ typedef enum {
     CHASSIS_STATUS_FREE,
 } Chassis_Status_Enum;
 
-
 // 云台模式设置
 typedef enum {
     GIMBAL_ZERO_FORCE = 0, // 电流零输入
     GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
+
 
 //云台状态标志位
 typedef enum {

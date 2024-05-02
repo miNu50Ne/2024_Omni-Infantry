@@ -8,18 +8,20 @@ float k1                = 2.432e-07f;
 float k2                = 1.322e-07f;
 float constant          = 0.6989f;
 float toque_coefficient = 2.949745771e-06f; // (20/16384) * (0.3) / (9.55)
+
 float reduction_ratio, total_power;
 uint16_t max_power;
 
 void PowerControlInit(uint16_t max_power_init, float reduction_ratio_init)
 {
     int cnt   = 0;
-    max_power = max_power_init;
+    max_power = max_power_init + 130;
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
         reduction_ratio = (187.0f / 3591.0f);
     }
+
     // if (cnt == 0) {
     //     toque_coefficient *= reduction_ratio;
     //     cnt++;

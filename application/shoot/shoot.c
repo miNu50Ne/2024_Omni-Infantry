@@ -31,8 +31,8 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 10, // 2.5,//23, // 20
-                .Ki            = 0.3,  // 0.4, // 0.5, // 1
+                .Kp            = 10,  // 2.5,//23, // 20
+                .Ki            = 0.3, // 0.4, // 0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 10000,
@@ -40,7 +40,7 @@ void ShootInit()
             },
             .current_PID = {
                 .Kp            = 0.7, // 2.0, // 0.7
-                .Ki            = 0, // 0.1
+                .Ki            = 0,   // 0.1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 10000,
@@ -73,20 +73,20 @@ void ShootInit()
             .angle_PID = {
                 // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
                 .Kp     = 10, // 10
-                .Ki     = 1,//1,
+                .Ki     = 1,  // 1,
                 .Kd     = 0,
                 .MaxOut = 200,
             },
             .speed_PID = {
-                .Kp            = 10,  // 10
-                .Ki            = 0,//0.5, // 1
+                .Kp            = 10, // 10
+                .Ki            = 0,  // 0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
                 .IntegralLimit = 5000,
                 .MaxOut        = 5000,
             },
             .current_PID = {
-                .Kp            = 1, // 0.7
+                .Kp            = 1,   // 0.7
                 .Ki            = 0.1, // 0.1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
@@ -110,13 +110,13 @@ void ShootInit()
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
 
-float Block_Time ; // 堵转时间
-float speed_record[6] = {0, 0, 0, 0, 0, 0}; // 第五个为最近的射速 第六个为平均射速
-float Shoot_Speed; // 射速
-float speed_adj;   // 摩擦轮调速
+float Block_Time;            // 堵转时间
+float speed_record[6] = {0}; // 第五个为最近的射速 第六个为平均射速
+float Shoot_Speed;           // 射速
+float speed_adj;             // 摩擦轮调速
 /**
  * @brief 堵转，弹速检测
- * 
+ *
  */
 // static void ShootCtrl(){
 //     //堵转时间检测
@@ -125,6 +125,7 @@ float speed_adj;   // 摩擦轮调速
 
 // }
 
+float loader_angle;
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
@@ -134,7 +135,7 @@ void ShootTask()
         UI_timer = 0;
         My_UIGraphRefresh();
     }
-    
+
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 
@@ -155,6 +156,7 @@ void ShootTask()
     if (hibernate_time + dead_time > DWT_GetTimeline_ms())
         return;
 
+    loader_angle=loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE; // 拨盘电机参考值设定
     // 若不在休眠状态,根据robotCMD传来的控制模式进行拨盘电机参考值设定和模式切换
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
@@ -164,17 +166,13 @@ void ShootTask()
             break;
         // 单发模式,根据鼠标按下的时间,触发一次之后需要进入不响应输入的状态(否则按下的时间内可能多次进入,导致多次发射)
         case LOAD_1_BULLET:                                                               // 激活能量机关/干扰对方用,英雄用.
-            DJIMotorOuterLoop(loader, ANGLE_LOOP);                                        // 切换到角度环
-            DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE); // 控制量增加一发弹丸的角度
+            DJIMotorOuterLoop(loader, SPEED_LOOP);                                        // 切换到角度环
+            shoot_cmd_recv.shoot_rate = 2.5;                                                  // 设定射速为1,即单发
+            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 控制量增加一发弹丸的角度
+            // DJIMotorOuterLoop(loader, ANGLE_LOOP);                                        // 切换到角度环
+            // DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE); // 控制量增加一发弹丸的角度
             hibernate_time = DWT_GetTimeline_ms();                                        // 记录触发指令的时间
             dead_time      = 150;                                                         // 完成1发弹丸发射的时间
-            break;
-        // 三连发,如果不需要后续可能删除
-        case LOAD_3_BULLET:
-            DJIMotorOuterLoop(loader, ANGLE_LOOP);                                            // 切换到速度环
-            DJIMotorSetRef(loader, loader->measure.total_angle + 3 * ONE_BULLET_DELTA_ANGLE); // 增加3发
-            hibernate_time = DWT_GetTimeline_ms();                                            // 记录触发指令的时间
-            dead_time      = 300;                                                             // 完成3发弹丸发射的时间
             break;
         // 连发模式,对速度闭环,射频后续修改为可变,目前固定为1Hz
         case LOAD_BURSTFIRE:
@@ -201,21 +199,14 @@ void ShootTask()
         DJIMotorSetRef(friction_l, 42000);
         DJIMotorSetRef(friction_r, 42000);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
-        DJIMotorSetRef(friction_l, 0);
-        DJIMotorSetRef(friction_r, 0);
-    } else // 关闭摩擦轮
+        DJIMotorSetRef(friction_l, -150);
+        DJIMotorSetRef(friction_r, -150);
+    } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) // 关闭摩擦轮
     {
         DJIMotorOuterLoop(friction_l, SPEED_LOOP); // 切换到速度环
         DJIMotorOuterLoop(friction_r, SPEED_LOOP); // 切换到速度环
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);
-    }
-
-    // 开关弹舱盖，中供弹不用写
-    if (shoot_cmd_recv.lid_mode == LID_CLOSE) {
-        //...
-    } else if (shoot_cmd_recv.lid_mode == LID_OPEN) {
-        //...
     }
 
     // 反馈数据,目前暂时没有要设定的反馈数据,后续可能增加应用离线监测以及卡弹反馈
@@ -225,19 +216,19 @@ void ShootTask()
 // 热量控制算法
 // #pragma messsage "TODO"
 uint32_t shoot_count = 0;
-float d_watch; //创建一个全局变量来记录微分值，便于调试
+float d_watch; // 创建一个全局变量来记录微分值，便于调试
 
 void Shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
-    static bool bullet_waiting_confirm = false;                                    // 等待比较器确认
+    static bool bullet_waiting_confirm = false;                                         // 等待比较器确认
     uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速
-    float data                               = friction_l->measure.speed_aps;            // 获取摩擦轮转速
-    static uint16_t data_histroy[MAX_HISTROY];                                     // 做循环队列
-    static uint8_t head = 0, rear = 0;                                             // 队列下标
-    float moving_average[2];                                                       // 移动平均滤波
-    uint8_t data_num;                                                              // 循环队列元素个数
-    float derivative;                                                              // 微分
+    float data                         = friction_l->measure.speed_aps;                 // 获取摩擦轮转速
+    static uint16_t data_histroy[MAX_HISTROY];                                          // 做循环队列
+    static uint8_t head = 0, rear = 0;                                                  // 队列下标
+    float moving_average[2];                                                            // 移动平均滤波
+    uint8_t data_num;                                                                   // 循环队列元素个数
+    float derivative;                                                                   // 微分
     /*-----------------------------------逻辑控制-----------------------------------------*/
     data = abs(data);
     /*入队*/

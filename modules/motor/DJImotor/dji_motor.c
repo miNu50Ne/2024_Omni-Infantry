@@ -223,6 +223,9 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     motor->motor_controller.pid_ref = ref;
 }
 
+DJI_Motor_Measure_s measure_data[4];
+float sample;
+
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
@@ -279,12 +282,13 @@ void DJIMotorControl()
 
         if (motor_setting->feedback_reverse_flag == FEEDBACK_DIRECTION_REVERSE)
             pid_ref *= -1;
-#ifdef SAMPLING
-        set = (int16_t)motor_controller->pid_ref;
-#endif
 
         // 获取最终输出
         set = (int16_t)pid_ref;
+
+#ifdef SAMPLING
+        set = (int16_t)motor_controller->pid_ref;
+#endif
 
         // 分组填入发送数据
         group                                         = motor->sender_group;
@@ -292,29 +296,32 @@ void DJIMotorControl()
         sender_assignment[group].tx_buff[2 * num]     = (uint8_t)(set >> 8);     // 低八位
         sender_assignment[group].tx_buff[2 * num + 1] = (uint8_t)(set & 0x00ff); // 高八位
 
-        if (group == 1) {
-            power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_aps, motor->motor_controller.speed_PID.Output);
-            power_data.wheel_speed[power_data.count]    = motor->measure.speed_aps;
-            power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
-            power_data.count++;
-            if (power_data.count > 3) {
-                power_data.count = 0;
-            }
-        }
+        // if (group == 1) {
+        //     power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_aps, motor->motor_controller.speed_PID.Output);
+        //     power_data.wheel_speed[power_data.count]    = motor->measure.speed_aps;
+        //     power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
+        //     power_data.count++;
+        //     if (power_data.count > 3) {
+        //         power_data.count = 0;
+        //     }
+        // }
 
         // 若该电机处于停止状态,直接将buff置零
         if (motor->stop_flag == MOTOR_STOP)
             memset(sender_assignment[group].tx_buff + 2 * num, 0, 16u);
     }
-    power_data.total_power = TotalPowerCalc(power_data.input_power);
-    for (int i = 0; i < 4; i++) {
-        set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
-        if (dji_motor_instance[i]->stop_flag == MOTOR_STOP) {
-            set = 0;
-        }
-        sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
-        sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
-    }
+
+    // int index = 0;
+    // if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
+    //     power_data.total_power = TotalPowerCalc(power_data.input_power);
+    //     for (int i = 0; i < 4; i++) {
+
+    //         set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+
+    //         sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
+    //         sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
+    //     }
+    // }
     // 遍历flag,检查是否要发送这一帧报文
     for (size_t i = 0; i < 6; ++i) {
         if (sender_enable_flag[i]) {
