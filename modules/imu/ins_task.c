@@ -25,6 +25,11 @@ static const float fliter_num[3] = {1.929454039488895f, -0.93178349823448126f, 0
 
 static INS_Instance *INS = NULL;
 
+extern HostInstance *host_instance; // 上位机接口
+
+static uint8_t vision_send_data[40]; // 给视觉上位机发送的数据-四元数
+// 这里的四元数以wxyz的顺序
+
 /**
  * @brief          旋转陀螺仪,加速度计和磁力计,并计算零漂,因为设备有不同安装方式
  * @param[out]     gyro: 加上零漂和旋转
@@ -67,6 +72,23 @@ INS_Instance *INS_Init(BMI088Instance *bmi088)
     INS = INSinstance;
     return INSinstance;
 }
+
+/**
+ * @brief 视觉发送任务，将四元数发送给上位机
+ *
+ */
+void VisionTask()
+{
+    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x10};
+    memcpy(vision_send_data, frame_head, 4);
+
+    memcpy(vision_send_data + 4, INS->INS_data.INS_quat, sizeof(float) * 4);
+    vision_send_data[20] = 0;
+    for (size_t i = 0; i < 20; i++)
+        vision_send_data[20] += vision_send_data[i];
+    HostSend(host_instance, vision_send_data, 21);
+}
+
 void INS_Task(void)
 {
     BMI088_Data_t raw_data;
@@ -102,19 +124,20 @@ void INS_Task(void)
     get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
-    static float last_yaw_angle = 0; // 上一次的yaw角度
-    static int16_t yaw_round_count     = 0; // yaw转过的圈数
+    static float last_yaw_angle    = 0; // 上一次的yaw角度
+    static int16_t yaw_round_count = 0; // yaw转过的圈数
     if (INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] - last_yaw_angle > PI) {
         yaw_round_count--;
     } else if (INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] - last_yaw_angle < -PI) {
         yaw_round_count++;
     }
     INS->output.Yaw_total_angle = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] + yaw_round_count * 2 * PI;
-    last_yaw_angle = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET];
+    last_yaw_angle              = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET];
 
     // 弧度转角度
     for (uint8_t i = 0; i < 3; i++) {
         INS->output.INS_angle_deg[i] = INS->output.INS_angle[i] * RAD_TO_ANGLE;
     }
     INS->output.Yaw_total_angle_deg = INS->output.Yaw_total_angle * RAD_TO_ANGLE;
+    VisionTask();
 }

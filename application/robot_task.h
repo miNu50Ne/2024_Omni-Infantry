@@ -6,7 +6,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-
 #include "referee_init.h"
 #include "master_process.h"
 #include "daemon.h"
@@ -43,65 +42,72 @@ __attribute__((noreturn)) void StartINSTASK(void *argument)
 
 __attribute__((noreturn)) void _RobotCMDTask(void *argument)
 {
-  for(;;)
-  {
-    RobotCMDTask();
-    osDelay(1);
-  }
+
+    static uint32_t cmd_time;
+    static float cmd_dt;
+    for (;;) {
+        cmd_dt = 1000 * DWT_GetDeltaT(&cmd_time);
+        if (cmd_dt > 1.2f)
+            LOGERROR("[freeRTOS] CMD Task is being DELAY! dt = [%f]ms", &cmd_dt);
+        RobotCMDTask();
+        osDelay(1);
+    }
 }
 
 __attribute__((noreturn)) void _GimbalTask(void *argument)
 {
-  for(;;)
-  {
-    GimbalTask();
-    osDelay(5);
-  }
+    for (;;) {
+        GimbalTask();
+        osDelay(5);
+    }
 }
 
 __attribute__((noreturn)) void _ChassisTask(void *argument)
 {
-  for(;;)
-  {
-    ChassisTask();
-    osDelay(5);
-  }
+    for (;;) {
+        ChassisTask();
+        osDelay(5);
+    }
 }
 
 __attribute__((noreturn)) void _ShootTask(void *argument)
 {
-  for(;;)
-  {
-    ShootTask();
-    osDelay(5);
-  }
+    for (;;) {
+        ShootTask();
+        osDelay(5);
+    }
 }
 
 __attribute__((noreturn)) void motorControlTask(void *argument)
 {
-  for(;;)
-  {
-    MotorControlTask();
-    osDelay(1);
-  }
+    for (;;) {
+        MotorControlTask();
+        osDelay(1);
+    }
 }
 
 __attribute__((noreturn)) void _DaemonTask(void *argument)
 {
-  for(;;)
-  {
-    DaemonTask();
-    osDelay(1);
-  }
+    for (;;) {
+        DaemonTask();
+        osDelay(1);
+    }
 }
+
+// __attribute__((noreturn)) void _VisionTask(void *argument)
+// {
+//   for(;;){
+//     VisionTask();
+//     osDelay(1);
+//   }
+// }
 
 __attribute__((noreturn)) void _My_UIGraphRefresh(void *argument)
 {
-  for(;;)
-  {
-    My_UIGraphRefresh();
-    osDelay(50);
-  }
+    for (;;) {
+        My_UIGraphRefresh();
+        osDelay(50);
+    }
 }
 
 // #include "robot.h"

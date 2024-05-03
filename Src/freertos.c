@@ -110,12 +110,12 @@ const osThreadAttr_t motorControl_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal7,
 };
-/* Definitions for Daemon */
-osThreadId_t DaemonHandle;
-const osThreadAttr_t Daemon_attributes = {
-  .name = "Daemon",
+/* Definitions for VisionTask */
+osThreadId_t VisionTaskHandle;
+const osThreadAttr_t VisionTask_attributes = {
+  .name = "VisionTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh7,
+  .priority = (osPriority_t) osPriorityRealtime7,
 };
 /* Definitions for UIDraw */
 osThreadId_t UIDrawHandle;
@@ -139,7 +139,7 @@ void _GimbalTask(void *argument);
 void _ChassisTask(void *argument);
 void _ShootTask(void *argument);
 void motorControlTask(void *argument);
-void _DaemonTask(void *argument);
+void _VisionTask(void *argument);
 void _My_UIGraphRefresh(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
@@ -199,8 +199,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of motorControl */
   motorControlHandle = osThreadNew(motorControlTask, NULL, &motorControl_attributes);
 
-  /* creation of Daemon */
-  DaemonHandle = osThreadNew(_DaemonTask, NULL, &Daemon_attributes);
+  /* creation of VisionTask */
+  VisionTaskHandle = osThreadNew(_VisionTask, NULL, &VisionTask_attributes);
 
   /* creation of UIDraw */
   UIDrawHandle = osThreadNew(_My_UIGraphRefresh, NULL, &UIDraw_attributes);
@@ -378,22 +378,22 @@ __weak void motorControlTask(void *argument)
   /* USER CODE END motorControlTask */
 }
 
-/* USER CODE BEGIN Header__DaemonTask */
+/* USER CODE BEGIN Header__VisionTask */
 /**
-* @brief Function implementing the Daemon thread.
+* @brief Function implementing the VisionTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header__DaemonTask */
-__weak void _DaemonTask(void *argument)
+/* USER CODE END Header__VisionTask */
+__weak void _VisionTask(void *argument)
 {
-  /* USER CODE BEGIN _DaemonTask */
+  /* USER CODE BEGIN _VisionTask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END _DaemonTask */
+  /* USER CODE END _VisionTask */
 }
 
 /* USER CODE BEGIN Header__My_UIGraphRefresh */

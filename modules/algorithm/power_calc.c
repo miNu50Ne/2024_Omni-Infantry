@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-float k1                = 2.432e-07f;
-float k2                = 1.322e-07f;
-float constant          = 0.6989f;
+float k1                = 5.636e-08f;
+float k2                = -9.359e-09f;
+float constant          = 0.5662f;
 float toque_coefficient = 2.949745771e-06f; // (20/16384) * (0.3) / (9.55)
 
 float reduction_ratio, total_power;
@@ -15,7 +15,7 @@ uint16_t max_power;
 void PowerControlInit(uint16_t max_power_init, float reduction_ratio_init)
 {
     int cnt   = 0;
-    max_power = max_power_init + 130;
+    max_power = max_power_init;
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
@@ -53,13 +53,13 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
 {
     if (total_power > max_power) {
         float power_scale = max_power / total_power;
-        motor_power *= power_scale;
+        motor_power *= power_scale ;
         if (motor_power < 0) {
-            if (motor_current > 12000) {
-                motor_current = 12000;
+            if (motor_current > 15000) {
+                motor_current = 15000;
             }
-            if (motor_current < -12000) {
-                motor_current = -12000;
+            if (motor_current < -15000) {
+                motor_current = -15000;
             }
             return motor_current;
         }
@@ -73,16 +73,16 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
             float temp    = (-b - sqrtf(b * b - 4 * a * c)) / (2 * a);
             motor_current = temp;
         }
-        if (motor_current > 12000) {
-            motor_current = 12000;
+        if (motor_current > 15000) {
+            motor_current = 15000;
         }
-        if (motor_current < -12000) {
-            motor_current = -12000;
+        if (motor_current < -15000) {
+            motor_current = -15000;
         }
         return motor_current;
     }
-    if (motor_current > 12000) {
-        motor_current = 12000;
+    if (motor_current > 15000) {
+        motor_current = 15000;
     }
     if (motor_current < -15000) {
         motor_current = -15000;

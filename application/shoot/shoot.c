@@ -173,7 +173,7 @@ void ShootTask()
             // DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE); // 控制量增加一发弹丸的角度
             hibernate_time = DWT_GetTimeline_ms();                                        // 记录触发指令的时间
             dead_time      = 150;                                                         // 完成1发弹丸发射的时间
-            break;
+            break; 
         // 连发模式,对速度闭环,射频后续修改为可变,目前固定为1Hz
         case LOAD_BURSTFIRE:
             DJIMotorOuterLoop(loader, SPEED_LOOP);

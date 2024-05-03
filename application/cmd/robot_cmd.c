@@ -48,10 +48,9 @@ static Chassis_Upload_Data_s chassis_fetch_data; // 从底盘应用接收的反�
 
 static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
 
-static HostInstance *host_instance; // 上位机接口
-// 这里的四元数以wxyz的顺序
-static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
-static uint8_t vision_send_data[21]; // 给视觉上位机发送的数据-四元数
+HostInstance *host_instance; // 上位机接口
+
+static uint8_t vision_recv_data[9]; // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
@@ -230,7 +229,7 @@ static void RemoteControlSet()
             yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
             pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
         } else {
-            // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上                     
+            // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
             yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
             pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
         }
@@ -315,8 +314,8 @@ static void RemoteControlSet()
         pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
     // 底盘参数
-    chassis_cmd_send.vx = 20.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
-    chassis_cmd_send.vy = 20.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
+    chassis_cmd_send.vx = 60.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
+    chassis_cmd_send.vy = 60.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
 
     // 云台参数
     YawControlProcess();
@@ -403,15 +402,14 @@ static void GimbalSet()
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
 
-        if (vision_recv_data[8] == 1) {
-            // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
-            yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
-            pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-        } else if (vision_recv_data[8] == 0) {
+        // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
+        yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
+        pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
+
+        if (rec_yaw == 0 && rec_pitch == 0) {
             yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
             pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
         }
-        vision_recv_data[8] = 0;
     } else {
         yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
         pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
@@ -505,9 +503,13 @@ static void SetShootMode()
         shoot_cmd_send.shoot_rate = 20;
 
         if (rc_data[TEMP].mouse.press_l) {
-            shoot_cmd_send.load_mode = LOAD_1_BULLET;
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
+        }
+
+        if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] == 1) {
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
         }
     }
     // 新热量管理
@@ -631,7 +633,7 @@ void UpDateUI()
     Yaw_Angle   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[0] * RAD_TO_ANGLE;        // 获得IMU的yaw绝对角度（角度制），用于绘制UI
 }
 
-int send_time;
+// int send_time;
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
@@ -652,6 +654,8 @@ void RobotCMDTask()
         MouseKeySet();
     else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right)) {
         EmergencyHandler(); // 调试/疯车时急停
+        memcpy(&rec_yaw, vision_recv_data, sizeof(float));
+        memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
         yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
         pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
     } else {
@@ -679,14 +683,7 @@ void RobotCMDTask()
 #endif // GIMBAL_BOARD
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
-
-    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x10};
-    memcpy(vision_send_data, frame_head, 4);
-
-    memcpy(vision_send_data + 4, gimbal_fetch_data.gimbal_imu_data->INS_data.INS_quat, sizeof(float) * 4);
-    vision_send_data[20] = 0;
-    for (size_t i = 0; i < 20; i++)
-        vision_send_data[20] += vision_send_data[i];
-    HostSend(host_instance, vision_send_data, 21);
-    send_time++;
+    // send_time++;
+    // DaemonTask();
 }
+
