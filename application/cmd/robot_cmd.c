@@ -662,6 +662,7 @@ void RobotCMDTask()
         RemoteControlSet();
     }
 
+
     UpDateUI();
     remote_work_condition = RemoteControlIsOnline();
 

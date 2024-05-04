@@ -216,7 +216,12 @@ static void LimitChassisOutput()
 
     power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15;
 
-    // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    vt_lf  = vt_lf * Plimit * power_lecel;
+    vt_rf  = vt_rf * Plimit * power_lecel;
+    vt_lb  = vt_lb * Plimit * power_lecel;
+    vt_rb  = vt_rb * Plimit * power_lecel;
+
+    // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制  
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);

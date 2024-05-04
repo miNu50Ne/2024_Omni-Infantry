@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-float k1                = 5.636e-08f;
+float k1                = 4.e-05f;
 float k2                = -9.359e-09f;
 float constant          = 0.5662f;
 float toque_coefficient = 2.949745771e-06f; // (20/16384) * (0.3) / (9.55)
