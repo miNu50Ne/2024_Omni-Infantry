@@ -65,7 +65,7 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 23.5, // 50,//70, // 4.5
+    .Kp            = 25, // 50,//70, // 4.5
     .Ki            = 0,    // 0
     .Kd            = 0.0,  // 0.07,  // 0
     .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动
@@ -88,26 +88,19 @@ void ChassisInit()
         .can_init_config.can_handle   = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 3.5, // 4.5
+                .Kp            = 0.5, // kp太大会导致功率预测寄完
                 .Ki            = 0,   // 0
                 .Kd            = 0,   // 0
                 .IntegralLimit = 3000,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .MaxOut        = 15000,
             }
-            // ,
-            // .current_PID = {
-            //     .Kp            = 0.5, // 0.4
-            //     .Ki            = 0,   // 0
-            //     .Kd            = 0,
-            //     .IntegralLimit = 3000,
-            //     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-            //     .MaxOut        = 15000,
-            // },
         },
         .controller_setting_init_config = {
-            .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED, .outer_loop_type = SPEED_LOOP,
-            .close_loop_type = SPEED_LOOP, // | CURRENT_LOOP,
+            .angle_feedback_source = MOTOR_FEED, 
+            .speed_feedback_source = MOTOR_FEED, 
+            .outer_loop_type = SPEED_LOOP,
+            .close_loop_type = SPEED_LOOP, 
         },
         .motor_type = M3508,
     };
@@ -199,53 +192,36 @@ static void LimitChassisOutput()
 {
     // 省赛功率控制
     Power_Buffer = referee_data->PowerHeatData.chassis_power_buffer;
-    if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
-        Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
-        Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
-        Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
-        Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
-        Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
-        Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
-        Plimit = 1; 
+    // if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
+    //     Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
+    //     Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
+    //     Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
+    //     Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
+    //     Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
+    // else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
+    //     Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
+    // else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
+    //     Plimit = 1;
 
     power_lecel = referee_data->GameRobotState.robot_level * 0.1 + 0.8 + 0.15;
 
-    vt_lf  = vt_lf * Plimit * power_lecel;
-    vt_rf  = vt_rf * Plimit * power_lecel;
-    vt_lb  = vt_lb * Plimit * power_lecel;
-    vt_rb  = vt_rb * Plimit * power_lecel;
+    // vt_lf = vt_lf * Plimit * power_lecel;
+    // vt_rf = vt_rf * Plimit * power_lecel;
+    // vt_lb = vt_lb * Plimit * power_lecel;
+    // vt_rb = vt_rb * Plimit * power_lecel;
 
-    // PowerControlInit(referee_data->GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制  
+    PowerControlInit(referee_info.GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
 
+    //设定速度参考值
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
 
-    // power_signal = sin(HAL_GetTick() * 0.01f) * 20000;
-
-    // DJIMotorSetRef(motor_lf, power_signal);
-    // DJIMotorSetRef(motor_rf, power_signal);
-    // DJIMotorSetRef(motor_lb, power_signal);
-    // DJIMotorSetRef(motor_rb, power_signal);
-
-    // speed_sample[LF] = motor_lf->measure.speed_aps;
-    // speed_sample[RF] = motor_rf->measure.speed_aps;
-    // speed_sample[LB] = motor_lb->measure.speed_aps;
-    // speed_sample[RB] = motor_rb->measure.speed_aps;
-
-    // current_sample[LF] = motor_lf->measure.real_current;
-    // current_sample[RF] = motor_rf->measure.real_current;
-    // current_sample[LB] = motor_lb->measure.real_current;
-    // current_sample[RB] = motor_rb->measure.real_current;
-
-    // chassis_power= referee_info.PowerHeatData.chassis_power;
 }
 
 // 没有任何的功率限制，用于消耗超电容
@@ -353,12 +329,11 @@ static void EstimateSpeed()
     //  ...
 }
 
-float offangle_watch;
+
 
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-
     Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
     Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)
@@ -394,12 +369,11 @@ void ChassisTask()
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
                 offset_angle = chassis_cmd_recv.offset_angle - 180;
-            offangle_watch      = offset_angle;
-            chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
+            chassis_cmd_recv.wz = -1.5f * offset_angle * abs(offset_angle);
             chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            chassis_cmd_recv.wz = 8500;
+            chassis_cmd_recv.wz = 6000;
             break;
         default:
             break;

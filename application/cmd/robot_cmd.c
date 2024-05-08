@@ -276,13 +276,13 @@ static void RemoteControlSet()
             } else {
                 shoot_cmd_send.load_mode = LOAD_STOP;
             }
-        } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
+        } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[上],底盘和云台分离,打弹
         {
             chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
             shoot_cmd_send.shoot_mode     = SHOOT_ON;
             shoot_cmd_send.friction_mode  = FRICTION_ON;
-            shoot_cmd_send.load_mode      = LOAD_1_BULLET;
+            shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
             if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) // 剩余热量小于留出的热量
             {
                 Shoot_Flag                = 40;
@@ -314,8 +314,8 @@ static void RemoteControlSet()
         pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
     // 底盘参数
-    chassis_cmd_send.vx = 60.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
-    chassis_cmd_send.vy = 60.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
+    chassis_cmd_send.vx = 70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
+    chassis_cmd_send.vy = 70.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
 
     // 云台参数
     YawControlProcess();

@@ -70,34 +70,34 @@ void ShootInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            .angle_PID = {
-                // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
-                .Kp     = 10, // 10
-                .Ki     = 1,  // 1,
-                .Kd     = 0,
-                .MaxOut = 200,
-            },
+            // .angle_PID = {
+            //     // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
+            //     .Kp     = 10, // 10
+            //     .Ki     = 1,  // 1,
+            //     .Kd     = 0,
+            //     .MaxOut = 200,
+            // },
             .speed_PID = {
-                .Kp            = 10, // 10
+                .Kp            = 2, // 10
                 .Ki            = 0,  // 0.5, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
                 .IntegralLimit = 5000,
                 .MaxOut        = 5000,
             },
-            .current_PID = {
-                .Kp            = 1,   // 0.7
-                .Ki            = 0.1, // 0.1
-                .Kd            = 0,
-                .Improve       = PID_Integral_Limit,
-                .IntegralLimit = 5000,
-                .MaxOut        = 20000,
-            },
+            // .current_PID = {
+            //     .Kp            = 1,   // 0.7
+            //     .Ki            = 0.1, // 0.1
+            //     .Kd            = 0,
+            //     .Improve       = PID_Integral_Limit,
+            //     .IntegralLimit = 5000,
+            //     .MaxOut        = 20000,
+            // },
         },
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
-            .outer_loop_type    = ANGLE_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = CURRENT_LOOP | SPEED_LOOP | ANGLE_LOOP,
+            .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP,// | SPEED_LOOP ,//| ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
