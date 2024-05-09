@@ -39,7 +39,7 @@ static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 uint8_t Super_condition;    // 超电的开关状态
 float Super_condition_volt; // 超电的电压
 
-float Pitch_Angle; // pitch角度（角度制）
+float Pitch_Angle; // pitch角度（角度制)
 float Yaw_Angle;   // yaw角度（角度制）
 
 /********************************************删除操作*************************************
@@ -490,10 +490,10 @@ void My_UIGraphRefresh()
         //  UILineDraw(&UI_shoot_line[7], "sl7", UI_Graph_ADD, 7, UI_Color_Yellow, 1,SCREEN_LENGTH/2-90,SCREEN_WIDTH/2-40,SCREEN_LENGTH/2+90,SCREEN_WIDTH/2-40);
         //  UILineDraw(&UI_shoot_line[8], "sl8", UI_Graph_ADD, 7, UI_Color_Yellow, 1,SCREEN_LENGTH/2-70,SCREEN_WIDTH/2-120,SCREEN_LENGTH/2+70,SCREEN_WIDTH/2-120);
         // 位置标定线
-        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30 + 30, SCREEN_WIDTH / 2 - 55, SCREEN_LENGTH / 2 - 30 + 5, SCREEN_WIDTH / 2 - 55);
-        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 + 30, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 + 5);
-        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30 - 5, SCREEN_WIDTH / 2 - 55, SCREEN_LENGTH / 2 - 30 - 30, SCREEN_WIDTH / 2 - 55);
-        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 - 5, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 - 30);
+        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22 + 30, SCREEN_WIDTH / 2 - 47, SCREEN_LENGTH / 2 - 22 + 5, SCREEN_WIDTH / 2 - 47);
+        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 30, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 5);
+        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22 - 5, SCREEN_WIDTH / 2 - 47, SCREEN_LENGTH / 2 - 22 - 30, SCREEN_WIDTH / 2 - 47);
+        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 - 5, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 - 30);
         // 小陀螺
         // sprintf(UI_State_sta[0].show_Data,"Rotate");
         // UICharDraw(&UI_State_sta[0], "ss0", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 660, 100, "Rotate");
@@ -591,7 +591,7 @@ void My_UIGraphRefresh()
         UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_White, 4, 80, 710, 280, 730);
         UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200 + 80), 720); // 超电电压在12V-26V之间
 
-        UIFloatDraw(&UI_Number_t[0], "sm1", UI_Graph_Change, 9, UI_Color_Yellow, 20, 5, 3, 300 + 100, 700, Pitch_Angle * 1000);
+        UIFloatDraw(&UI_Number_t[0], "sm1", UI_Graph_Change, 9, UI_Color_Yellow, 20, 5, 3, 300 + 100, 700, (uint32_t)(Pitch_Angle * 1000));
         // 云台朝向圆弧,中供弹暂时不需要
         // if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f)
         // {

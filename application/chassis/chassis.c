@@ -62,12 +62,14 @@ extern uint8_t Super_flag;         // 超电的标志位
 extern uint8_t Super_condition;    // 超电的开关状态
 extern float Super_condition_volt; // 超电的电压
 
+extern Power_Data_s power_data;
+
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 25, // 50,//70, // 4.5
+    .Kp            = 40,//25,//25, // 50,//70, // 4.5
     .Ki            = 0,    // 0
-    .Kd            = 0.0,  // 0.07,  // 0
+    .Kd            = 1.0,//0.0,  // 0.07,  // 0
     .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
@@ -214,7 +216,7 @@ static void LimitChassisOutput()
     // vt_lb = vt_lb * Plimit * power_lecel;
     // vt_rb = vt_rb * Plimit * power_lecel;
 
-    PowerControlInit(referee_info.GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    PowerControlInit(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*2.0 -10, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
 
     //设定速度参考值
     DJIMotorSetRef(motor_lf, vt_lf);
@@ -359,21 +361,49 @@ void ChassisTask()
 
     float offset_angle;
     // 根据控制模式设定旋转速度
+    static float sin_theta, cos_theta;
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
             chassis_cmd_recv.wz = 0;
+
+            
+            cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+            sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+            chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
+            chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW:                                                      // 跟随云台
-            chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
+            // chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
+            // if (chassis_cmd_recv.offset_angle <= 90 || chassis_cmd_recv.offset_angle >= 270) // 0附近
+            //     offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
+            // else
+            //     offset_angle = chassis_cmd_recv.offset_angle - 180;
+            // chassis_cmd_recv.wz = -1.5f * offset_angle * abs(offset_angle);
+            // chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
+
+
+            //chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
             if (chassis_cmd_recv.offset_angle <= 90 || chassis_cmd_recv.offset_angle >= 270) // 0附近
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
                 offset_angle = chassis_cmd_recv.offset_angle - 180;
-            chassis_cmd_recv.wz = -1.5f * offset_angle * abs(offset_angle);
+            chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
             chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
+
+
+            cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+            sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+            chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
+            chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            chassis_cmd_recv.wz = 6000;
+            //chassis_cmd_recv.wz = 6000*(1-power_data.total_power/(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*1.2));
+            chassis_cmd_recv.wz = 4000;
+
+            cos_theta  = arm_cos_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);  //矫正小陀螺偏心
+            sin_theta  = arm_sin_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);
+            chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
+            chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
             break;
         default:
             break;
@@ -381,20 +411,19 @@ void ChassisTask()
 
     // 根据云台和底盘的角度offset将控制量映射到底盘坐标系上
     // 底盘逆时针旋转为角度正方向;云台命令的方向以云台指向的方向为x,采用右手系(x指向正北时y在正东)
-    static float sin_theta, cos_theta;
-    cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-    sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-    chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
-    chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
-
+    // static float sin_theta, cos_theta;
+    // cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+    // sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+    // chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
+    // chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
+    
     // 根据控制模式进行正运动学解算,计算底盘输出
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     Super_Cap_control();
 
-    // 根据电机的反馈速度和IMU(如果有)计算真实速度，根据超电的状态来输出功率
-
+    // 根据电机的反馈速度和IMU(如果有)计算真实速度，根据超电的状态来输出功率，目前没有
     EstimateSpeed();
 
     // 获得给电容传输的电容吸取功率等级
