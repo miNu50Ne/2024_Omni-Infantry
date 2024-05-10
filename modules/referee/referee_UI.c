@@ -564,10 +564,17 @@ void My_UIGraphRefresh()
             UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_Change, 9, UI_Color_White, 20, 700, 160, 8);
         }
         // 摩擦轮
+        // if (Referee_Interactive_info.friction_mode == FRICTION_ON) // 摩擦轮开启模式下
+        // {
+        //     UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_Change, 9, UI_Color_Green, 20, 1180, 160, 8);
+        // } else if (Referee_Interactive_info.friction_mode == FRICTION_OFF) // 摩擦轮关闭
+        // {
+        //     UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_Change, 9, UI_Color_White, 20, 1180, 160, 8);
+        // }
         if (Referee_Interactive_info.friction_mode == FRICTION_ON) // 摩擦轮开启模式下
         {
             UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_Change, 9, UI_Color_Green, 20, 1180, 160, 8);
-        } else if (Referee_Interactive_info.friction_mode == FRICTION_OFF) // 摩擦轮关闭
+        } else  // 摩擦轮关闭
         {
             UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_Change, 9, UI_Color_White, 20, 1180, 160, 8);
         }

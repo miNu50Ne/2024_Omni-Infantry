@@ -216,7 +216,7 @@ static void LimitChassisOutput()
     // vt_lb = vt_lb * Plimit * power_lecel;
     // vt_rb = vt_rb * Plimit * power_lecel;
 
-    PowerControlInit(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*2.0 -10, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    PowerControlInit(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*0.5 -10, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
 
     //设定速度参考值
     DJIMotorSetRef(motor_lf, vt_lf);
@@ -234,6 +234,7 @@ void No_Limit_Control()
     vt_rf *= 3;
     vt_lb *= 3;
     vt_rb *= 3;
+    PowerControlInit(10000, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
@@ -398,7 +399,7 @@ void ChassisTask()
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
             //chassis_cmd_recv.wz = 6000*(1-power_data.total_power/(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*1.2));
-            chassis_cmd_recv.wz = 4000;
+            chassis_cmd_recv.wz = 5000;
 
             cos_theta  = arm_cos_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);  //矫正小陀螺偏心
             sin_theta  = arm_sin_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);
