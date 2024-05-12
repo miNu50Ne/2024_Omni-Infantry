@@ -13,7 +13,8 @@
             0,           \
     }
 
-#define RAMP_TIME 2000//1000
+#define RAMP_TIME 1000 //2000//1000
+#define SUPER_RAMP_TIME 100
 
 // 斜坡类型，计算WASD移动映射在底盘的速度
 typedef struct ramp_t
