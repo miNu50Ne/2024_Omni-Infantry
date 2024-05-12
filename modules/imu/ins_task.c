@@ -89,10 +89,13 @@ void VisionTask()
     HostSend(host_instance, vision_send_data, 21);
 }
 
-void INS_Task(void)
-{
+void tmp_INS_func(){
+    
+
     BMI088_Data_t raw_data;
-    BMI088Acquire(INS->BMI088, &raw_data);
+    // BMI088Acquire(INS->BMI088, &raw_data);
+    memcpy(&raw_data.acc,INS->BMI088->acc,sizeof(float)*3);
+    memcpy(&raw_data.gyro,INS->BMI088->gyro,sizeof(float)*3);
 
     // 设置环境温度 冷启动适用
     // if (INS->BMI088->ambient_temperature < -270) {
@@ -121,6 +124,42 @@ void INS_Task(void)
 
     INS->timing_time = DWT_GetDeltaT(&INS->BMI088->bias_dwt_cnt);
     AHRS_update(INS->INS_data.INS_quat, INS->timing_time, INS->INS_data.INS_gyro, accel_fliter_3, INS->INS_data.INS_mag);
+    
+    VisionTask();
+
+}
+void INS_Task(void)
+{
+    // BMI088_Data_t raw_data;
+    // // BMI088Acquire(INS->BMI088, &raw_data);
+
+    // // 设置环境温度 冷启动适用
+    // // if (INS->BMI088->ambient_temperature < -270) {
+    // //     INS->BMI088->ambient_temperature = INS->BMI088->temperature;
+    // // }
+    // INS->BMI088->ambient_temperature = BMI088_AMBIENT_TEMPERATURE;
+    // BMI088_temp_control(INS->BMI088);
+    // // 旋转与零漂
+    // imu_cali_slove(INS->INS_data.INS_gyro, INS->INS_data.INS_accel, INS->INS_data.INS_mag, &raw_data);
+
+    // // 加速度计低通滤波
+    // accel_fliter_1[0] = accel_fliter_2[0];
+    // accel_fliter_2[0] = accel_fliter_3[0];
+
+    // accel_fliter_3[0] = accel_fliter_2[0] * fliter_num[0] + accel_fliter_1[0] * fliter_num[1] + INS->INS_data.INS_accel[0] * fliter_num[2];
+
+    // accel_fliter_1[1] = accel_fliter_2[1];
+    // accel_fliter_2[1] = accel_fliter_3[1];
+
+    // accel_fliter_3[1] = accel_fliter_2[1] * fliter_num[0] + accel_fliter_1[1] * fliter_num[1] + INS->INS_data.INS_accel[1] * fliter_num[2];
+
+    // accel_fliter_1[2] = accel_fliter_2[2];
+    // accel_fliter_2[2] = accel_fliter_3[2];
+
+    // accel_fliter_3[2] = accel_fliter_2[2] * fliter_num[0] + accel_fliter_1[2] * fliter_num[1] + INS->INS_data.INS_accel[2] * fliter_num[2];
+
+    // INS->timing_time = DWT_GetDeltaT(&INS->BMI088->bias_dwt_cnt);
+    // AHRS_update(INS->INS_data.INS_quat, INS->timing_time, INS->INS_data.INS_gyro, accel_fliter_3, INS->INS_data.INS_mag);
     get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
@@ -139,5 +178,4 @@ void INS_Task(void)
         INS->output.INS_angle_deg[i] = INS->output.INS_angle[i] * RAD_TO_ANGLE;
     }
     INS->output.Yaw_total_angle_deg = INS->output.Yaw_total_angle * RAD_TO_ANGLE;
-    VisionTask();
 }

@@ -48,7 +48,7 @@ void GimbalInit()
             .spi_handle = &hspi1,
         },
         .cali_mode = BMI088_LOAD_PRE_CALI_MODE,
-        .work_mode = BMI088_BLOCK_PERIODIC_MODE,
+        .work_mode = BMI088_BLOCK_TRIGGER_MODE,
 
     };
     gimbal_IMU_data = INS_Init(BMI088Register(&config)); // IMU先初始化,获取姿态数据指针赋给yaw电机的其他数据来源
