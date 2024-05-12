@@ -23,6 +23,8 @@
 #include "referee_UI.h"
 #include "rm_referee.h"
 #include "arm_math.h"
+#include "tool.h"
+#include "power_calc.h"
 
 /* 根据robot_def.h中的macro自动计算的参数 */
 #define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
@@ -33,6 +35,8 @@
 #define RF               1
 #define RB               2
 #define LB               3
+
+#define SuperCap_PowerLimit 1200
 
 /* 底盘应用包含的模块和信息存储,底盘是单例模式,因此不需要为底盘建立单独的结构体 */
 #ifdef CHASSIS_BOARD // 如果是底盘板,使用板载IMU获取底盘转动角速度
@@ -63,6 +67,8 @@ extern uint8_t Super_condition;    // 超电的开关状态
 extern float Super_condition_volt; // 超电的电压
 
 extern Power_Data_s power_data;
+extern ramp_t super_ramp;
+extern float total_power;
 
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
@@ -83,6 +89,8 @@ static PIDInstance FollowMode_PID = {
 static float chassis_vx, chassis_vy;     // 将云台系的速度投影到底盘
 static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出,待进行限幅
 
+float aim_power = 0;
+
 void ChassisInit()
 {
     // 四个轮子的参数一样,改tx_id和反转标志位即可
@@ -90,7 +98,7 @@ void ChassisInit()
         .can_init_config.can_handle   = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 0.5, // kp太大会导致功率预测寄完
+                .Kp            = 1.1, // kp太大会导致功率预测寄完
                 .Ki            = 0,   // 0
                 .Kd            = 0,   // 0
                 .IntegralLimit = 3000,
@@ -230,11 +238,14 @@ static void LimitChassisOutput()
 void No_Limit_Control()
 {
     // 飞坡速度，待测
-    vt_lf *= 3;
-    vt_rf *= 3;
-    vt_lb *= 3;
-    vt_rb *= 3;
-    PowerControlInit(10000, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    vt_lf *= 1.5;
+    vt_rf *= 1.5;
+    vt_lb *= 1.5;
+    vt_rb *= 1.5;
+
+
+    aim_power = (total_power + (SuperCap_PowerLimit - total_power) * ramp_calc(&super_ramp)); // vx方向待测
+    PowerControlInit(SuperCap_PowerLimit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
@@ -267,6 +278,7 @@ void Super_Cap_control()
     // 物理层继电器状态改变，功率限制状态改变
     if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_Closed) {
         LimitChassisOutput();
+        ramp_init(&super_ramp, SUPER_RAMP_TIME);
     } else {
         No_Limit_Control();
     }

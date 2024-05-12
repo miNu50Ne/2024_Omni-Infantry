@@ -31,9 +31,9 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 20,//23,  // 2.5,//23, // 20
+                .Kp            = 30,//23,  // 2.5,//23, // 20
                 .Ki            = 0.0, // 0.4, // 0.5, // 1
-                .Kd            = 0,
+                .Kd            = 0.01,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 10000,
                 .MaxOut        = 20000,
@@ -108,6 +108,10 @@ void ShootInit()
 
     shoot_pub = PubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
+
+    DJIMotorStop(friction_l);
+    DJIMotorStop(friction_r);
+    DJIMotorStop(loader);
 }
 
 float Block_Time;            // 堵转时间

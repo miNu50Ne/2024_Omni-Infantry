@@ -6,6 +6,8 @@ ramp_t rotate_ramp = RAMP_GEN_DAFAULT;
 ramp_t slow_ramp   = RAMP_GEN_DAFAULT;
 ramp_t close_ramp  = RAMP_GEN_DAFAULT;
 
+ramp_t super_ramp   = RAMP_GEN_DAFAULT;
+
 ramp_t auto_yaw_ramp = RAMP_GEN_DAFAULT;
 ramp_t auto_pitch_ramp = RAMP_GEN_DAFAULT;
 

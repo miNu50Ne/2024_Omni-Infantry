@@ -496,15 +496,25 @@ static void SetShootMode()
         shoot_cmd_send.friction_mode = FRICTION_REVERSE;
         Shoot_Run_Flag               = 0;
     }
-
+    // 防止拨弹盘在摩擦轮没有开启的情况下转动
+    if (shoot_cmd_send.friction_mode != FRICTION_ON) {
+        shoot_cmd_send.load_mode = LOAD_STOP;
+    }
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
         // 打弹，单击左键单发，长按连发
         shoot_cmd_send.shoot_rate = 20;
 
         if (rc_data[TEMP].mouse.press_l) {
-            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-        } else {
+            if(chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW){
+                shoot_cmd_send.load_mode = LOAD_1_BULLET;
+            }
+            else{
+                shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+            }
+            
+        } 
+        else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
 
@@ -512,6 +522,7 @@ static void SetShootMode()
             shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
         }
     }
+    
     // 新热量管理
     if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) {
         shoot_cmd_send.shoot_rate = 0;
@@ -559,10 +570,7 @@ static void KeyGetMode()
     } else {
         Rune_Mode_Flag = 0;
     }
-    // 防止拨弹盘在摩擦轮没有开启的情况下转动
-    if (shoot_cmd_send.friction_mode == FRICTION_OFF) {
-        shoot_cmd_send.load_mode = LOAD_STOP;
-    }
+    
 }
 
 static void SuperCapMode()
