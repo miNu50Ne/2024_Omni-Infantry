@@ -65,6 +65,7 @@ static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
 Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数据
+auto_shoot_mode_e AutoShooting_flag = AutoShooting_Off;// 自动射击标志位
 extern char Send_Once_Flag;                          // 初始化UI标志
 extern float Yaw_Angle;
 extern float Pitch_Angle; // 云台Pitch轴角度
@@ -405,11 +406,12 @@ static void GimbalSet()
         // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
         yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
         pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-
+        
         if (rec_yaw == 0 && rec_pitch == 0) {
             yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
             pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
         }
+        
     } else {
         yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
         pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
@@ -639,6 +641,17 @@ void UpDateUI()
 
     Pitch_Angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[1] * RAD_TO_ANGLE * (-1); // 获得IMU的pitch绝对角度（角度制），用于绘制UI
     Yaw_Angle   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[0] * RAD_TO_ANGLE;        // 获得IMU的yaw绝对角度（角度制），用于绘制UI
+
+    if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] == 1) {
+        AutoShooting_flag = AutoShooting_Find;
+    }
+    else if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] != 1)
+    {
+        AutoShooting_flag = AutoShooting_Open;
+    }
+    else{
+        AutoShooting_flag = AutoShooting_Off;
+    }
 }
 
 // int send_time;

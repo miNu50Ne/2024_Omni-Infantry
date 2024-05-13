@@ -131,6 +131,12 @@ typedef enum {
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
 
+//自瞄状态设置
+typedef enum {
+    AutoShooting_Off = 0,    // 自瞄关闭
+    AutoShooting_Open,            // 自瞄开启
+    AutoShooting_Find,         // 自瞄识别到目标
+} auto_shoot_mode_e;
 
 //云台状态标志位
 typedef enum {

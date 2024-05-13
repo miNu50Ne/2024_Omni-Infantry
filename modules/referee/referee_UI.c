@@ -42,6 +42,8 @@ float Super_condition_volt; // 超电的电压
 float Pitch_Angle; // pitch角度（角度制)
 float Yaw_Angle;   // yaw角度（角度制）
 
+extern auto_shoot_mode_e AutoShooting_flag; // 自动射击标志位
+
 /********************************************删除操作*************************************
 **参数：_id 对应的id结构体
         Del_Operate  对应头文件删除操作
@@ -489,6 +491,9 @@ void My_UIGraphRefresh()
         //  UILineDraw(&UI_shoot_line[5], "sl5", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 + 20, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 210);
         //  UILineDraw(&UI_shoot_line[7], "sl7", UI_Graph_ADD, 7, UI_Color_Yellow, 1,SCREEN_LENGTH/2-90,SCREEN_WIDTH/2-40,SCREEN_LENGTH/2+90,SCREEN_WIDTH/2-40);
         //  UILineDraw(&UI_shoot_line[8], "sl8", UI_Graph_ADD, 7, UI_Color_Yellow, 1,SCREEN_LENGTH/2-70,SCREEN_WIDTH/2-120,SCREEN_LENGTH/2+70,SCREEN_WIDTH/2-120);
+
+        //自瞄指示圈
+        UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_ADD, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
         // 位置标定线
         UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22 + 30, SCREEN_WIDTH / 2 - 47, SCREEN_LENGTH / 2 - 22 + 5, SCREEN_WIDTH / 2 - 47);
         UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 30, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 5);
@@ -551,12 +556,21 @@ void My_UIGraphRefresh()
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[0], UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
         // UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0],UI_Circle_t[2],UI_Circle_t[3],UI_Rectangle[1],&UI_Energy[1]);
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0], UI_Circle_t[2], UI_Circle_t[3], UI_Circle_t[4], UI_Energy[1]);
-        UIGraphRefresh(&referee_info.referee_id, 1, UI_Number_t[0]);
+        UIGraphRefresh(&referee_info.referee_id, 2, UI_Number_t[0],UI_Circle_t[5]);
 
     }
 
     else {
-
+        //自瞄指示圈
+        if(AutoShooting_flag == AutoShooting_Find){
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Green, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+        }
+        else if(AutoShooting_flag == AutoShooting_Open){
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Orange, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+        }
+        else{
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+        }
         // 底盘模式
         if (Referee_Interactive_info.chassis_mode == CHASSIS_ROTATE) {
             UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_Change, 9, UI_Color_Green, 20, 700, 160, 8);
@@ -625,6 +639,6 @@ void My_UIGraphRefresh()
         // 发送4个指示圈+超电剩余电压条
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0], UI_Circle_t[2], UI_Circle_t[3], UI_Circle_t[4], &UI_Energy[1]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Rectangle[1], UI_Energy[1]);
-        UIGraphRefresh(&referee_info.referee_id, 1, UI_Number_t[0]);
+        UIGraphRefresh(&referee_info.referee_id, 2, UI_Number_t[0],UI_Circle_t[5]);
     }
 }
