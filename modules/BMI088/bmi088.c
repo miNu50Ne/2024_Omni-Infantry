@@ -284,7 +284,6 @@ static void BMI088AccSPIFinishCallback(SPIInstance *spi)
     callback_time++;
 }
 extern osThreadId_t instaskHandle; // 本来是全局变量直接extern
-void tmp_INS_func();
 static void BMI088GyroSPIFinishCallback(SPIInstance *spi)
 {
     static BMI088Instance *bmi088 = NULL;
@@ -307,7 +306,6 @@ static void BMI088GyroSPIFinishCallback(SPIInstance *spi)
     }
     // end
     bmi088->update_flag.imu_ready = 1;
-    tmp_INS_func();
     osThreadFlagsSet(instaskHandle, IMU_READY_FLAG); // 通知主线程IMU数据准备完毕（以陀螺仪中断为准 1000Hz）
 }
 
@@ -319,7 +317,6 @@ static void BMI088AccINTCallback(GPIOInstance *gpio)
     BMI088AccelRead(bmi088, BMI088_ACCEL_XOUT_L, bmi088->acc_raw, 6);
     bmi088->update_flag.acc = 1;
     // 读取完毕会调用BMI088AccSPIFinishCallback
-    BMI088AccSPIFinishCallback(bmi088->spi_acc);
 }
 
 static void BMI088GyroINTCallback(GPIOInstance *gpio)
@@ -330,7 +327,6 @@ static void BMI088GyroINTCallback(GPIOInstance *gpio)
     BMI088GyroRead(bmi088, BMI088_GYRO_X_L, bmi088->gyro_raw, 6);
     bmi088->update_flag.gyro = 1;
     // 读取完毕会调用BMI088GyroSPIFinishCallback
-    BMI088GyroSPIFinishCallback(bmi088->spi_gyro);
 }
 
 // -------------------------以上为私有函数,private用于IT模式下的中断处理---------------------------------//
@@ -343,8 +339,8 @@ static void BMI088SetMode(BMI088Instance *bmi088Instance, BMI088_Work_Mode_e mod
         SPISetMode(bmi088Instance->spi_acc, SPI_BLOCK_MODE);
         SPISetMode(bmi088Instance->spi_gyro, SPI_BLOCK_MODE);
     } else if (mode == BMI088_BLOCK_TRIGGER_MODE) {
-        SPISetMode(bmi088Instance->spi_acc, SPI_BLOCK_MODE);
-        SPISetMode(bmi088Instance->spi_gyro, SPI_BLOCK_MODE);
+        SPISetMode(bmi088Instance->spi_acc, SPI_DMA_MODE);
+        SPISetMode(bmi088Instance->spi_gyro, SPI_DMA_MODE);
     }
 }
 // -------------------------以上为私有函数,用于改变BMI088的配置--------------------------------//
@@ -466,8 +462,8 @@ BMI088Instance *BMI088Register(BMI088_Init_Config_s *config)
         config->spi_gyro_config.spi_work_mode = SPI_BLOCK_MODE;
         // callbacks are all NULL
     } else if (config->work_mode == BMI088_BLOCK_TRIGGER_MODE) {
-        config->spi_gyro_config.spi_work_mode = SPI_BLOCK_MODE; // 如果DMA资源不够,可以用SPI_IT_MODE
-        config->spi_gyro_config.spi_work_mode = SPI_BLOCK_MODE;
+        config->spi_gyro_config.spi_work_mode = SPI_DMA_MODE; // 如果DMA资源不够,可以用SPI_IT_MODE
+        config->spi_gyro_config.spi_work_mode = SPI_DMA_MODE;
         // 设置回调函数
         config->spi_acc_config.callback             = BMI088AccSPIFinishCallback;
         config->spi_gyro_config.callback            = BMI088GyroSPIFinishCallback;
