@@ -398,7 +398,7 @@ static void ChassisSpeedSet()
 static void GimbalSet()
 {
     // 按住鼠标右键且视觉识别到目标
-    if (rc_data[TEMP].mouse.press_r) {
+    if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] == 1) {
         // 相对角度控制
         memcpy(&rec_yaw, vision_recv_data, sizeof(float));
         memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
@@ -613,8 +613,10 @@ static void EmergencyHandler()
     gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
     chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
     shoot_cmd_send.friction_mode  = FRICTION_OFF;
+    shoot_cmd_send.shoot_mode     = SHOOT_OFF;
     shoot_cmd_send.load_mode      = LOAD_STOP;
     Super_flag                    = SUPER_CLOSE;
+    
     LOGERROR("[CMD] emergency stop!");
 }
 
@@ -692,6 +694,7 @@ void RobotCMDTask()
         chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
         shoot_cmd_send.friction_mode  = FRICTION_OFF;
         shoot_cmd_send.load_mode      = LOAD_STOP;
+        shoot_cmd_send.shoot_mode     = SHOOT_OFF;
     }
     // 设置视觉发送数据,还需增加加速度和角速度数据
 

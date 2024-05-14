@@ -493,7 +493,7 @@ void My_UIGraphRefresh()
         //  UILineDraw(&UI_shoot_line[8], "sl8", UI_Graph_ADD, 7, UI_Color_Yellow, 1,SCREEN_LENGTH/2-70,SCREEN_WIDTH/2-120,SCREEN_LENGTH/2+70,SCREEN_WIDTH/2-120);
 
         //自瞄指示圈
-        UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_ADD, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+        UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_ADD, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 250); 
         // 位置标定线
         UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22 + 30, SCREEN_WIDTH / 2 - 47, SCREEN_LENGTH / 2 - 22 + 5, SCREEN_WIDTH / 2 - 47);
         UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 30, SCREEN_LENGTH / 2 - 22, SCREEN_WIDTH / 2 - 47 + 5);
@@ -563,13 +563,13 @@ void My_UIGraphRefresh()
     else {
         //自瞄指示圈
         if(AutoShooting_flag == AutoShooting_Find){
-            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Green, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Green, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 250); 
         }
         else if(AutoShooting_flag == AutoShooting_Open){
-            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Orange, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_Orange, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 250); 
         }
         else{
-            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 100); 
+            UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_Change, 9, UI_Color_White, 20, SCREEN_LENGTH / 2, SCREEN_LENGTH / 2, 250); 
         }
         // 底盘模式
         if (Referee_Interactive_info.chassis_mode == CHASSIS_ROTATE) {
