@@ -159,12 +159,10 @@ void ShootTask()
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
         case LOAD_STOP:
-            DJIMotorOuterLoop(loader, SPEED_LOOP); // 切换到速度环
             DJIMotorSetRef(loader, 0);             // 同时设定参考值为0,这样停止的速度最快
             break;
         // 单发模式
-        case LOAD_1_BULLET:                        // 激活能量机关/干扰对方用,英雄用.
-            DJIMotorOuterLoop(loader, SPEED_LOOP); // 切换到角度环
+        case LOAD_1_BULLET:                        // 激活能量机关
             shoot_cmd_recv.shoot_rate = 2;
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 控制量增加一发弹丸的角度
             Load_Reverse();
@@ -173,7 +171,6 @@ void ShootTask()
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
-            DJIMotorOuterLoop(loader, SPEED_LOOP);
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
             Load_Reverse();
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)

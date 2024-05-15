@@ -5,7 +5,7 @@
 #include <math.h>
 
 float k1                   = 1.8231377168e-08f;
-float k2                   = 1.89e-08f;
+float k2                   = 1.89e-07f;
 float constant             = 1.0f;
 float torque_coefficient   = 2.94974577124e-06f; // (20/16384) * (0.3) /13 / (9.55)
 float machine_power        = 0;
@@ -19,7 +19,7 @@ uint16_t max_power;
 
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init)
 {
-    // int cnt   = 0;
+    // int cnt   = 0; 
     max_power = max_power_init;
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;

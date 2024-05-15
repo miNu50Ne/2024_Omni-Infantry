@@ -46,7 +46,7 @@
 #define RADIUS_WHEEL           153   // 轮子半径
 #define REDUCTION_RATIO_WHEEL  13.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
-#define CHASSIS_SPEED          12000  //9500 //键盘控制不限功率时底盘最大移动速度
+#define CHASSIS_SPEED          40000   //键盘控制不限功率时底盘最大移动速度
 // #define YAW_
 
 // 模拟小电脑负重 652.2

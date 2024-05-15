@@ -295,32 +295,32 @@ void DJIMotorControl()
         sender_assignment[group].tx_buff[2 * num]     = (uint8_t)(set >> 8);     // 低八位
         sender_assignment[group].tx_buff[2 * num + 1] = (uint8_t)(set & 0x00ff); // 高八位
 
-        // if (group == 1) {
-        //     power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
-        //     power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
-        //     power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
-        //     power_data.count++;
-        //     if (power_data.count > 3) {
-        //         power_data.count = 0;
-        //     }
-        // }
+        if (group == 1) {
+            power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
+            power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
+            power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
+            power_data.count++;
+            if (power_data.count > 3) {
+                power_data.count = 0;
+            }
+        }
 
         // 若该电机处于停止状态,直接将buff置零
         if (motor->stop_flag == MOTOR_STOP)
             memset(sender_assignment[group].tx_buff + 2 * num, 0, 16u);
     }
 
-    // int index = 0;
-    // if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
-    //     power_data.total_power = TotalPowerCalc(power_data.input_power);
-        // for (int i = 0; i < 4; i++) {
+    int index = 0;
+    if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
+        power_data.total_power = TotalPowerCalc(power_data.input_power);
+        for (int i = 0; i < 4; i++) {
 
-        //     set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+            set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
 
-        //     sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
-        //     sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
-        // }
-    // }
+            sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
+            sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
+        }
+    }
 
     // 遍历flag,检查是否要发送这一帧报文
     for (size_t i = 0; i < 6; ++i) {
