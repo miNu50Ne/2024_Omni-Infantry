@@ -3,11 +3,13 @@
 #include "bsp_dwt.h"
 #include "bsp_log.h"
 #include <stdint.h>
+#include "power_calc.h"
 
 static uint8_t idx = 0; // register idx,是该文件的全局电机索引,在注册时使用
 /* DJI电机的实例,此处仅保存指针,内存的分配将通过电机实例初始化时通过malloc()进行 */
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在control任务中遍历该指针数组进行pid计算
 
+Power_Data_s power_data; // 电机功率数据
 /**
  * @brief 由于DJI电机发送以四个一组的形式进行,故对其进行特殊处理,用6个(2can*3group)can_instance专门负责发送
  *        该变量将在 DJIMotorControl() 中使用,分组在 MotorSenderGrouping()中进行
@@ -127,16 +129,16 @@ static void DecodeDJIMotor(CANInstance *_instance)
     measure->angle_single_round = ECD_ANGLE_COEF_DJI * (float)measure->ecd;
     measure->speed_aps          = (1.0f - SPEED_SMOOTH_COEF) * measure->speed_aps +
                          RPM_2_ANGLE_PER_SEC * SPEED_SMOOTH_COEF * (float)((int16_t)(rxbuff[2] << 8 | rxbuff[3]));
+    measure->speed_rpm    = measure->speed_aps / 6.0f;
     measure->real_current = (1.0f - CURRENT_SMOOTH_COEF) * measure->real_current +
                             CURRENT_SMOOTH_COEF * (float)((int16_t)(rxbuff[4] << 8 | rxbuff[5]));
     measure->temperature = rxbuff[6];
 
-    
     if ((int16_t)(measure->ecd - measure->last_ecd) > 4096)
         measure->total_round--;
     else if ((int16_t)(measure->ecd - measure->last_ecd) < -4096)
         measure->total_round++;
-    
+
     measure->total_angle = measure->total_round * 360 + measure->angle_single_round;
 }
 
@@ -221,6 +223,8 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     motor->motor_controller.pid_ref = ref;
 }
 
+float motor_output[4];
+int16_t val_set;
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
@@ -240,7 +244,6 @@ void DJIMotorControl()
         motor_controller = &motor->motor_controller;
         measure          = &motor->measure;
         pid_ref          = motor_controller->pid_ref; // 保存设定值,防止motor_controller->pid_ref在计算过程中被修改
-            
 
         // pid_ref会顺次通过被启用的闭环充当数据的载体
         // 计算位置环,只有启用位置环且外层闭环为位置时会计算速度环输出
@@ -255,7 +258,7 @@ void DJIMotorControl()
 
         if (motor_setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
             pid_ref *= -1;
-            
+
         // 计算速度环,(外层闭环为速度或位置)且(启用速度环)时会计算速度环
         if ((motor_setting->close_loop_type & SPEED_LOOP) && (motor_setting->outer_loop_type & (ANGLE_LOOP | SPEED_LOOP))) {
             if (motor_setting->feedforward_flag & SPEED_FEEDFORWARD)
@@ -278,13 +281,13 @@ void DJIMotorControl()
 
         if (motor_setting->feedback_reverse_flag == FEEDBACK_DIRECTION_REVERSE)
             pid_ref *= -1;
+
+        // 获取最终输出
+        set = (int16_t)pid_ref;
+
 #ifdef SAMPLING
         set = (int16_t)motor_controller->pid_ref;
 #endif
-
-        
-        // 获取最终输出
-        set = (int16_t)pid_ref;
 
         // 分组填入发送数据
         group                                         = motor->sender_group;
@@ -292,10 +295,32 @@ void DJIMotorControl()
         sender_assignment[group].tx_buff[2 * num]     = (uint8_t)(set >> 8);     // 低八位
         sender_assignment[group].tx_buff[2 * num + 1] = (uint8_t)(set & 0x00ff); // 高八位
 
+        // if (group == 1) {
+        //     power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
+        //     power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
+        //     power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
+        //     power_data.count++;
+        //     if (power_data.count > 3) {
+        //         power_data.count = 0;
+        //     }
+        // }
+
         // 若该电机处于停止状态,直接将buff置零
         if (motor->stop_flag == MOTOR_STOP)
             memset(sender_assignment[group].tx_buff + 2 * num, 0, 16u);
     }
+
+    // int index = 0;
+    // if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
+    //     power_data.total_power = TotalPowerCalc(power_data.input_power);
+        // for (int i = 0; i < 4; i++) {
+
+        //     set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+
+        //     sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
+        //     sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
+        // }
+    // }
 
     // 遍历flag,检查是否要发送这一帧报文
     for (size_t i = 0; i < 6; ++i) {
