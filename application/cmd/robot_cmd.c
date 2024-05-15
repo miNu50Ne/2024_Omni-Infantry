@@ -50,7 +50,9 @@ static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
 
 HostInstance *host_instance; // 上位机接口
 
-static uint8_t vision_recv_data[9]; // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
+static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
+static uint8_t vision_send_data[23]; // 给视觉上位机发送的数据-四元数
+// 这里的四元数以wxyz的顺序
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
@@ -64,9 +66,9 @@ static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
-Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数据
-auto_shoot_mode_e AutoShooting_flag = AutoShooting_Off;// 自动射击标志位
-extern char Send_Once_Flag;                          // 初始化UI标志
+Referee_Interactive_info_t Referee_Interactive_info;    // 发送给UI绘制的数据
+auto_shoot_mode_e AutoShooting_flag = AutoShooting_Off; // 自动射击标志位
+extern char Send_Once_Flag;                             // 初始化UI标志
 extern float Yaw_Angle;
 extern float Pitch_Angle; // 云台Pitch轴角度
 
@@ -327,13 +329,13 @@ static void RemoteControlSet()
     PitchAngleLimit(); // PITCH限位
 }
 
-int Cover_Open_Flag     = 0; // 弹舱打开标志位
-int Chassis_Rotate_Flag = 0; // 底盘陀螺标志位
-int Shoot_Mode_Flag     = 0; // 发射模式标志位
-int Shoot_Run_Flag      = 0; // 摩擦轮标志位
-int Rune_Mode_Flag      = 0; // 打符模式标志位
-#pragma message "TODO"
-int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
+int Cover_Open_Flag;     // 弹舱打开标志位
+int Chassis_Rotate_Flag; // 底盘陀螺标志位
+int Shoot_Mode_Flag;     // 发射模式标志位
+int Shoot_Run_Flag;      // 摩擦轮标志位
+int Rune_Mode_Flag;      // 打符模式标志位
+
+uint8_t auto_rune; // 自瞄打符标志位
 
 // 底盘状态（按键用）
 Chassis_Status_Enum Chassis_Status = CHASSIS_STATUS_FOLLOW;
@@ -406,12 +408,12 @@ static void GimbalSet()
         // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
         yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
         pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-        
+
         if (rec_yaw == 0 && rec_pitch == 0) {
             yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
             pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
         }
-        
+
     } else {
         yaw_control -= rc_data[TEMP].mouse.x / 200.0f;
         pitch_control -= -rc_data[TEMP].mouse.y / 15000.0f;
@@ -451,9 +453,11 @@ static void SetChassisMode()
     // 底盘云台分离
     if (Rune_Mode_Flag > 10) {
         Chassis_Status = CHASSIS_STATUS_FREE;
+        auto_rune      = 1;
         Rune_Mode_Flag = 0;
     } else if (Rune_Mode_Flag < -10) {
         Chassis_Status = CHASSIS_STATUS_FOLLOW;
+        auto_rune      = 0;
         Rune_Mode_Flag = 0;
     }
 
@@ -508,15 +512,13 @@ static void SetShootMode()
         shoot_cmd_send.shoot_rate = 20;
 
         if (rc_data[TEMP].mouse.press_l) {
-            if(chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW){
+            if (chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW) {
                 shoot_cmd_send.load_mode = LOAD_1_BULLET;
-            }
-            else{
+            } else {
                 shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
             }
-            
-        } 
-        else {
+
+        } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
 
@@ -524,7 +526,7 @@ static void SetShootMode()
             shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
         }
     }
-    
+
     // 新热量管理
     if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) {
         shoot_cmd_send.shoot_rate = 0;
@@ -572,7 +574,6 @@ static void KeyGetMode()
     } else {
         Rune_Mode_Flag = 0;
     }
-    
 }
 
 static void SuperCapMode()
@@ -644,17 +645,32 @@ void UpDateUI()
 
     if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] == 1) {
         AutoShooting_flag = AutoShooting_Find;
-    }
-    else if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] != 1)
-    {
+    } else if (rc_data[TEMP].mouse.press_r && vision_recv_data[8] != 1) {
         AutoShooting_flag = AutoShooting_Open;
-    }
-    else{
+    } else {
         AutoShooting_flag = AutoShooting_Off;
     }
 }
 
-// int send_time;
+/**
+ * @brief 视觉发送任务，将数据发送给上位机
+ *
+ */
+void VisionTask()
+{
+    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x12};
+    memcpy(vision_send_data, frame_head, 4); // 帧头
+
+    memcpy(vision_send_data + 4, gimbal_fetch_data.gimbal_imu_data->INS_data.INS_quat, sizeof(float) * 4); // 四元数
+
+    memcpy(vision_send_data + 20, &referee_info.GameRobotState.robot_id, sizeof(uint8_t)); // 机器人ID
+    memcpy(vision_send_data + 21, &auto_rune, sizeof(uint8_t));                            // 打符标志位
+    vision_send_data[22] = 0;
+    for (size_t i = 0; i < 22; i++)
+        vision_send_data[22] += vision_send_data[i];
+    HostSend(host_instance, vision_send_data, 23);
+}
+
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
@@ -683,7 +699,6 @@ void RobotCMDTask()
         RemoteControlSet();
     }
 
-
     UpDateUI();
     remote_work_condition = RemoteControlIsOnline();
 
@@ -705,7 +720,5 @@ void RobotCMDTask()
 #endif // GIMBAL_BOARD
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
-    // send_time++;
-    // DaemonTask();
+    VisionTask();
 }
-

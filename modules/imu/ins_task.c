@@ -25,11 +25,6 @@ static const float fliter_num[3] = {1.929454039488895f, -0.93178349823448126f, 0
 
 static INS_Instance *INS = NULL;
 
-extern HostInstance *host_instance; // 上位机接口
-
-static uint8_t vision_send_data[40]; // 给视觉上位机发送的数据-四元数
-// 这里的四元数以wxyz的顺序
-
 /**
  * @brief          旋转陀螺仪,加速度计和磁力计,并计算零漂,因为设备有不同安装方式
  * @param[out]     gyro: 加上零漂和旋转
@@ -73,27 +68,9 @@ INS_Instance *INS_Init(BMI088Instance *bmi088)
     return INSinstance;
 }
 
-/**
- * @brief 视觉发送任务，将四元数发送给上位机
- *
- */
-void VisionTask()
-{
-    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x10};
-    memcpy(vision_send_data, frame_head, 4);
-
-    memcpy(vision_send_data + 4, INS->INS_data.INS_quat, sizeof(float) * 4);
-    vision_send_data[20] = 0;
-    for (size_t i = 0; i < 20; i++)
-        vision_send_data[20] += vision_send_data[i];
-    HostSend(host_instance, vision_send_data, 21);
-}
-
 void INS_Task(){
     BMI088_Data_t raw_data;
     BMI088Acquire(INS->BMI088, &raw_data);
-    // memcpy(&raw_data.acc,INS->BMI088->acc,sizeof(float)*3);
-    // memcpy(&raw_data.gyro,INS->BMI088->gyro,sizeof(float)*3);
 
     // 设置环境温度 冷启动适用
     // if (INS->BMI088->ambient_temperature < -270) {
@@ -140,5 +117,4 @@ void INS_Task(){
         INS->output.INS_angle_deg[i] = INS->output.INS_angle[i] * RAD_TO_ANGLE;
     }
     INS->output.Yaw_total_angle_deg = INS->output.Yaw_total_angle * RAD_TO_ANGLE;
-    VisionTask();
 }
