@@ -17,7 +17,7 @@ static Publisher_t *gimbal_pub;                   // 云台应用消息发布者
 static Subscriber_t *gimbal_sub;                  // cmd控制消息订阅者
 static Gimbal_Upload_Data_s gimbal_feedback_data; // 回传给cmd的云台状态信息
 static Gimbal_Ctrl_Cmd_s gimbal_cmd_recv;         // 来自cmd的控制信息
-
+    
 void GimbalInit()
 {
     BMI088_Init_Config_s config = {
@@ -62,20 +62,20 @@ void GimbalInit()
             .angle_PID = {
                 .Kp            = 0.3,//0.24, // 0.31, // 0.45
                 .Ki            = 0,
-                .Kd            = 0.001,
+                .Kd            = 0.0,
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
 
-                .MaxOut = 10,
+                .MaxOut = 20,
             },
             .speed_PID = {
-                .Kp            = 18000,//18000, // 10500,//1000,//10000,// 11000
+                .Kp            = 12700,//18000, // 10500,//1000,//10000,// 11000
                 .Ki            = 0,     // 0
-                .Kd            = 30,    // 10, // 30
+                .Kd            = 0.2,    // 10, // 30
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 5000,
-                .MaxOut        = 20000, // 20000
+                .MaxOut        = 17000, // 20000
             },
             .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET],//,Yaw_total_angle_deg//yaw反馈角度值
             // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
@@ -97,17 +97,17 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 40,//35, // 40, // 10
-                .Ki            = 0.3,
+                .Kp            = 20,//35, // 40, // 10
+                .Ki            = 0.0,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
-                .MaxOut        = 20,
+                .MaxOut        = 30,
             },
             .speed_PID = {
-                .Kp            = 7500,//10500, // 13000,//10500,  // 10500
+                .Kp            = 12800,//10500, // 13000,//10500,  // 10500
                 .Ki            = 0,//12000, // 10000, // 10000
-                .Kd            = 0,     // 0
+                .Kd            = 0.1,     // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 3000,
                 .MaxOut        = 20000,

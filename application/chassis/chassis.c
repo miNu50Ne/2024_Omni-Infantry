@@ -177,7 +177,7 @@ static void LimitChassisOutput()
 {
     PowerControlupdate(referee_info.GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL);
 
-    ramp_init(&super_ramp, 300);
+    ramp_init(&super_ramp, 200);
 
     chassis_vw = (current_speed_vw + (4000 - current_speed_vw) * ramp_calc(&vw_ramp));
 
@@ -227,11 +227,12 @@ void Super_Cap_control()
     }
 
     // 物理层继电器状态改变，功率限制状态改变
-    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_Closed) {
+    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
         LimitChassisOutput();
     } else {
         SuperLimitOutput();
     }
+
 }
 void Power_level_get() // 获取功率裆位
 {
@@ -266,9 +267,6 @@ void Power_level_get() // 获取功率裆位
         case 10:
             cap->cap_msg_g.power_level = 9;
             break;
-        case robot_power_level_MAX:
-            cap->cap_msg_g.power_level = 10;
-            break;
         default:
             cap->cap_msg_g.power_level = 0;
             break;
@@ -290,7 +288,7 @@ static void EstimateSpeed()
     //  ...
 }
 
-// float offangle_watch;
+float offangle_watch;
 
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
@@ -331,7 +329,7 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-
+            offangle_watch = offset_angle;
             chassis_cmd_recv.wz = 3 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
             ramp_init(&vw_ramp, RAMP_TIME);
             break;

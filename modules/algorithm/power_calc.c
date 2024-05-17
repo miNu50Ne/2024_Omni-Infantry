@@ -19,17 +19,12 @@ uint16_t max_power;
 
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init)
 {
-    // int cnt   = 0; 
     max_power = max_power_init;
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
         reduction_ratio = (187.0f / 3591.0f);
     }
-    // if (cnt == 0) {
-    //     toque_coefficient *= reduction_ratio;
-    //     cnt++;
-    // }
 }
 
 float PowerInputCalc(float motor_speed, float motor_current)

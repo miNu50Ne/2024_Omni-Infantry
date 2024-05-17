@@ -60,7 +60,6 @@ typedef struct
 	Communicate_ReceiveData_t ReceiveData;
 
 	uint8_t init_flag;
-
 } referee_info_t;
 
 // 模式是否切换标志位，0为未切换，1为切换，static定义默认为0

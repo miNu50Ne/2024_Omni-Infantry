@@ -51,7 +51,7 @@ static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
 static HostInstance *host_instance; // 上位机接口
 // 这里的四元数以wxyz的顺序
 static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
-static uint8_t vision_send_data[21]; // 给视觉上位机发送的数据-四元数
+static uint8_t vision_send_data[23]; // 给视觉上位机发送的数据-四元数
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
@@ -65,12 +65,12 @@ static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
+extern referee_info_t referee_info; // 裁判系统数据
+
 Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数据
 extern char Send_Once_Flag;                          // 初始化UI标志
 extern float Yaw_Angle;
 extern float Pitch_Angle; // 云台Pitch轴角度
-
-int remote_work_condition = 0; // 遥控器是否离线判断
 
 float rec_yaw, rec_pitch;
 
@@ -143,13 +143,19 @@ static void CalcOffsetAngle()
     else
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #else // 小于180度
-    if (angle > YAW_ALIGN_ANGLE)
+    if (angle >= YAW_ALIGN_ANGLE - 180.0f && angle <= YAW_ALIGN_ANGLE + 180.0f) {
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
-    else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f;
-    else
-
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
+    }
+    // else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f) {
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
+    // }
+    else {
+        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE - 360.0f;
+    }
+    // else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f;
+    // else
+    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #endif
 }
 float yaw_control;   // 遥控器YAW自由度输入值
@@ -299,8 +305,8 @@ static void RemoteControlSet()
         pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
     // 底盘参数
-    chassis_cmd_send.vx = -70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
-    chassis_cmd_send.vy = -70.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
+    chassis_cmd_send.vx = 70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
+    chassis_cmd_send.vy = 70.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
 
     // 云台参数
     YawControlProcess();
@@ -311,11 +317,13 @@ static void RemoteControlSet()
     PitchAngleLimit(); // PITCH限位
 }
 
-int Cover_Open_Flag     = 0; // 弹舱打开标志位
-int Chassis_Rotate_Flag = 0; // 底盘陀螺标志位
-int Shoot_Mode_Flag     = 0; // 发射模式标志位
-int Shoot_Run_Flag      = 0; // 摩擦轮标志位
-int Rune_Mode_Flag      = 0; // 打符模式标志位
+int Cover_Open_Flag;     // 弹舱打开标志位
+int Chassis_Rotate_Flag; // 底盘陀螺标志位
+int Shoot_Mode_Flag;     // 发射模式标志位
+int Shoot_Run_Flag;      // 摩擦轮标志位
+int Rune_Mode_Flag;      // 打符模式标志位
+uint8_t auto_rune;       // 自瞄打符标志位
+
 #pragma message "TODO"
 int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
 
@@ -337,16 +345,16 @@ static void ChassisSpeedSet()
     // 前后移动
     // 防止逃跑时关小陀螺按Ctrl进入慢速模式
     if (((rc_data[TEMP].key[KEY_PRESS].w) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) || ((rc_data[TEMP].key[KEY_PRESS].w) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
-        chassis_cmd_send.vy = -(current_speed_y + (CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp)); // vx方向待测
-        ramp_init(&slow_ramp, RAMP_TIME);                                                                  // 2000
+        chassis_cmd_send.vy = (current_speed_y + (CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp)); // vx方向待测
+        ramp_init(&slow_ramp, RAMP_TIME);                                                                   // 2000
     } else if (((rc_data[TEMP].key[KEY_PRESS].s) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) || ((rc_data[TEMP].key[KEY_PRESS].s) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
-        chassis_cmd_send.vy = -(current_speed_y + (-CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp));
+        chassis_cmd_send.vy = (current_speed_y + (-CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if ((rc_data[TEMP].key[KEY_PRESS].w) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c)) { // 防止逃跑关小陀螺进入慢速移动
-        chassis_cmd_send.vy = -(current_speed_y + (1000 - current_speed_y) * ramp_calc(&slow_ramp));
+        chassis_cmd_send.vy = (current_speed_y + (1000 - current_speed_y) * ramp_calc(&slow_ramp));
         ramp_init(&fb_ramp, RAMP_TIME);
     } else if ((rc_data[TEMP].key[KEY_PRESS].s) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c)) {
-        chassis_cmd_send.vy = -(current_speed_y + (-1000 - current_speed_y) * ramp_calc(&slow_ramp));
+        chassis_cmd_send.vy = (current_speed_y + (-1000 - current_speed_y) * ramp_calc(&slow_ramp));
         ramp_init(&fb_ramp, RAMP_TIME);
     } else {
         chassis_cmd_send.vy = 0;
@@ -355,16 +363,16 @@ static void ChassisSpeedSet()
 
     // 左右移动
     if (((rc_data[TEMP].key[KEY_PRESS].a) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) || ((rc_data[TEMP].key[KEY_PRESS].a) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
-        chassis_cmd_send.vx = -(current_speed_x + (CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if ((((rc_data[TEMP].key[KEY_PRESS].d) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))) || ((rc_data[TEMP].key[KEY_PRESS].d) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
-        chassis_cmd_send.vx = -(current_speed_x + (-CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (-CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if ((rc_data[TEMP].key[KEY_PRESS].a) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c)) {
-        chassis_cmd_send.vx = -(current_speed_x + (+1000 - current_speed_x) * ramp_calc(&fb_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (+1000 - current_speed_x) * ramp_calc(&fb_ramp));
         ramp_init(&lr_ramp, RAMP_TIME);
     } else if ((rc_data[TEMP].key[KEY_PRESS].d) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && !(rc_data[TEMP].key[KEY_PRESS].c)) {
-        chassis_cmd_send.vx = -(current_speed_x + (-1000 - current_speed_x) * ramp_calc(&fb_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (-1000 - current_speed_x) * ramp_calc(&fb_ramp));
         ramp_init(&lr_ramp, RAMP_TIME);
     } else {
         chassis_cmd_send.vx = 0;
@@ -449,10 +457,13 @@ static void SetChassisMode()
 
     if (Chassis_Status == CHASSIS_STATUS_ROTATE) {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        auto_rune                     = 0;
     } else if (Chassis_Status == CHASSIS_STATUS_FOLLOW) {
         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+        auto_rune                     = 0;
     } else if (Chassis_Status == CHASSIS_STATUS_FREE) {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+        auto_rune                     = 1;
     }
 }
 
@@ -606,8 +617,6 @@ void UpDateUI()
     Referee_Interactive_info.gimbal_mode   = gimbal_cmd_send.gimbal_mode;
     Referee_Interactive_info.friction_mode = shoot_cmd_send.friction_mode;
     Referee_Interactive_info.shoot_mode    = shoot_cmd_send.shoot_mode;
-    Referee_Interactive_info.lid_mode      = shoot_cmd_send.lid_mode;
-    // Referee_Interactive_info.Chassis_Power_Data = ; 暂时没有，等待移植
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;
@@ -646,14 +655,7 @@ void RobotCMDTask()
     }
 
     UpDateUI();
-    remote_work_condition = RemoteControlIsOnline();
 
-    if (remote_work_condition == 0) {
-        gimbal_cmd_send.gimbal_mode   = GIMBAL_ZERO_FORCE;
-        chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
-        shoot_cmd_send.friction_mode  = FRICTION_OFF;
-        shoot_cmd_send.load_mode      = LOAD_STOP;
-    }
     // 设置视觉发送数据,还需增加加速度和角速度数据
 
     // 推送消息,双板通信,视觉通信等
@@ -671,6 +673,9 @@ void RobotCMDTask()
     memcpy(vision_send_data, frame_head, 4);
 
     memcpy(vision_send_data + 4, gimbal_fetch_data.gimbal_imu_data->INS_data.INS_quat, sizeof(float) * 4);
+
+    memcpy(vision_send_data + 20, &referee_info.GameRobotState.robot_id, sizeof(uint8_t));
+    memcpy(vision_send_data + 21, &auto_rune, sizeof(uint8_t));
     vision_send_data[20] = 0;
     for (size_t i = 0; i < 20; i++)
         vision_send_data[20] += vision_send_data[i];

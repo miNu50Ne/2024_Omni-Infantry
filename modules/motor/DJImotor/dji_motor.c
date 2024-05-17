@@ -223,8 +223,6 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     motor->motor_controller.pid_ref = ref;
 }
 
-float motor_output[4];
-int16_t val_set;
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
