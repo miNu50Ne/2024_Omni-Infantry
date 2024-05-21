@@ -311,7 +311,7 @@ void DJIMotorControl()
     int index = 0;
     if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
         power_data.total_power = TotalPowerCalc(power_data.input_power);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {    
 
             set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
 

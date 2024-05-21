@@ -63,7 +63,7 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 2.0, // 10
+                .Kp            = 5.0, // 10
                 .Ki            = 0,   // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
@@ -87,10 +87,10 @@ void ShootInit()
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
 
-float Block_Time;      // 堵转时间
-float Reverse_Time;    // 反转时间
-float speed_record[6]; // 第五个为最近的射速 第六个为平均射速
-float Block_Status;    // 拨弹盘状态
+float Block_Time;        // 堵转时间
+float Reverse_Time;      // 反转时间
+float current_record[6]; // 第五个为最近的射速 第六个为平均射速
+float Block_Status;      // 拨弹盘状态
 
 /**
  * @brief 堵转，弹速检测
@@ -99,32 +99,20 @@ float Block_Status;    // 拨弹盘状态
 static void Load_Reverse()
 {
     // 获取拨弹盘转速
-    speed_record[0] = speed_record[1];
-    speed_record[1] = speed_record[2];
-    speed_record[2] = speed_record[3];
-    speed_record[3] = speed_record[4];
-    speed_record[4] = loader->measure.speed_aps; // 第五个为最近的拨弹盘转速
-    speed_record[5] = (speed_record[0] + speed_record[1] + speed_record[2] + speed_record[3] + speed_record[4]) / 5.0;
+    current_record[0] = current_record[1];
+    current_record[1] = current_record[2];
+    current_record[2] = current_record[3];
+    current_record[3] = current_record[4];
+    current_record[4] = loader->measure.real_current; // 第五个为最近的拨弹盘電流
+    current_record[5] = (current_record[0] + current_record[1] + current_record[2] + current_record[3] + current_record[4]) / 5.0;
 
-    if (speed_record[5] < 500) {
-        Block_Time++;
-    }
-
-    if (Block_Time > 100) {
-        Block_Status = 1;
-        Block_Time   = 0;
-    }
-    if(Block_Status == 1){
-        Reverse_Time++;
-        DJIMotorSetRef(loader, -15000);
-    }
-    if(Reverse_Time > 100){
-        Block_Status = 0;
-        Reverse_Time = 0;
-    }
+    // if (current_record[5] > 10000) {
+    //     shoot_cmd_recv.load_mode = LOAD_REVERSE;
+    // }
+    // if (loader->measure.speed_rpm < -3000) {
+    //     shoot_cmd_recv.load_mode = LOAD_BURSTFIRE;
+    // }
 }
-
-float load_speed;
 
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
@@ -150,6 +138,8 @@ void ShootTask()
         DJIMotorEnable(loader);
     }
 
+    Load_Reverse();
+
     // 如果上一次触发单发或3发指令的时间加上不应期仍然大于当前时间(尚未休眠完毕),直接返回即可
     // 单发模式主要提供给能量机关激活使用(以及英雄的射击大部分处于单发)
     if (hibernate_time + dead_time > DWT_GetTimeline_ms())
@@ -159,22 +149,23 @@ void ShootTask()
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
         case LOAD_STOP:
-            DJIMotorSetRef(loader, 0);             // 同时设定参考值为0,这样停止的速度最快
+            DJIMotorSetRef(loader, 0); // 同时设定参考值为0,这样停止的速度最快
             break;
         // 单发模式
-        case LOAD_1_BULLET:                        // 激活能量机关
+        case LOAD_1_BULLET: // 激活能量机关
             shoot_cmd_recv.shoot_rate = 2;
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 控制量增加一发弹丸的角度
-            Load_Reverse();
-            hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
-            dead_time      = 150;                  // 完成1发弹丸发射的时间
+            hibernate_time = DWT_GetTimeline_ms();                                                // 记录触发指令的时间
+            dead_time      = 150;                                                                 // 完成1发弹丸发射的时间
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
-            Load_Reverse();
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
+        case LOAD_REVERSE:
+            DJIMotorSetRef(loader, -15000);
+
         default:
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
     }
@@ -182,24 +173,15 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 42000);
-        DJIMotorSetRef(friction_r, 42000);
+        DJIMotorSetRef(friction_l, 42500);
+        DJIMotorSetRef(friction_r, 42500);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
-        DJIMotorSetRef(friction_l, -500);
-        DJIMotorSetRef(friction_r, -500);
-    } else // 关闭摩擦轮
-    {
-        DJIMotorOuterLoop(friction_l, SPEED_LOOP); // 切换到速度环
-        DJIMotorOuterLoop(friction_r, SPEED_LOOP); // 切换到速度环
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);
-    }
-
-    // 开关弹舱盖，中供弹不用写
-    if (shoot_cmd_recv.lid_mode == LID_CLOSE) {
-        //...
-    } else if (shoot_cmd_recv.lid_mode == LID_OPEN) {
-        //...
+    } else // 关闭摩擦轮
+    {
+        DJIMotorSetRef(friction_l, 0);
+        DJIMotorSetRef(friction_r, 0);
     }
 
     // 反馈数据,目前暂时没有要设定的反馈数据,后续可能增加应用离线监测以及卡弹反馈

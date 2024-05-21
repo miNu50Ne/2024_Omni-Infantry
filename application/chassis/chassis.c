@@ -62,7 +62,7 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
-    .Kp            = 20, // 4.5
+    .Kp            = 25, // 4.5
     .Ki            = 0,  // 0
     .Kd            = 0,  // 0
     .IntegralLimit = 3000,
@@ -77,7 +77,7 @@ PIDInstance Chassis_Follow_PID = {
 static float chassis_vx, chassis_vy, chassis_vw; // 将云台系的速度投影到底盘
 static float vt_lf, vt_rf, vt_lb, vt_rb;         // 底盘速度解算后的临时输出,待进行限幅
 static ramp_t vw_ramp, super_ramp;
-static float power_output,Power_Output,current_speed_vw;
+static float power_output, Power_Output, current_speed_vw;
 
 void ChassisInit()
 {
@@ -86,7 +86,7 @@ void ChassisInit()
         .can_init_config.can_handle   = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 0.8, // 4.5
+                .Kp            = 1.0, // 4.5
                 .Ki            = 0,   // 0
                 .Kd            = 0,   // 0
                 .IntegralLimit = 3000,
@@ -175,9 +175,10 @@ static void MecanumCalculate()
  */
 static void LimitChassisOutput()
 {
-    PowerControlupdate(referee_info.GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL);
 
-    ramp_init(&super_ramp, 200);
+    PowerControlupdate((referee_info.GameRobotState.chassis_power_limit ) , 1.0f / REDUCTION_RATIO_WHEEL);
+
+    ramp_init(&super_ramp, 300);
 
     chassis_vw = (current_speed_vw + (4000 - current_speed_vw) * ramp_calc(&vw_ramp));
 
@@ -190,7 +191,7 @@ static void LimitChassisOutput()
 // 提高功率上限，飞坡或跑路
 void SuperLimitOutput()
 {
-    Power_Output = (power_output + (1300 - power_output) * ramp_calc(&super_ramp)); 
+    Power_Output = (power_output + (1300 - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
@@ -232,7 +233,6 @@ void Super_Cap_control()
     } else {
         SuperLimitOutput();
     }
-
 }
 void Power_level_get() // 获取功率裆位
 {
@@ -321,7 +321,7 @@ void ChassisTask()
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
             chassis_cmd_recv.wz = 0;
-            ramp_init(&vw_ramp, RAMP_TIME);
+            ramp_init(&vw_ramp, 250);
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW:                                                      // 跟随云台
             if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
@@ -329,13 +329,15 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            offangle_watch = offset_angle;
-            chassis_cmd_recv.wz = 3 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
-            ramp_init(&vw_ramp, RAMP_TIME);
+            offangle_watch      = offset_angle;
+            chassis_cmd_recv.wz = 4 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
+            ramp_init(&vw_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
             chassis_cmd_recv.wz = chassis_vw;
             break;
+        case CHASSIS_REVERSE_ROTATE:
+            chassis_cmd_recv.wz = -4000;
         default:
             break;
     }

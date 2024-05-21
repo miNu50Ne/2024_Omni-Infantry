@@ -145,17 +145,9 @@ static void CalcOffsetAngle()
 #else // 小于180度
     if (angle >= YAW_ALIGN_ANGLE - 180.0f && angle <= YAW_ALIGN_ANGLE + 180.0f) {
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
-    }
-    // else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f) {
-    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
-    // }
-    else {
+    } else {
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE - 360.0f;
     }
-    // else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
-    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f;
-    // else
-    //     chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #endif
 }
 float yaw_control;   // 遥控器YAW自由度输入值
@@ -214,8 +206,8 @@ static void RemoteControlSet()
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
     shoot_cmd_send.shoot_rate = 20;          // 射频默认25Hz
 
-    // 左侧开关为[下]右侧开关为[上]，且接收到上位机的相对角度,视觉模式
-    if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right))) {
+    // 左侧开关为[下]右侧开关为[中]，且接收到上位机的相对角度,视觉模式
+    if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
 
@@ -239,7 +231,7 @@ static void RemoteControlSet()
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
         // 视觉未识别到目标,纯遥控器拨杆控制
-        if (rec_yaw == 0 || rec_pitch == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
+        if (rec_yaw == 0 && rec_pitch == 0) { // 按照摇杆的输出大小进行角度增量,增益系数需调整
             yaw_control -= 0.0007f * (float)rc_data[TEMP].rc.rocker_l_;
             pitch_control -= 0.00001f * (float)rc_data[TEMP].rc.rocker_l1;
         }
@@ -257,6 +249,11 @@ static void RemoteControlSet()
             gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
             shoot_cmd_send.load_mode      = LOAD_STOP;
+            if (rc_data[TEMP].rc.dial > 400) {
+                shoot_cmd_send.friction_mode = FRICTION_ON;
+            } else {
+                shoot_cmd_send.friction_mode = FRICTION_REVERSE;
+            }
         } else if (switch_is_down(rc_data[TEMP].rc.switch_right) && switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[中],右侧开关状态[下],底盘云台分离
         {
             chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
@@ -269,7 +266,7 @@ static void RemoteControlSet()
             gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_ON;
             shoot_cmd_send.load_mode      = LOAD_STOP;
-        } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[下],底盘和云台分离,打弹
+        } else if (switch_is_up(rc_data[TEMP].rc.switch_right) && switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态[上],右侧开关状态[上],底盘和云台分离,打弹
         {
             chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
@@ -285,17 +282,12 @@ static void RemoteControlSet()
                 shoot_cmd_send.shoot_rate = 20;
             }
         }
-        // 左侧开关为[下]，右侧为[中]，开超电
-        else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-            if (rc_data[TEMP].rc.dial > 400) {
-                chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-            } else {
-                chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-            }
-            gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
-            shoot_cmd_send.friction_mode = FRICTION_OFF;
-            shoot_cmd_send.load_mode     = LOAD_STOP;
-            Super_flag                   = SUPER_OPEN;
+        // 左侧开关为[下]，右侧为[上]，反小陀螺
+        else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) {
+            chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
+            shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
@@ -346,7 +338,7 @@ static void ChassisSpeedSet()
     // 防止逃跑时关小陀螺按Ctrl进入慢速模式
     if (((rc_data[TEMP].key[KEY_PRESS].w) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) || ((rc_data[TEMP].key[KEY_PRESS].w) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
         chassis_cmd_send.vy = (current_speed_y + (CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp)); // vx方向待测
-        ramp_init(&slow_ramp, RAMP_TIME);                                                                   // 2000
+        ramp_init(&slow_ramp, RAMP_TIME);                                                                  // 2000
     } else if (((rc_data[TEMP].key[KEY_PRESS].s) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) || ((rc_data[TEMP].key[KEY_PRESS].s) && (rc_data[TEMP].key[KEY_PRESS].ctrl) && (rc_data[TEMP].key[KEY_PRESS].c))) {
         chassis_cmd_send.vy = (current_speed_y + (-CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
@@ -613,10 +605,13 @@ static void EmergencyHandler()
 void UpDateUI()
 {
     // 更新UI数据
-    Referee_Interactive_info.chassis_mode  = chassis_cmd_send.chassis_mode;
-    Referee_Interactive_info.gimbal_mode   = gimbal_cmd_send.gimbal_mode;
-    Referee_Interactive_info.friction_mode = shoot_cmd_send.friction_mode;
-    Referee_Interactive_info.shoot_mode    = shoot_cmd_send.shoot_mode;
+    Referee_Interactive_info.chassis_mode   = chassis_cmd_send.chassis_mode;
+    Referee_Interactive_info.gimbal_mode    = gimbal_cmd_send.gimbal_mode;
+    Referee_Interactive_info.friction_mode  = shoot_cmd_send.friction_mode;
+    Referee_Interactive_info.shoot_mode     = shoot_cmd_send.shoot_mode;
+    Referee_Interactive_info.rec_pitch      = rec_pitch;
+    Referee_Interactive_info.rec_yaw        = rec_yaw;
+    Referee_Interactive_info.VisionRecvData = vision_recv_data[8];
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;
@@ -625,6 +620,9 @@ void UpDateUI()
     Referee_Interactive_info.friction_last_mode      = Referee_Interactive_info.friction_mode;
     Referee_Interactive_info.lid_last_mode           = Referee_Interactive_info.lid_mode;
     Referee_Interactive_info.Chassis_last_Power_Data = Referee_Interactive_info.Chassis_Power_Data;
+    Referee_Interactive_info.last_rec_pitch          = Referee_Interactive_info.rec_pitch;
+    Referee_Interactive_info.last_rec_yaw            = Referee_Interactive_info.rec_yaw;
+    Referee_Interactive_info.last_VisionRecvData     = Referee_Interactive_info.VisionRecvData;
 
     Pitch_Angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[1] * RAD_TO_ANGLE * (-1); // 获得IMU的pitch绝对角度（角度制），用于绘制UI
     Yaw_Angle   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[0] * RAD_TO_ANGLE;        // 获得IMU的yaw绝对角度（角度制），用于绘制UI
@@ -669,15 +667,15 @@ void RobotCMDTask()
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
 
-    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x10};
+    static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x12};
     memcpy(vision_send_data, frame_head, 4);
 
     memcpy(vision_send_data + 4, gimbal_fetch_data.gimbal_imu_data->INS_data.INS_quat, sizeof(float) * 4);
 
     memcpy(vision_send_data + 20, &referee_info.GameRobotState.robot_id, sizeof(uint8_t));
     memcpy(vision_send_data + 21, &auto_rune, sizeof(uint8_t));
-    vision_send_data[20] = 0;
-    for (size_t i = 0; i < 20; i++)
-        vision_send_data[20] += vision_send_data[i];
-    HostSend(host_instance, vision_send_data, 21);
+    vision_send_data[22] = 0;
+    for (size_t i = 0; i < 22; i++)
+        vision_send_data[22] += vision_send_data[i];
+    HostSend(host_instance, vision_send_data, 23);
 }
