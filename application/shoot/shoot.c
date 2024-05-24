@@ -10,7 +10,6 @@
 
 /* 对于双发射机构的机器人,将下面的数据封装成结构体即可,生成两份shoot应用实例 */
 static DJIMotorInstance *friction_l, *friction_r, *loader; // 拨盘电机
-// static servo_instance *lid; 需要增加弹舱盖
 
 static Publisher_t *shoot_pub;
 static Shoot_Ctrl_Cmd_s shoot_cmd_recv; // 来自cmd的发射控制信息
@@ -63,7 +62,7 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 5.0, // 10
+                .Kp            = 3.0, // 10
                 .Ki            = 0,   // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
@@ -91,7 +90,7 @@ float Block_Time;        // 堵转时间
 float Reverse_Time;      // 反转时间
 float current_record[6]; // 第五个为最近的射速 第六个为平均射速
 float Block_Status;      // 拨弹盘状态
-
+float Shoot_speed;
 /**
  * @brief 堵转，弹速检测
  *
@@ -106,12 +105,33 @@ static void Load_Reverse()
     current_record[4] = loader->measure.real_current; // 第五个为最近的拨弹盘電流
     current_record[5] = (current_record[0] + current_record[1] + current_record[2] + current_record[3] + current_record[4]) / 5.0;
 
-    // if (current_record[5] > 10000) {
-    //     shoot_cmd_recv.load_mode = LOAD_REVERSE;
-    // }
-    // if (loader->measure.speed_rpm < -3000) {
-    //     shoot_cmd_recv.load_mode = LOAD_BURSTFIRE;
-    // }
+    if (current_record[5] > 8000) {
+        Block_Time++;
+    }
+
+    // 反转
+    if (Reverse_Time >= 1) {
+        shoot_cmd_recv.load_mode = LOAD_REVERSE;
+        Reverse_Time++;
+
+        // 反转时间 3 * 2ms = 6ms
+        if (Reverse_Time > 1) {
+            Reverse_Time = 0;
+            Block_Time   = 0;
+        }
+    }
+        // 电流较大恢复正转
+        if (loader->measure.speed_aps < -4000) {
+            Reverse_Time = 0;
+            Block_Time   = 0;
+        }
+
+    else {
+        // 堵转时间10*发射任务周期（2ms）= 20ms
+        if (Block_Time > 5) {
+            Reverse_Time = 1;
+        }
+    }
 }
 
 /* 机器人发射机构控制核心任务 */
@@ -138,13 +158,12 @@ void ShootTask()
         DJIMotorEnable(loader);
     }
 
-    Load_Reverse();
-
     // 如果上一次触发单发或3发指令的时间加上不应期仍然大于当前时间(尚未休眠完毕),直接返回即可
     // 单发模式主要提供给能量机关激活使用(以及英雄的射击大部分处于单发)
     if (hibernate_time + dead_time > DWT_GetTimeline_ms())
         return;
 
+    Load_Reverse();
     // 若不在休眠状态,根据robotCMD传来的控制模式进行拨盘电机参考值设定和模式切换
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
@@ -164,7 +183,9 @@ void ShootTask()
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
         case LOAD_REVERSE:
-            DJIMotorSetRef(loader, -15000);
+            DJIMotorSetRef(loader, -20000);
+            // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
+            break;
 
         default:
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
@@ -173,8 +194,8 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 42500);
-        DJIMotorSetRef(friction_r, 42500);
+        DJIMotorSetRef(friction_l, 42000);
+        DJIMotorSetRef(friction_r, 42000);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);

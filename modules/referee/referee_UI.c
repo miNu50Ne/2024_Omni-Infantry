@@ -462,6 +462,7 @@ uint32_t Rect_De[4] = {1540, 555, 1660, 645};
 int16_t AIM_Rect_X, AIM_Rect_Y; // 自瞄框中心点的坐标信息
 int16_t AIM_Rect_half_length = 50;
 int16_t AIM_Rec_Color;
+// static char char_data[20];
 
 void My_UIGraphRefresh()
 {
@@ -477,31 +478,52 @@ void My_UIGraphRefresh()
         UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 6);
         // 射击准点
         // 位置标定线
-        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30 + 30, SCREEN_WIDTH / 2 - 55, SCREEN_LENGTH / 2 - 30 + 5, SCREEN_WIDTH / 2 - 55);
-        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 + 30, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 + 5);
-        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30 - 5, SCREEN_WIDTH / 2 - 55, SCREEN_LENGTH / 2 - 30 - 30, SCREEN_WIDTH / 2 - 55);
-        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 1, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 - 5, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 55 - 30);
+        // 竖
+        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 3, 960, 380, 960, 440);
+        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 3, 960, 460, 960, 520);
+
+        // 2m横
+        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 3, 915, 450, 950, 450);
+        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 3, 970, 450, 1005, 450);
+        // 标定圆
+        // UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_ADD, 9, UI_Color_Purplish_red, 80, 960, 450, 3);
         // 小陀螺
+        // sprintf(UI_State_sta[0].show_Data, "ROTATE");
+        // UICharDraw(&UI_State_sta[0], "ss0", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 5, 550, 140, "ROTATE");
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[0]);
         UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_ADD, 9, UI_Color_White, 20, 700, 160, 8);
         // 打符
+        // sprintf(UI_State_sta[1].show_Data, "RUNE");
+        // UICharDraw(&UI_State_sta[1], "ss1", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 5, 660, 140, "RUNE");
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[1]);
         UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_ADD, 9, UI_Color_White, 20, 800, 160, 8);
         // 摩擦轮
+        // sprintf(UI_State_sta[2].show_Data, "FRIC");
+        // UICharDraw(&UI_State_sta[2], "ss2", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 5, 950, 140, "FRIC");
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[2]);
         UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_ADD, 9, UI_Color_White, 20, 1180, 160, 8);
         // 发射机构
+        // sprintf(UI_State_sta[3].show_Data, "SHOOT");
+        // UICharDraw(&UI_State_sta[2], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 5, 1100, 140, "SHOOT");
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[3]);
         UICircleDraw(&UI_Circle_t[3], "sc3", UI_Graph_ADD, 9, UI_Color_White, 20, 1280, 160, 8);
         // 电容
         UICircleDraw(&UI_Circle_t[4], "sc4", UI_Graph_ADD, 9, UI_Color_White, 20, 580, 160, 8);
+        // 写字
+        // sprintf(UI_State_sta[0].show_Data, "SuperCap");
+        // memcpy(char_data, "SuperCap", sizeof("SuperCap"));
+        // UICharDraw(&UI_State_sta[2], "ss0", UI_Graph_ADD, 6, UI_Color_Yellow, 20, 4, 80, 710, char_data);
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[0]);
 
-        sprintf(UI_State_sta[3].show_Data, "SuperCap");
-        UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "SuperCap");
-        UICharRefresh(&referee_info.referee_id, UI_State_sta[3]);
         UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_White, 4, 80, 710, 280, 730);
-        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200 + 80), 720); // 超电电压在12V-26V之间
+        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200), 720); // 超电电压在12V-26V之间
         // 自瞄识别框
         UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 9, UI_Color_White, 205, 335, 3, 955, 525, 385, 385);
         UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 9, UI_Color_White, 25, 155, 3, 955, 525, 385, 385);
 
-        UIGraphRefresh(&referee_info.referee_id, 7, UI_Deriction_line[0], UI_Deriction_line[1], UI_Deriction_line[2], UI_Deriction_line[3], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
+        UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[0], UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
+        UIGraphRefresh(&referee_info.referee_id,2,UI_Deriction_line[2],UI_Deriction_line[3]);
+        UIGraphRefresh(&referee_info.referee_id, 1, UI_Circle_t[5]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[3], UI_Circle_t[4]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Rectangle[1], UI_Energy[1]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Arco_t[0], UI_Arco_t[1]);
@@ -509,7 +531,6 @@ void My_UIGraphRefresh()
     }
 
     else {
-
         // 小陀螺
         if (Referee_Interactive_info.chassis_mode == CHASSIS_ROTATE) {
             UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_Change, 9, UI_Color_Green, 20, 700, 160, 8);
@@ -535,13 +556,14 @@ void My_UIGraphRefresh()
             UICircleDraw(&UI_Circle_t[3], "sc3", UI_Graph_Change, 9, UI_Color_White, 20, 1280, 160, 8);
         }
         // 自瞄识别框
-        if (Referee_Interactive_info.VisionRecvData == 0 && Referee_Interactive_info.rec_pitch == 0 && Referee_Interactive_info.rec_yaw == 0) {
+        if (Referee_Interactive_info.rec_pitch == 0 && Referee_Interactive_info.rec_yaw == 0) {
             UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_Change, 9, UI_Color_White, 205, 335, 3, 955, 525, 385, 385);
             UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_Change, 9, UI_Color_White, 25, 155, 3, 955, 525, 385, 385);
         } else {
             UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_Change, 9, UI_Color_Green, 205, 335, 3, 955, 525, 385, 385);
             UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_Change, 9, UI_Color_Green, 25, 155, 3, 955, 525, 385, 385);
         }
+
         // 电容是否工作
         if (Super_condition == 0) {
             UICircleDraw(&UI_Circle_t[4], "sc4", UI_Graph_Change, 9, UI_Color_Green, 20, 580, 160, 8);
@@ -551,7 +573,7 @@ void My_UIGraphRefresh()
 
         // 电容剩余电压
         UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_White, 4, 80, 710, 280, 730);
-        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200 + 80), 720); // 超电电压在12V-26V之间
+        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200), 720); // 超电电压在12V-26V之间
 
         // 发送4个指示圈+超电剩余电压条
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0], UI_Circle_t[2], UI_Circle_t[3], UI_Circle_t[4], UI_Energy[1]);

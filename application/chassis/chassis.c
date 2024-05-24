@@ -62,12 +62,13 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
-    .Kp            = 25, // 4.5
-    .Ki            = 0,  // 0
-    .Kd            = 0,  // 0
+    .Kp            = 220,  // 4.5
+    .Ki            = 0,   // 0
+    .Kd            = 10, // 0
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 14000,
+    .MaxOut        = 13000,
+    .DeadBand      = 3,
 };
 
 /* 用于自旋变速策略的时间变量 */
@@ -86,14 +87,13 @@ void ChassisInit()
         .can_init_config.can_handle   = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 1.0, // 4.5
+                .Kp            = 0.5, // 4.5
                 .Ki            = 0,   // 0
                 .Kd            = 0,   // 0
                 .IntegralLimit = 3000,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .MaxOut        = 15000,
-            },
-        },
+            }},
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED,
             .speed_feedback_source = MOTOR_FEED,
@@ -167,6 +167,7 @@ static void MecanumCalculate()
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
 
+ramp_t limit_ramp;
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  * @param
@@ -175,8 +176,10 @@ static void MecanumCalculate()
  */
 static void LimitChassisOutput()
 {
+    Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
+    PowerControlupdate((Power_Output - 25) +  0.5 * referee_info.PowerHeatData.chassis_power_buffer, 1.0f / REDUCTION_RATIO_WHEEL);
 
-    PowerControlupdate((referee_info.GameRobotState.chassis_power_limit ) , 1.0f / REDUCTION_RATIO_WHEEL);
+    power_output = Power_Output;
 
     ramp_init(&super_ramp, 300);
 
@@ -196,6 +199,8 @@ void SuperLimitOutput()
 
     power_output = Power_Output;
 
+    ramp_init(&limit_ramp, 300);
+
     chassis_vw = (current_speed_vw + (10000 - current_speed_vw) * ramp_calc(&vw_ramp));
 
     DJIMotorSetRef(motor_lf, vt_lf);
@@ -211,6 +216,8 @@ void SuperLimitOutput()
  */
 uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
+uint8_t Supercap_Limit_Flag;
+uint8_t supercap_delay;
 void Super_Cap_control()
 {
     // 小于12V关闭
@@ -230,13 +237,27 @@ void Super_Cap_control()
     // 物理层继电器状态改变，功率限制状态改变
     if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
         LimitChassisOutput();
+        // Supercap_Limit_Flag = 0;
+        // supercap_delay      = 0;
     } else {
         SuperLimitOutput();
-    }
+        // supercap_delay++;
+        // Supercap_Limit_Flag = 0;
+        // if (supercap_delay > 40) {
+        //     Supercap_Limit_Flag = 1;
+        //     supercap_delay      = 21;
+        }
+    // }
+    // if (Supercap_Limit_Flag == 1) {
+    //     SuperLimitOutput();
+    // } else {
+    //     LimitChassisOutput();
+    // }
+    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
 }
 void Power_level_get() // 获取功率裆位
 {
-    switch (referee_info.GameRobotState.robot_level) {
+    switch (referee_data->GameRobotState.robot_level) {
         case 1:
             cap->cap_msg_g.power_level = 1;
             break;
@@ -271,25 +292,19 @@ void Power_level_get() // 获取功率裆位
             cap->cap_msg_g.power_level = 0;
             break;
     }
+
     if (referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10) {
         cap->cap_msg_g.power_level = 9;
     }
+
+    // if (referee_data->PowerHeatData.chassis_power_buffer >= 60) {
+    //     cap->cap_msg_g.chassic_power_remaining = 1;
+    // } else {
+    cap->cap_msg_g.chassic_power_remaining = 0;
+    // }
 }
 
-/**
- * @brief 根据每个轮子的速度反馈,计算底盘的实际运动速度,逆运动解算
- *        对于双板的情况,考虑增加来自底盘板IMU的数据
- *
- */
-static void EstimateSpeed()
-{
-    // 根据电机速度和陀螺仪的角速度进行解算,还可以利用加速度计判断是否打滑(如果有)
-    // chassis_feedback_data.vx vy wz =
-    //  ...
-}
-
-float offangle_watch;
-
+float off_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
@@ -302,8 +317,7 @@ void ChassisTask()
 #endif
 #ifdef CHASSIS_BOARD
     chassis_cmd_recv = *(Chassis_Ctrl_Cmd_s *)CANCommGet(chasiss_can_comm);
-#endif // CHASSIS_BOARD
-
+#endif                                                         // CHASSIS_BOARD
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) { // 如果出现重要模块离线或遥控器设置为急停,让电机停止
         DJIMotorStop(motor_lf);
         DJIMotorStop(motor_rf);
@@ -319,7 +333,14 @@ void ChassisTask()
     float offset_angle;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
-        case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
+        case CHASSIS_NO_FOLLOW:
+            // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
+            if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
+                offset_angle = chassis_cmd_recv.offset_angle;
+            else {
+                offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
+            }
+            off_watch           = offset_angle;
             chassis_cmd_recv.wz = 0;
             ramp_init(&vw_ramp, 250);
             break;
@@ -329,8 +350,9 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            offangle_watch      = offset_angle;
-            chassis_cmd_recv.wz = 4 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
+            off_watch           = offset_angle;
+            chassis_cmd_recv.wz = PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
+
             ramp_init(&vw_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
@@ -355,10 +377,6 @@ void ChassisTask()
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     Super_Cap_control();
-
-    // 根据电机的反馈速度和IMU(如果有)计算真实速度，根据超电的状态来输出功率
-
-    EstimateSpeed();
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();

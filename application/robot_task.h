@@ -72,7 +72,7 @@ __attribute__((noreturn)) void _ShootTask(void *argument)
   for(;;)
   {
     ShootTask();
-    osDelay(5);
+    osDelay(1);
   }
 }
 

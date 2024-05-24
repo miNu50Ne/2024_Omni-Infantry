@@ -22,50 +22,44 @@
  * @brief 闭环类型,如果需要多个闭环,则使用或运算
  *        例如需要速度环和电流环: CURRENT_LOOP|SPEED_LOOP
  */
-typedef enum
-{
-    OPEN_LOOP = 0b0000,
+typedef enum {
+    OPEN_LOOP    = 0b0000,
     CURRENT_LOOP = 0b0001,
-    SPEED_LOOP = 0b0010,
-    ANGLE_LOOP = 0b0100,
+    SPEED_LOOP   = 0b0010,
+    ANGLE_LOOP   = 0b0100,
 
     // only for checking
     SPEED_AND_CURRENT_LOOP = 0b0011,
-    ANGLE_AND_SPEED_LOOP = 0b0110,
-    ALL_THREE_LOOP = 0b0111,
+    ANGLE_AND_SPEED_LOOP   = 0b0110,
+    ALL_THREE_LOOP         = 0b0111,
 } Closeloop_Type_e;
 
-typedef enum
-{
-    FEEDFORWARD_NONE = 0b00,
-    CURRENT_FEEDFORWARD = 0b01,
-    SPEED_FEEDFORWARD = 0b10,
+typedef enum {
+    FEEDFORWARD_NONE              = 0b00,
+    CURRENT_FEEDFORWARD           = 0b01,
+    SPEED_FEEDFORWARD             = 0b10,
     CURRENT_AND_SPEED_FEEDFORWARD = CURRENT_FEEDFORWARD | SPEED_FEEDFORWARD,
 } Feedfoward_Type_e;
 
 /* 反馈来源设定,若设为OTHER_FEED则需要指定数据来源指针,详见Motor_Controller_s*/
-typedef enum
-{
+typedef enum {
     MOTOR_FEED = 0,
     OTHER_FEED,
 } Feedback_Source_e;
 
 /* 电机正反转标志 */
-typedef enum
-{
-    MOTOR_DIRECTION_NORMAL = 0,
+typedef enum {
+    MOTOR_DIRECTION_NORMAL  = 0,
     MOTOR_DIRECTION_REVERSE = 1
 } Motor_Reverse_Flag_e;
 
 /* 反馈量正反标志 */
-typedef enum
-{
-    FEEDBACK_DIRECTION_NORMAL = 0,
+typedef enum {
+    FEEDBACK_DIRECTION_NORMAL  = 0,
     FEEDBACK_DIRECTION_REVERSE = 1
 } Feedback_Reverse_Flag_e;
-typedef enum
-{
-    MOTOR_STOP = 0,
+typedef enum {
+    MOTOR_STOP    = 0,
     MOTOR_ENABLED = 1,
 } Motor_Working_Type_e;
 
@@ -94,13 +88,14 @@ typedef struct
     PIDInstance current_PID;
     PIDInstance speed_PID;
     PIDInstance angle_PID;
+    PIDInstance follow_speed_PID;
+    PIDInstance follow_angle_PID;
 
     float pid_ref; // 将会作为每个环的输入和输出顺次通过串级闭环
 } Motor_Controller_s;
 
 /* 电机类型枚举 */
-typedef enum
-{
+typedef enum {
     MOTOR_TYPE_NONE = 0,
     GM6020,
     M3508,
@@ -128,6 +123,8 @@ typedef struct
     PID_Init_Config_s current_PID;
     PID_Init_Config_s speed_PID;
     PID_Init_Config_s angle_PID;
+    PIDInstance follow_speed_PID;
+    PIDInstance follow_angle_PID;
 } Motor_Controller_Init_s;
 
 /* 用于初始化CAN电机的结构体,各类电机通用 */
