@@ -479,12 +479,12 @@ void My_UIGraphRefresh()
         // 射击准点
         // 位置标定线
         // 竖
-        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 3, 960, 380, 960, 440);
-        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 3, 960, 460, 960, 520);
+        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 2, 960, 380, 960, 440);
+        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 2, 960, 460, 960, 520);
 
         // 2m横
-        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 3, 915, 450, 950, 450);
-        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 3, 970, 450, 1005, 450);
+        UILineDraw(&UI_Deriction_line[2], "sq2", UI_Graph_ADD, 6, UI_Color_White, 2, 915, 450, 950, 450);
+        UILineDraw(&UI_Deriction_line[3], "sq3", UI_Graph_ADD, 6, UI_Color_White, 2, 970, 450, 1005, 450);
         // 标定圆
         // UICircleDraw(&UI_Circle_t[5], "sc5", UI_Graph_ADD, 9, UI_Color_Purplish_red, 80, 960, 450, 3);
         // 小陀螺
@@ -516,13 +516,13 @@ void My_UIGraphRefresh()
         // UICharRefresh(&referee_info.referee_id, UI_State_sta[0]);
 
         UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_White, 4, 80, 710, 280, 730);
-        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200), 720); // 超电电压在12V-26V之间
+        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200 + 80), 720); // 超电电压在12V-26V之间
         // 自瞄识别框
         UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 9, UI_Color_White, 205, 335, 3, 955, 525, 385, 385);
         UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 9, UI_Color_White, 25, 155, 3, 955, 525, 385, 385);
 
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[0], UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
-        UIGraphRefresh(&referee_info.referee_id,2,UI_Deriction_line[2],UI_Deriction_line[3]);
+        UIGraphRefresh(&referee_info.referee_id, 2, UI_Deriction_line[2], UI_Deriction_line[3]);
         UIGraphRefresh(&referee_info.referee_id, 1, UI_Circle_t[5]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Circle_t[3], UI_Circle_t[4]);
         UIGraphRefresh(&referee_info.referee_id, 2, UI_Rectangle[1], UI_Energy[1]);
@@ -538,9 +538,15 @@ void My_UIGraphRefresh()
             UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_Change, 9, UI_Color_White, 20, 700, 160, 8);
         }
         // 打符
+        // if (Referee_Interactive_info.chassis_mode == CHASSIS_NO_FOLLOW) {
+        //     UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_Change, 9, UI_Color_Green, 20, 800, 160, 8);
+        // } else {
+        //     UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_Change, 9, UI_Color_White, 20, 800, 160, 8);
+        // }
+        // 彈頻
         if (Referee_Interactive_info.chassis_mode == CHASSIS_NO_FOLLOW) {
             UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_Change, 9, UI_Color_Green, 20, 800, 160, 8);
-        } else {
+        } else if (Referee_Interactive_info.chassis_mode == CHASSIS_FOLLOW_GIMBAL_YAW) {
             UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_Change, 9, UI_Color_White, 20, 800, 160, 8);
         }
         // 摩擦轮
@@ -573,7 +579,7 @@ void My_UIGraphRefresh()
 
         // 电容剩余电压
         UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_White, 4, 80, 710, 280, 730);
-        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200), 720); // 超电电压在12V-26V之间
+        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_Change, 9, UI_Color_Green, 20, 80, 720, (uint32_t)((Super_condition_volt * Super_condition_volt - 144) / 532 * 200 + 80), 720); // 超电电压在12V-26V之间
 
         // 发送4个指示圈+超电剩余电压条
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Circle_t[0], UI_Circle_t[2], UI_Circle_t[3], UI_Circle_t[4], UI_Energy[1]);

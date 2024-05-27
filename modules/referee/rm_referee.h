@@ -85,6 +85,7 @@ typedef struct
     Chassis_Power_Data_s Chassis_Power_Data; // 功率控制
     uint8_t VisionRecvData;                  // 自瞄
     float rec_yaw, rec_pitch;                // 相对角度
+    Shoot_Rate_Status_Enum ShootRateStatus;  // 彈頻標志位
 
     // 上一次的模式，用于flag判断
     chassis_mode_e chassis_last_mode;
@@ -95,6 +96,7 @@ typedef struct
     Chassis_Power_Data_s Chassis_last_Power_Data;
     uint8_t last_VisionRecvData;
     float last_rec_yaw, last_rec_pitch;
+    Shoot_Rate_Status_Enum LastShootRateStatus; 
 
 } Referee_Interactive_info_t;
 

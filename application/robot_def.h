@@ -138,6 +138,12 @@ typedef enum {
     GIMBAL_STATUS_AUTOAIM,
 } Gimbal_Status_Enum;
 
+//發射機構狀態位
+typedef enum{
+    SHOOT_RATE_LOW = 0,
+    SHOOT_RATE_HIGH,
+}Shoot_Rate_Status_Enum;
+
 // 发射模式设置
 typedef enum {
     SHOOT_OFF = 0,

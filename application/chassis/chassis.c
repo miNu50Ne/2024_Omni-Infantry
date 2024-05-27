@@ -62,9 +62,9 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
-    .Kp            = 220,  // 4.5
+    .Kp            = 120, // 4.5
     .Ki            = 0,   // 0
-    .Kd            = 10, // 0
+    .Kd            = 15,   // 0
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
     .MaxOut        = 13000,
@@ -168,6 +168,7 @@ static void MecanumCalculate()
 }
 
 ramp_t limit_ramp;
+float Plimit;
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  * @param
@@ -176,8 +177,22 @@ ramp_t limit_ramp;
  */
 static void LimitChassisOutput()
 {
+    if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
+        Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
+    else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
+        Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
+    else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
+        Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
+    else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
+        Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
+    else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
+        Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
+    else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
+        Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
+    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
+        Plimit = 1;
     Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    PowerControlupdate((Power_Output - 25) +  0.5 * referee_info.PowerHeatData.chassis_power_buffer, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate((Power_Output - 20) + Plimit * 100, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
 
@@ -218,6 +233,7 @@ uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
 uint8_t Supercap_Limit_Flag;
 uint8_t supercap_delay;
+
 void Super_Cap_control()
 {
     // 小于12V关闭
@@ -237,24 +253,11 @@ void Super_Cap_control()
     // 物理层继电器状态改变，功率限制状态改变
     if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
         LimitChassisOutput();
-        // Supercap_Limit_Flag = 0;
-        // supercap_delay      = 0;
     } else {
         SuperLimitOutput();
-        // supercap_delay++;
-        // Supercap_Limit_Flag = 0;
-        // if (supercap_delay > 40) {
-        //     Supercap_Limit_Flag = 1;
-        //     supercap_delay      = 21;
-        }
-    // }
-    // if (Supercap_Limit_Flag == 1) {
-    //     SuperLimitOutput();
-    // } else {
-    //     LimitChassisOutput();
-    // }
-    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    }
 }
+
 void Power_level_get() // 获取功率裆位
 {
     switch (referee_data->GameRobotState.robot_level) {
@@ -297,14 +300,10 @@ void Power_level_get() // 获取功率裆位
         cap->cap_msg_g.power_level = 9;
     }
 
-    // if (referee_data->PowerHeatData.chassis_power_buffer >= 60) {
-    //     cap->cap_msg_g.chassic_power_remaining = 1;
-    // } else {
     cap->cap_msg_g.chassic_power_remaining = 0;
-    // }
 }
 
-float off_watch;
+// float off_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
@@ -335,12 +334,6 @@ void ChassisTask()
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
             // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
-            if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
-                offset_angle = chassis_cmd_recv.offset_angle;
-            else {
-                offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
-            }
-            off_watch           = offset_angle;
             chassis_cmd_recv.wz = 0;
             ramp_init(&vw_ramp, 250);
             break;
@@ -350,7 +343,7 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            off_watch           = offset_angle;
+            // off_watch           = offset_angle;
             chassis_cmd_recv.wz = PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
 
             ramp_init(&vw_ramp, 250);
@@ -376,7 +369,8 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    Super_Cap_control();
+    LimitChassisOutput();
+    // Super_Cap_control();
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();

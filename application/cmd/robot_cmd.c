@@ -203,7 +203,6 @@ static void RemoteControlSet()
 {
     shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
     Super_flag                = SUPER_CLOSE; // 默认关闭超电
-    shoot_cmd_send.shoot_rate = 20;          // 射频默认25Hz
 
     // 左侧开关为[下]右侧开关为[中]，且接收到上位机的相对角度,视觉模式
     if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
@@ -302,12 +301,10 @@ static void RemoteControlSet()
         }
         // 左侧开关为[下]，右侧为[上]，反小陀螺
         else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) {
-            // chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
-            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+            chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
             shoot_cmd_send.load_mode      = LOAD_STOP;
-            Super_flag = SUPER_OPEN;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
@@ -334,6 +331,7 @@ int Chassis_Rotate_Flag; // 底盘陀螺标志位
 int Shoot_Mode_Flag;     // 发射模式标志位
 int Shoot_Run_Flag;      // 摩擦轮标志位
 int Rune_Mode_Flag;      // 打符模式标志位
+int Shoot_rate_flag;     // 彈頻標志位
 
 #pragma message "TODO"
 int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
@@ -343,6 +341,9 @@ Chassis_Status_Enum Chassis_Status = CHASSIS_STATUS_FOLLOW;
 
 // 云台状态（按键用）
 Gimbal_Status_Enum Gimbal_Status = GIMBAL_STATUS_GYRO;
+
+// 發射機構狀態
+Shoot_Rate_Status_Enum Shoot_Rate_Status = SHOOT_RATE_HIGH;
 
 /**
  * @brief 键盘设定速度
@@ -447,29 +448,32 @@ static void SetChassisMode()
     if (Chassis_Rotate_Flag > 10) {
         Chassis_Status      = CHASSIS_STATUS_ROTATE;
         Chassis_Rotate_Flag = 0;
+        auto_rune           = 0;
+
     } else if (Chassis_Rotate_Flag < -10) {
         Chassis_Status      = CHASSIS_STATUS_FOLLOW;
         Chassis_Rotate_Flag = 0;
+        auto_rune           = 0;
     }
 
     // 底盘云台分离
     if (Rune_Mode_Flag > 10) {
         Chassis_Status = CHASSIS_STATUS_FREE;
         Rune_Mode_Flag = 0;
+        auto_rune      = 1;
+
     } else if (Rune_Mode_Flag < -10) {
         Chassis_Status = CHASSIS_STATUS_FOLLOW;
         Rune_Mode_Flag = 0;
+        auto_rune      = 0;
     }
 
     if (Chassis_Status == CHASSIS_STATUS_ROTATE) {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-        auto_rune                     = 0;
     } else if (Chassis_Status == CHASSIS_STATUS_FOLLOW) {
         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-        auto_rune                     = 0;
     } else if (Chassis_Status == CHASSIS_STATUS_FREE) {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
-        auto_rune                     = 1;
     }
 }
 
@@ -505,13 +509,30 @@ static void SetShootMode()
         Shoot_Run_Flag               = 0;
     }
 
+    if (Shoot_rate_flag > 10) {
+        Shoot_Rate_Status = SHOOT_RATE_LOW;
+        Shoot_rate_flag   = 0;
+    } else if (Shoot_rate_flag < -10) {
+        Shoot_Rate_Status = SHOOT_RATE_HIGH;
+        Shoot_rate_flag   = 0;
+    }
+
+    if (Shoot_Rate_Status == SHOOT_RATE_LOW) {
+        // shoot_cmd_send.load_mode = LOAD_1_BULLET;
+        shoot_cmd_send.load_mode  = LOAD_BURSTFIRE;
+        shoot_cmd_send.shoot_rate = 8;
+        
+    } else if (Shoot_Rate_Status == SHOOT_RATE_HIGH) {
+        shoot_cmd_send.load_mode  = LOAD_BURSTFIRE; 
+        shoot_cmd_send.shoot_rate = 20;
+    }
+
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
         // 打弹，单击左键单发，长按连发
-        shoot_cmd_send.shoot_rate = 15;
         if (rc_data[TEMP].mouse.press_l) {
             // 打符，单发
-            if (chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW) {
+            if (auto_rune == 1) {
                 shoot_cmd_send.load_mode = LOAD_1_BULLET;
             } else {
                 shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
@@ -520,6 +541,8 @@ static void SetShootMode()
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
+    } else {
+        shoot_cmd_send.load_mode = LOAD_STOP;
     }
     // 新热量管理
     if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) {
@@ -528,8 +551,6 @@ static void SetShootMode()
         shoot_cmd_send.load_mode  = LOAD_STOP;
     } else if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= 75) {
         shoot_cmd_send.shoot_rate = (int)(20 * ((referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat) / 75));
-    } else {
-        shoot_cmd_send.shoot_rate = 20;
     }
 }
 
@@ -568,6 +589,15 @@ static void KeyGetMode()
         Rune_Mode_Flag--;
     } else {
         Rune_Mode_Flag = 0;
+    }
+
+    // F鍵修改彈頻
+    if ((rc_data[TEMP].key[KEY_PRESS].z) && !(rc_data[TEMP].key[KEY_PRESS].ctrl)) {
+        Shoot_rate_flag++;
+    } else if ((rc_data[TEMP].key[KEY_PRESS].z) && (rc_data[TEMP].key[KEY_PRESS].ctrl)) {
+        Shoot_rate_flag--;
+    } else {
+        Shoot_rate_flag = 0;
     }
 }
 
@@ -628,6 +658,7 @@ void UpDateUI()
     Referee_Interactive_info.rec_pitch      = rec_pitch;
     Referee_Interactive_info.rec_yaw        = rec_yaw;
     Referee_Interactive_info.VisionRecvData = vision_recv_data[8];
+    Referee_Interactive_info.ShootRateStatus= Shoot_Rate_Status;
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;
@@ -639,6 +670,7 @@ void UpDateUI()
     Referee_Interactive_info.last_rec_pitch          = Referee_Interactive_info.rec_pitch;
     Referee_Interactive_info.last_rec_yaw            = Referee_Interactive_info.rec_yaw;
     Referee_Interactive_info.last_VisionRecvData     = Referee_Interactive_info.VisionRecvData;
+    Referee_Interactive_info.LastShootRateStatus     = Referee_Interactive_info.ShootRateStatus;
 
     Pitch_Angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[1] * RAD_TO_ANGLE * (-1); // 获得IMU的pitch绝对角度（角度制），用于绘制UI
     Yaw_Angle   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[0] * RAD_TO_ANGLE;        // 获得IMU的yaw绝对角度（角度制），用于绘制UI
