@@ -61,34 +61,19 @@ void ShootInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            // .angle_PID = {
-            //     // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
-            //     .Kp     = 10, // 10
-            //     .Ki     = 0,
-            //     .Kd     = 0,
-            //     .MaxOut = 200,
-            // },
             .speed_PID = {
                 .Kp            = 5.0, // 10
-                .Ki            = 0,    // 1
+                .Ki            = 0,   // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit | PID_ErrorHandle,
                 .IntegralLimit = 5000,
                 .MaxOut        = 10000,
             },
-            // .current_PID = {
-            //     .Kp            = 10, // 0.7
-            //     .Ki            = 0,  // 0.1
-            //     .Kd            = 0,
-            //     .Improve       = PID_Integral_Limit,
-            //     .IntegralLimit = 5000,
-            //     .MaxOut        = 5000,
-            // },
         },
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
-            .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = SPEED_LOOP,// ANGLE_LOOP | SPEED_LOOP | CURRENT_LOOP,
+            .outer_loop_type    = SPEED_LOOP,             // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP,             // ANGLE_LOOP | SPEED_LOOP | CURRENT_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
@@ -185,14 +170,8 @@ void ShootTask()
         case LOAD_STOP:
             DJIMotorSetRef(loader, 0); // 同时设定参考值为0,这样停止的速度最快
             break;
-            // 单发模式
-        // case LOAD_1_BULLET:                                                                   // 激活能量机关/干扰对方用,英雄用.
-        //     DJIMotorOuterLoop(loader, ANGLE_LOOP);                                            // 切换到角度环
-        //     DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE * 5); // 控制量增加一发弹丸的角度
-        //     hibernate_time = DWT_GetTimeline_ms();                                            // 记录触发指令的时间
-        //     dead_time      = 150;                                                             // 完成1发弹丸发射的时间
-        //     break;
-        case LOAD_1_BULLET: // 激活能量机关
+        // 激活能量机关
+        case LOAD_1_BULLET:
             shoot_cmd_recv.shoot_rate = 2;
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 控制量增加一发弹丸的角度
             hibernate_time = DWT_GetTimeline_ms();                                                // 记录触发指令的时间
