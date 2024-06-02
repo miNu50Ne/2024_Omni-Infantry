@@ -300,14 +300,12 @@ static void RemoteControlSet()
         // 左侧开关为[下]，右侧为[中]，开超电
         else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
             if (rc_data[TEMP].rc.dial > 400) {
-                chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-            } else {
-                chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-            }
+            Super_flag                   = SUPER_OPEN;
+            } 
+            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
             gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
-            Super_flag                   = SUPER_OPEN;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
