@@ -66,7 +66,7 @@ void ShootInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            .angle_PID{
+            .angle_PID = {
                 .Kp            = 10, // 10
                 .Ki            = 0, // 1
                 .Kd            = 0,
