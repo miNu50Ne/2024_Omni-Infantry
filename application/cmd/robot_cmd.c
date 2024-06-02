@@ -288,23 +288,23 @@ static void RemoteControlSet()
             chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_ON;
-            shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
+            shoot_cmd_send.load_mode      = LOAD_1_BULLET;
             if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) {
                 shoot_cmd_send.shoot_rate = 0;
                 Shoot_Flag                = 40;
                 shoot_cmd_send.load_mode  = LOAD_STOP;
             } else if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= 75) {
                 shoot_cmd_send.shoot_rate = (int)(20 * ((referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat) / 75));
-            } else {
-                shoot_cmd_send.shoot_rate = 20;
             }
         }
         // 左侧开关为[下]，右侧为[上]，反小陀螺
         else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right)) {
-            chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
+            // chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
+            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
             shoot_cmd_send.load_mode      = LOAD_STOP;
+            Super_flag                    = SUPER_OPEN;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
@@ -327,11 +327,14 @@ static void RemoteControlSet()
     PitchAngleLimit(); // PITCH限位
 }
 
-int Chassis_Rotate_Flag; // 底盘陀螺标志位
-int Shoot_Mode_Flag;     // 发射模式标志位
-int Shoot_Run_Flag;      // 摩擦轮标志位
-int Rune_Mode_Flag;      // 打符模式标志位
-int Shoot_rate_flag;     // 彈頻標志位
+int Chassis_Rotate_Flag;     // 底盘陀螺标志位
+int Chassis_Rotate_Off_Flag; // 关闭陀螺
+int Shoot_Mode_Flag;         // 发射模式标志位
+int Shoot_Run_Flag;          // 摩擦轮标志位
+int Shoot_Run_Off_Flag;      // 关闭摩擦轮
+int Rune_Mode_Flag;          // 打符模式标志位
+
+int Shoot_rate_flag; // 彈頻標志位
 
 #pragma message "TODO"
 int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
@@ -426,12 +429,14 @@ static void GimbalSet()
     gimbal_cmd_send.pitch = pitch_control;
 
     // 打符模式判断
-    if (Rune_Mode_Flag > 10) {
+    if (Rune_Mode_Flag > 3) {
         Gimbal_Status  = GIMBAL_STATUS_FREE;
         Rune_Mode_Flag = 0;
-    } else if (Rune_Mode_Flag < -10) {
+        auto_rune      = 1;
+    } else if (Rune_Mode_Flag < -3) {
         Gimbal_Status  = GIMBAL_STATUS_GYRO;
         Rune_Mode_Flag = 0;
+        auto_rune      = 0;
     }
 
     // 改变云台模式
@@ -445,27 +450,21 @@ static void GimbalSet()
 static void SetChassisMode()
 {
     // 陀螺
-    if (Chassis_Rotate_Flag > 10) {
+    if (Chassis_Rotate_Flag > 3) {
         Chassis_Status      = CHASSIS_STATUS_ROTATE;
         Chassis_Rotate_Flag = 0;
-        auto_rune           = 0;
-
-    } else if (Chassis_Rotate_Flag < -10) {
+    } else if (Chassis_Rotate_Flag < -3) {
         Chassis_Status      = CHASSIS_STATUS_FOLLOW;
         Chassis_Rotate_Flag = 0;
-        auto_rune           = 0;
     }
 
     // 底盘云台分离
-    if (Rune_Mode_Flag > 10) {
+    if (Rune_Mode_Flag > 3) {
         Chassis_Status = CHASSIS_STATUS_FREE;
         Rune_Mode_Flag = 0;
-        auto_rune      = 1;
-
-    } else if (Rune_Mode_Flag < -10) {
+    } else if (Rune_Mode_Flag < -3) {
         Chassis_Status = CHASSIS_STATUS_FOLLOW;
         Rune_Mode_Flag = 0;
-        auto_rune      = 0;
     }
 
     if (Chassis_Status == CHASSIS_STATUS_ROTATE) {
@@ -482,7 +481,6 @@ static void SetChassisMode()
  *
  *
  */
-
 static void RobotReset()
 {
     if (rc_data[TEMP].key[KEY_PRESS].shift && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].r) {
@@ -501,29 +499,28 @@ static void SetShootMode()
     shoot_cmd_send.shoot_mode = SHOOT_ON;
     // V按下超过100ms，开启摩擦轮，清空标志位
     // 其他同理
-    if (Shoot_Run_Flag > 10) { // 20*5 = 100ms
+    if (Shoot_Run_Flag > 3) { // 3*5 = 15ms
         shoot_cmd_send.friction_mode = FRICTION_ON;
         Shoot_Run_Flag               = 0;
-    } else if (Shoot_Run_Flag < -10) {
+    } else if (Shoot_Run_Flag < -3) {
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         Shoot_Run_Flag               = 0;
     }
 
-    if (Shoot_rate_flag > 10) {
+    if (Shoot_rate_flag > 3) {
         Shoot_Rate_Status = SHOOT_RATE_LOW;
         Shoot_rate_flag   = 0;
-    } else if (Shoot_rate_flag < -10) {
+    } else if (Shoot_rate_flag < -3) {
         Shoot_Rate_Status = SHOOT_RATE_HIGH;
         Shoot_rate_flag   = 0;
     }
 
     if (Shoot_Rate_Status == SHOOT_RATE_LOW) {
-        // shoot_cmd_send.load_mode = LOAD_1_BULLET;
         shoot_cmd_send.load_mode  = LOAD_BURSTFIRE;
         shoot_cmd_send.shoot_rate = 8;
-        
+
     } else if (Shoot_Rate_Status == SHOOT_RATE_HIGH) {
-        shoot_cmd_send.load_mode  = LOAD_BURSTFIRE; 
+        shoot_cmd_send.load_mode  = LOAD_BURSTFIRE;
         shoot_cmd_send.shoot_rate = 20;
     }
 
@@ -569,6 +566,7 @@ static void KeyGetMode()
     } else {
         Shoot_Run_Flag = 0;
     }
+
     if (rc_data[TEMP].key[KEY_PRESS].r) {
         Send_Once_Flag = 0; // UI重新发送
     }
@@ -651,14 +649,14 @@ static void EmergencyHandler()
 void UpDateUI()
 {
     // 更新UI数据
-    Referee_Interactive_info.chassis_mode   = chassis_cmd_send.chassis_mode;
-    Referee_Interactive_info.gimbal_mode    = gimbal_cmd_send.gimbal_mode;
-    Referee_Interactive_info.friction_mode  = shoot_cmd_send.friction_mode;
-    Referee_Interactive_info.shoot_mode     = shoot_cmd_send.shoot_mode;
-    Referee_Interactive_info.rec_pitch      = rec_pitch;
-    Referee_Interactive_info.rec_yaw        = rec_yaw;
-    Referee_Interactive_info.VisionRecvData = vision_recv_data[8];
-    Referee_Interactive_info.ShootRateStatus= Shoot_Rate_Status;
+    Referee_Interactive_info.chassis_mode    = chassis_cmd_send.chassis_mode;
+    Referee_Interactive_info.gimbal_mode     = gimbal_cmd_send.gimbal_mode;
+    Referee_Interactive_info.friction_mode   = shoot_cmd_send.friction_mode;
+    Referee_Interactive_info.shoot_mode      = shoot_cmd_send.shoot_mode;
+    Referee_Interactive_info.rec_pitch       = rec_pitch;
+    Referee_Interactive_info.rec_yaw         = rec_yaw;
+    Referee_Interactive_info.VisionRecvData  = vision_recv_data[8];
+    Referee_Interactive_info.ShootRateStatus = Shoot_Rate_Status;
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;

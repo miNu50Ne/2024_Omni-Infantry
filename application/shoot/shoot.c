@@ -18,8 +18,13 @@ static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信�
 
 // dwt定时,计算冷却用
 static float hibernate_time = 0, dead_time = 0;
+static uint32_t shoot_count_flag = 1;
 // 用来控制UI的刷新频率
 static uint8_t UI_timer = 0;
+
+// #pragma messsage "TODO"
+uint32_t shoot_count = 0;
+// float d_watch; // 创建一个全局变量来记录微分值，便于调试
 
 void ShootInit()
 {
@@ -61,19 +66,27 @@ void ShootInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            .speed_PID = {
-                .Kp            = 5.0, // 10
-                .Ki            = 0,   // 1
+            .angle_PID{
+                .Kp            = 10, // 10
+                .Ki            = 0, // 1
                 .Kd            = 0,
-                .Improve       = PID_Integral_Limit | PID_ErrorHandle,
+                .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 5000,
-                .MaxOut        = 10000,
+                .MaxOut        = 20000,
+            },
+            .speed_PID = {
+                .Kp            = 5, // 10
+                .Ki            = 0, // 1
+                .Kd            = 0,
+                .Improve       = PID_Integral_Limit,
+                .IntegralLimit = 5000,
+                .MaxOut        = 20000,
             },
         },
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
-            .outer_loop_type    = SPEED_LOOP,             // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = SPEED_LOOP,             // ANGLE_LOOP | SPEED_LOOP | CURRENT_LOOP,
+            .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP | ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
@@ -86,11 +99,41 @@ void ShootInit()
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
 
+float speed_record[6] = {0};
+int speed_add;
+int speed_sub;
+float shoot_speed_get;
+/**
+ * @brief 弹速反馈检测
+ *
+ */
+static void BulletSpeed_Ctrl()
+{
+    speed_record[0] = speed_record[1];
+    speed_record[1] = speed_record[2];
+    speed_record[2] = speed_record[3];
+    speed_record[3] = speed_record[4];
+    speed_record[4] = referee_info.ShootData.bullet_speed;
+    speed_record[5] = (speed_record[0] + speed_record[1] + speed_record[2] + speed_record[3] + speed_record[4]) / 5.0;
+    if (speed_record[5] >= 28.5) // 最近五颗弹速平均值>=28.5 摩擦轮降速
+    {
+        speed_sub++;
+        speed_add = 0;
+    } else if (speed_record[5] <= 27.5) {
+        speed_add++;
+        speed_sub = 0;
+    } else {
+        speed_add = 0;
+        speed_sub = 0;
+    }
+}
+
 float Block_Time;        // 堵转时间
 float Reverse_Time;      // 反转时间
 float current_record[6]; // 第五个为最近的射速 第六个为平均射速
 float Block_Status;      // 拨弹盘状态
 float Shoot_speed;
+
 /**
  * @brief 堵转，弹速检测
  *
@@ -105,7 +148,7 @@ static void Load_Reverse()
     current_record[4] = loader->measure.real_current; // 第五个为最近的拨弹盘電流
     current_record[5] = (current_record[0] + current_record[1] + current_record[2] + current_record[3] + current_record[4]) / 5.0;
 
-    if (current_record[5] > 8000) {
+    if (current_record[5] > 7000) {
         Block_Time++;
     }
 
@@ -121,22 +164,26 @@ static void Load_Reverse()
         }
     }
     // 电流较大恢复正转
-    if (loader->measure.speed_aps < -4000) {
+    if (loader->measure.speed_aps < -2000) {
         Reverse_Time = 0;
         Block_Time   = 0;
     }
 
     else {
-        // 堵转时间10*发射任务周期（2ms）= 20ms
-        if (Block_Time > 5) {
+        // 堵转时间5*发射任务周期（5ms）= 25ms
+        if (Block_Time > 1) {
             Reverse_Time = 1;
         }
     }
 }
 
+int one_bullet;
+float one_bullet_time;
+float shoot_time;
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
+    // 10 * 5 = 50ms
     if (UI_timer < 10) {
         UI_timer++;
     } else {
@@ -172,10 +219,19 @@ void ShootTask()
             break;
         // 激活能量机关
         case LOAD_1_BULLET:
-            shoot_cmd_recv.shoot_rate = 2;
-            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8); // 控制量增加一发弹丸的角度
-            hibernate_time = DWT_GetTimeline_ms();                                                // 记录触发指令的时间
-            dead_time      = 150;                                                                 // 完成1发弹丸发射的时间
+            DJIMotorOuterLoop(loader, ANGLE_LOOP);                                        // 切换到角度环
+            DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE); // 控制量增加一发弹丸的角度
+            hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
+            dead_time      = 150;
+            // shoot_time     = hibernate_time /1000.0;
+            // if (shoot_count_flag == 1) {
+            //     DJIMotorSetRef(loader, 3000); // 控制量增加一发弹丸的角度
+            // } else {
+            // DJIMotorSetRef(loader, 0);
+            // }
+            shoot_cmd_recv.shoot_rate = 1;
+            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
+
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
@@ -183,19 +239,21 @@ void ShootTask()
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
         case LOAD_REVERSE:
-            DJIMotorSetRef(loader, -20000);
+            DJIMotorSetRef(loader, -40000);
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
-
         default:
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
     }
 
+    BulletSpeed_Ctrl();
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 42000);
-        DJIMotorSetRef(friction_r, 42000);
+        // DJIMotorSetRef(friction_l, 42000);
+        // DJIMotorSetRef(friction_r, 42000);
+        DJIMotorSetRef(friction_l, 42000 + speed_add * 200 - speed_sub * 200);
+        DJIMotorSetRef(friction_r, 42000 + speed_add * 200 - speed_sub * 200);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);
@@ -210,10 +268,6 @@ void ShootTask()
 }
 
 // 热量控制算法
-// #pragma messsage "TODO"
-uint32_t shoot_count = 0;
-float d_watch; // 创建一个全局变量来记录微分值，便于调试
-
 void Shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
@@ -249,14 +303,17 @@ void Shoot_Fric_data_process(void)
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
         /*导数比较*/
-        d_watch = derivative;
+        // d_watch = derivative;
         if (derivative < -300) {
             bullet_waiting_confirm = true;
         } else if (derivative > -100) {
             if (bullet_waiting_confirm == true) {
                 local_heat += One_bullet_heat; // 确认打出
                 shoot_count++;
+                shoot_count_flag       = 1;
                 bullet_waiting_confirm = false;
+            } else {
+                shoot_count_flag = 0;
             }
         }
         rear++;

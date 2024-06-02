@@ -54,6 +54,7 @@ typedef struct
     aerial_robot_energy_t AerialRobotEnergy;               // 0x0205
     ext_robot_hurt_t RobotHurt;                            // 0x0206
     ext_shoot_data_t ShootData;                            // 0x0207
+    projectile_allowance_t ProjectileAllowance;            // 0x0208
 
     // 自定义交互数据的接收
     Communicate_ReceiveData_t ReceiveData;
@@ -96,7 +97,7 @@ typedef struct
     Chassis_Power_Data_s Chassis_last_Power_Data;
     uint8_t last_VisionRecvData;
     float last_rec_yaw, last_rec_pitch;
-    Shoot_Rate_Status_Enum LastShootRateStatus; 
+    Shoot_Rate_Status_Enum LastShootRateStatus;
 
 } Referee_Interactive_info_t;
 

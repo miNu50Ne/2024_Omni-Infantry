@@ -54,7 +54,7 @@ __attribute__((noreturn)) void _GimbalTask(void *argument)
   for(;;)
   {
     GimbalTask();
-    osDelay(5);
+    osDelay(1);
   }
 }
 
@@ -63,7 +63,7 @@ __attribute__((noreturn)) void _ChassisTask(void *argument)
   for(;;)
   {
     ChassisTask();
-    osDelay(5);
+    osDelay(1);
   }
 }
 
@@ -81,15 +81,6 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
   for(;;)
   {
     MotorControlTask();
-    osDelay(1);
-  }
-}
-
-__attribute__((noreturn)) void _DaemonTask(void *argument)
-{
-  for(;;)
-  {
-    DaemonTask();
     osDelay(1);
   }
 }

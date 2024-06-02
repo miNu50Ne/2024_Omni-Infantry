@@ -62,12 +62,12 @@ extern float Super_condition_volt; // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
-    .Kp            = 120, // 4.5
+    .Kp            = 95, // 4.5
     .Ki            = 0,   // 0
-    .Kd            = 15,   // 0
+    .Kd            = 10,  // 0
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 13000,
+    .MaxOut        = 11000,
     .DeadBand      = 3,
 };
 
@@ -131,6 +131,7 @@ void ChassisInit()
 
     // 发布订阅初始化,如果为双板,则需要can comm来传递消息
 #ifdef CHASSIS_BOARD
+
     Chassis_IMU_data = INS_Init(); // 底盘IMU初始化
 
     CANComm_Init_Config_s comm_conf = {
@@ -192,7 +193,8 @@ static void LimitChassisOutput()
     else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
         Plimit = 1;
     Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    PowerControlupdate((Power_Output - 20) + Plimit * 100, 1.0f / REDUCTION_RATIO_WHEEL);
+    // PowerControlupdate((Power_Output - 20) + Plimit * 100, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate(600, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
 
@@ -237,21 +239,26 @@ uint8_t supercap_delay;
 void Super_Cap_control()
 {
     // 小于12V关闭
-    if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
-        Super_Allow_Flag = SUPER_RELAY_CLOSE;
-    } else {
-        Super_Allow_Flag = SUPER_RELAY_OPEN;
-    }
+    // if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
+    //     Super_Allow_Flag = SUPER_RELAY_CLOSE;
+    // } else {
+    //     Super_Allow_Flag = SUPER_RELAY_OPEN;
+    // }
 
-    // User允许开启电容 且 电压充足
-    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
-        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    } else {
-        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
-    }
+    // // User允许开启电容 且 电压充足
+    // if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
+    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    // } else {
+    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+    // }
 
     // 物理层继电器状态改变，功率限制状态改变
-    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
+    // if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
+    //     LimitChassisOutput();
+    // } else {
+    //     SuperLimitOutput();
+    // }
+    if (Super_flag == SUPER_CLOSE) {
         LimitChassisOutput();
     } else {
         SuperLimitOutput();
@@ -370,7 +377,7 @@ void ChassisTask()
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     LimitChassisOutput();
-    // Super_Cap_control();
+    // SuperLimitOutput();
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();
