@@ -212,9 +212,13 @@ static void YawControlProcess()
  */
 static void RemoteControlSet()
 {
-    shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
-    Super_flag                = SUPER_CLOSE; // 默认关闭超电
-    shoot_cmd_send.shoot_rate = 20;          // 射频默认25Hz
+    shoot_cmd_send.shoot_mode = SHOOT_ON; // 发射机构常开
+    if (rc_data[TEMP].rc.dial > 400) {
+        Super_flag = SUPER_OPEN;
+    } else {
+        Super_flag = SUPER_CLOSE; // 默认关闭超电
+    }
+    shoot_cmd_send.shoot_rate = 20; // 射频默认25Hz
 
     // 左侧开关为[下]右侧开关为[上]，且接收到上位机的相对角度,视觉模式
     if ((switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_up(rc_data[TEMP].rc.switch_right))) {
@@ -299,13 +303,11 @@ static void RemoteControlSet()
         }
         // 左侧开关为[下]，右侧为[中]，开超电
         else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
-            if (rc_data[TEMP].rc.dial > 400) {
-            Super_flag                   = SUPER_OPEN;
-            } 
-            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-            gimbal_cmd_send.gimbal_mode  = GIMBAL_GYRO_MODE;
-            shoot_cmd_send.friction_mode = FRICTION_OFF;
-            shoot_cmd_send.load_mode     = LOAD_STOP;
+            // Super_flag                    = SUPER_OPEN;
+            chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+            gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
+            shoot_cmd_send.friction_mode  = FRICTION_OFF;
+            shoot_cmd_send.load_mode      = LOAD_STOP;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
@@ -615,7 +617,7 @@ static void EmergencyHandler()
     shoot_cmd_send.shoot_mode     = SHOOT_OFF;
     shoot_cmd_send.load_mode      = LOAD_STOP;
     Super_flag                    = SUPER_CLOSE;
-    
+
     LOGERROR("[CMD] emergency stop!");
 }
 

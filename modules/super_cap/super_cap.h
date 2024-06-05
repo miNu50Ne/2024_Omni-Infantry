@@ -28,6 +28,10 @@
 #define SUPER_RELAY_OPEN 1
 #define SUPER_RELAY_CLOSE 0
 
+// 定义电压阈值
+#define SUPER_VOLTAGE_THRESHOLD_LOW 12.0f
+#define SUPER_VOLTAGE_THRESHOLD_HIGH 16.0f
+
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_Opened 0
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_Closed 1
 
@@ -61,6 +65,12 @@ typedef struct
 {
     CAN_Init_Config_s can_config;
 } SuperCap_Init_Config_s;
+
+// 状态机
+typedef enum {
+    SUPER_STATE_LOW = 0,
+    SUPER_STATE_HIGH,
+} SuperCap_State_e;
 
 /**
  * @brief 初始化超级电容

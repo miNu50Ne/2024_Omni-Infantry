@@ -27,14 +27,14 @@
 #include "power_calc.h"
 
 /* 根据robot_def.h中的macro自动计算的参数 */
-#define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
-#define HALF_TRACK_WIDTH (TRACK_WIDTH / 2.0f)    // 半轮距
-#define PERIMETER_WHEEL  (RADIUS_WHEEL * 2 * PI) // 轮子周长
+#define HALF_WHEEL_BASE     (WHEEL_BASE / 2.0f)     // 半轴距
+#define HALF_TRACK_WIDTH    (TRACK_WIDTH / 2.0f)    // 半轮距
+#define PERIMETER_WHEEL     (RADIUS_WHEEL * 2 * PI) // 轮子周长
 
-#define LF               0
-#define RF               1
-#define RB               2
-#define LB               3
+#define LF                  0
+#define RF                  1
+#define RB                  2
+#define LB                  3
 
 #define SuperCap_PowerLimit 1200
 
@@ -73,10 +73,10 @@ extern float total_power;
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance FollowMode_PID = {
-    .Kp            = 40,//25,//25, // 50,//70, // 4.5
-    .Ki            = 0,    // 0
-    .Kd            = 1.0,//0.0,  // 0.07,  // 0
-    .DeadBand      = 0,    // 0.75,  //跟随模式设置了死区，防止抖动
+    .Kp            = 40,  // 25,//25, // 50,//70, // 4.5
+    .Ki            = 0,   // 0
+    .Kd            = 1.0, // 0.0,  // 0.07,  // 0
+    .DeadBand      = 0,   // 0.75,  //跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
     .MaxOut        = 20000,
@@ -104,13 +104,12 @@ void ChassisInit()
                 .IntegralLimit = 3000,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .MaxOut        = 15000,
-            }
-        },
+            }},
         .controller_setting_init_config = {
-            .angle_feedback_source = MOTOR_FEED, 
-            .speed_feedback_source = MOTOR_FEED, 
-            .outer_loop_type = SPEED_LOOP,
-            .close_loop_type = SPEED_LOOP, 
+            .angle_feedback_source = MOTOR_FEED,
+            .speed_feedback_source = MOTOR_FEED,
+            .outer_loop_type       = SPEED_LOOP,
+            .close_loop_type       = SPEED_LOOP,
         },
         .motor_type = M3508,
     };
@@ -224,14 +223,13 @@ static void LimitChassisOutput()
     // vt_lb = vt_lb * Plimit * power_lecel;
     // vt_rb = vt_rb * Plimit * power_lecel;
 
-    PowerControlInit(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*0.5 -10, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    PowerControlInit(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer * 0.5 - 10, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
 
-    //设定速度参考值
+    // 设定速度参考值
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
-
 }
 
 // 没有任何的功率限制，用于消耗超电容
@@ -243,9 +241,8 @@ void No_Limit_Control()
     vt_lb *= 1.5;
     vt_rb *= 1.5;
 
-
     aim_power = (total_power + (SuperCap_PowerLimit - total_power) * ramp_calc(&super_ramp)); // vx方向待测
-    PowerControlInit(SuperCap_PowerLimit, 1.0f / REDUCTION_RATIO_WHEEL); // 初始化功率控制
+    PowerControlInit(SuperCap_PowerLimit, 1.0f / REDUCTION_RATIO_WHEEL);                      // 初始化功率控制
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
@@ -259,10 +256,34 @@ void No_Limit_Control()
  */
 uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
+uint8_t Super_Condition;
+int super_time_delay;
+
+static
+
+SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
+
 void Super_Cap_control()
 {
+    float voltage = cap->cap_msg_s.CapVot;
+
+    // 状态机逻辑
+    switch (SuperCap_state) {
+        case SUPER_STATE_LOW:
+            if (voltage > SUPER_VOLTAGE_THRESHOLD_HIGH) {
+                SuperCap_state = SUPER_STATE_HIGH;
+            }
+            break;
+
+        case SUPER_STATE_HIGH:
+            if (voltage < SUPER_VOLTAGE_THRESHOLD_LOW) {
+                SuperCap_state = SUPER_STATE_LOW;
+            }
+            break;
+    }
+
     // 小于12V关闭
-    if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
+    if (SuperCap_state == SUPER_STATE_LOW) {
         Super_Allow_Flag = SUPER_RELAY_CLOSE;
     } else {
         Super_Allow_Flag = SUPER_RELAY_OPEN;
@@ -277,13 +298,20 @@ void Super_Cap_control()
 
     // 物理层继电器状态改变，功率限制状态改变
     if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_Closed) {
+        super_time_delay = 0;
         LimitChassisOutput();
         ramp_init(&super_ramp, SUPER_RAMP_TIME);
     } else {
-        No_Limit_Control();
+        super_time_delay++;
+        if (super_time_delay > 40) {
+            super_time_delay = 41;
+            No_Limit_Control();
+        } else {
+            LimitChassisOutput();
+            ramp_init(&super_ramp, SUPER_RAMP_TIME);
+        }
     }
-    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    // cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+
 }
 void Power_level_get() // 获取功率裆位
 {
@@ -318,9 +346,6 @@ void Power_level_get() // 获取功率裆位
         case 10:
             cap->cap_msg_g.power_level = 9;
             break;
-        case robot_power_level_MAX:
-            cap->cap_msg_g.power_level = 10;
-            break;
         default:
             cap->cap_msg_g.power_level = 0;
             break;
@@ -329,7 +354,7 @@ void Power_level_get() // 获取功率裆位
         cap->cap_msg_g.power_level = 9;
     }
 
-    // cap->cap_msg_g.power_level = 2;
+    cap->cap_msg_g.chassic_power_remaining = referee_data->PowerHeatData.chassis_power_buffer;
 }
 
 /**
@@ -343,8 +368,6 @@ static void EstimateSpeed()
     // chassis_feedback_data.vx vy wz =
     //  ...
 }
-
-
 
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
@@ -379,13 +402,12 @@ void ChassisTask()
         case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
             chassis_cmd_recv.wz = 0;
 
-            
             cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
             chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
             break;
-        case CHASSIS_FOLLOW_GIMBAL_YAW:                                                      // 跟随云台
+        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
             // chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
             // if (chassis_cmd_recv.offset_angle <= 90 || chassis_cmd_recv.offset_angle >= 270) // 0附近
             //     offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
@@ -394,8 +416,7 @@ void ChassisTask()
             // chassis_cmd_recv.wz = -1.5f * offset_angle * abs(offset_angle);
             // chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
 
-
-            //chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
+            // chassis_cmd_recv.offset_angle += 360;                                            // 将角度映射到0-360度
             if (chassis_cmd_recv.offset_angle <= 90 || chassis_cmd_recv.offset_angle >= 270) // 0附近
                 offset_angle = chassis_cmd_recv.offset_angle <= 90 ? chassis_cmd_recv.offset_angle : (chassis_cmd_recv.offset_angle - 360);
             else
@@ -403,17 +424,16 @@ void ChassisTask()
             chassis_cmd_recv.wz = PIDCalculate(&FollowMode_PID, offset_angle, 0);
             chassis_cmd_recv.wz = chassis_cmd_recv.wz * 1.5;
 
-
             cos_theta  = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
             chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            //chassis_cmd_recv.wz = 6000*(1-power_data.total_power/(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*1.2));
+            // chassis_cmd_recv.wz = 6000*(1-power_data.total_power/(referee_info.GameRobotState.chassis_power_limit + referee_data->PowerHeatData.chassis_power_buffer*1.2));
             chassis_cmd_recv.wz = 5000;
 
-            cos_theta  = arm_cos_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);  //矫正小陀螺偏心
+            cos_theta  = arm_cos_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD); // 矫正小陀螺偏心
             sin_theta  = arm_sin_f32((chassis_cmd_recv.offset_angle + 20) * DEGREE_2_RAD);
             chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
             chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
@@ -429,7 +449,7 @@ void ChassisTask()
     // sin_theta  = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
     // chassis_vx = chassis_cmd_recv.vx * cos_theta - chassis_cmd_recv.vy * sin_theta;
     // chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
-    
+
     // 根据控制模式进行正运动学解算,计算底盘输出
     MecanumCalculate();
 
