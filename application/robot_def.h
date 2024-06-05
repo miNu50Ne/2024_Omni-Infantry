@@ -23,9 +23,11 @@
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
+#define INFANTRY 1 // 全向轮具体参数，1为新车，0为老车
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
+#if INFANTRY
 #define YAW_CHASSIS_ALIGN_ECD     5066 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         6783 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
@@ -34,6 +36,18 @@
 #define PITCH_FEED_TYPE           1    // 云台PITCH轴反馈值来源:编码器为0,陀螺仪为1
 #define PITCH_INS_FEED_TYPE       1    // 云台PITCH轴陀螺仪反馈:角度值为0,弧度制为1
 #define PITCH_ECD_UP_ADD          0    // 云台抬升时编码器变化趋势,增为1,减为0 (陀螺仪变化方向应相同)
+
+#else
+#define YAW_CHASSIS_ALIGN_ECD     4730 //4072//4097 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
+#define PITCH_HORIZON_ECD         4073 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
+#define PITCH_POS_UP_LIMIT_ECD    3480 // 3750 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
+#define PITCH_POS_DOWN_LIMIT_ECD  4650 // 4455 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
+#define PITCH_FEED_TYPE           1    // 云台PITCH轴反馈值来源:编码器为0,陀螺仪为1
+#define PITCH_INS_FEED_TYPE       1    // 云台PITCH轴陀螺仪反馈:角度值为0,弧度制为1
+#define PITCH_ECD_UP_ADD          0    // 云台抬升时编码器变化趋势,增为1,减为0 (陀螺仪变化方向应相同)
+#endif // 0
+
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 45    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 拨盘电机的减速比,英雄需要修改为3508的19.0f

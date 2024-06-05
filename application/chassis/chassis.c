@@ -63,8 +63,8 @@ extern float Super_condition_volt; // 超电的电压
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
     .Kp            = 95, // 4.5
-    .Ki            = 0,   // 0
-    .Kd            = 10,  // 0
+    .Ki            = 0,  // 0
+    .Kd            = 10, // 0
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
     .MaxOut        = 11000,
@@ -193,8 +193,7 @@ static void LimitChassisOutput()
     else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
         Plimit = 1;
     Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    // PowerControlupdate((Power_Output - 20) + Plimit * 100, 1.0f / REDUCTION_RATIO_WHEEL);
-    PowerControlupdate(600, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate(Power_Output + Plimit * 100, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
 
@@ -233,41 +232,61 @@ void SuperLimitOutput()
  */
 uint8_t UIflag = 1;
 uint8_t Super_Allow_Flag;
-uint8_t Supercap_Limit_Flag;
-uint8_t supercap_delay;
+uint8_t Super_Condition;
+int supercap_open_delay;
+
+static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
 
 void Super_Cap_control()
 {
-    // 小于12V关闭
-    // if (cap->cap_msg_s.CapVot < SUPER_VOLT_MIN) {
-    //     Super_Allow_Flag = SUPER_RELAY_CLOSE;
-    // } else {
-    //     Super_Allow_Flag = SUPER_RELAY_OPEN;
-    // }
+    float voltage = cap->cap_msg_s.CapVot;
 
-    // // User允许开启电容 且 电压充足
-    // if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
-    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    // } else {
-    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
-    // }
+    // 状态机逻辑
+    switch (SuperCap_state) {
+        case SUPER_STATE_LOW:
+            if (voltage > SUPER_VOLTAGE_THRESHOLD_HIGH) {
+                SuperCap_state = SUPER_STATE_HIGH;
+            }
+            break;
+
+        case SUPER_STATE_HIGH:
+            if (voltage < SUPER_VOLTAGE_THRESHOLD_LOW) {
+                SuperCap_state = SUPER_STATE_LOW;
+            }
+            break;
+    }
+
+    // 小于12V关闭
+    if (SuperCap_state == SUPER_STATE_LOW) {
+        Super_Allow_Flag = SUPER_RELAY_CLOSE;
+    } else {
+        Super_Allow_Flag = SUPER_RELAY_OPEN;
+    }
+
+    // User允许开启电容 且 电压充足
+    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    } else {
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+    }
 
     // 物理层继电器状态改变，功率限制状态改变
-    // if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
-    //     LimitChassisOutput();
-    // } else {
-    //     SuperLimitOutput();
-    // }
-    if (Super_flag == SUPER_CLOSE) {
+    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
+        supercap_open_delay = 0;
         LimitChassisOutput();
     } else {
-        SuperLimitOutput();
+        supercap_open_delay++;
+        if (supercap_open_delay > 30) {
+            supercap_open_delay = 31;
+            SuperLimitOutput();
+        } else {
+            LimitChassisOutput();
+        }
     }
 }
-
 void Power_level_get() // 获取功率裆位
 {
-    switch (referee_data->GameRobotState.robot_level) {
+    switch (referee_info.GameRobotState.robot_level) {
         case 1:
             cap->cap_msg_g.power_level = 1;
             break;
@@ -302,12 +321,11 @@ void Power_level_get() // 获取功率裆位
             cap->cap_msg_g.power_level = 0;
             break;
     }
-
     if (referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10) {
         cap->cap_msg_g.power_level = 9;
     }
 
-    cap->cap_msg_g.chassic_power_remaining = 0;
+    cap->cap_msg_g.chassic_power_remaining = referee_data->PowerHeatData.chassis_power_buffer;
 }
 
 // float off_watch;

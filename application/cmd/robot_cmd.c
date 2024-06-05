@@ -201,8 +201,13 @@ uint8_t auto_rune; // 自瞄打符标志位
                     */
 static void RemoteControlSet()
 {
-    shoot_cmd_send.shoot_mode = SHOOT_ON;    // 发射机构常开
-    Super_flag                = SUPER_CLOSE; // 默认关闭超电
+    shoot_cmd_send.shoot_mode = SHOOT_ON; // 发射机构常开
+    if (rc_data[TEMP].rc.dial > 400) {
+        Super_flag = SUPER_OPEN;
+    } else {
+        Super_flag = SUPER_CLOSE; // 默认关闭超电
+    }
+    shoot_cmd_send.shoot_rate = 20; // 射频默认25Hz
 
     // 左侧开关为[下]右侧开关为[中]，且接收到上位机的相对角度,视觉模式
     if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
@@ -223,7 +228,7 @@ static void RemoteControlSet()
             pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
         }
 
-        if (rc_data[TEMP].rc.dial > 400) {
+        if (rc_data[TEMP].rc.dial < -400) {
             shoot_cmd_send.friction_mode = FRICTION_ON;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_REVERSE;
@@ -260,13 +265,13 @@ static void RemoteControlSet()
                 pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
             }
 
-            if (rc_data[TEMP].rc.dial > 400) {
+            if (rc_data[TEMP].rc.dial < -400) {
                 shoot_cmd_send.friction_mode = FRICTION_ON;
             } else {
                 shoot_cmd_send.friction_mode = FRICTION_REVERSE;
             }
 
-            if (vision_recv_data[8] == 1 && shoot_cmd_send.friction_mode == FRICTION_ON) {
+            if (shoot_cmd_send.friction_mode == FRICTION_ON) {
                 shoot_cmd_send.load_mode = LOAD_BURSTFIRE; // 火控
             } else {
                 shoot_cmd_send.load_mode = LOAD_STOP;
@@ -304,7 +309,6 @@ static void RemoteControlSet()
             gimbal_cmd_send.gimbal_mode   = GIMBAL_GYRO_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_REVERSE;
             shoot_cmd_send.load_mode      = LOAD_STOP;
-            Super_flag                    = SUPER_OPEN;
         } else {
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode     = LOAD_STOP;
