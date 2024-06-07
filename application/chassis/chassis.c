@@ -55,20 +55,20 @@ static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left righ
 static uint8_t center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 
-extern uint8_t Super_flag;         // 超电的标志位
-extern uint8_t Super_condition;    // 超电的开关状态
-extern float Super_condition_volt; // 超电的电压
+extern uint8_t SuperCap_flag_from_user; // 超电的标志位
+extern uint8_t Super_condition;         // 超电的开关状态
+extern float Super_condition_volt;      // 超电的电压
 
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 PIDInstance Chassis_Follow_PID = {
-    .Kp            = 95, // 4.5
-    .Ki            = 0,  // 0
-    .Kd            = 10, // 0
-    .IntegralLimit = 3000,
+    .Kp            = 80,  // 4.5
+    .Ki            = 0.05, // 0
+    .Kd            = 0.8, // 0
+    .IntegralLimit = 5000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 11000,
-    .DeadBand      = 3,
+    .MaxOut        = 20000,
+    .DeadBand      = 2,
 };
 
 /* 用于自旋变速策略的时间变量 */
@@ -210,7 +210,7 @@ static void LimitChassisOutput()
 // 提高功率上限，飞坡或跑路
 void SuperLimitOutput()
 {
-    Power_Output = (power_output + (1300 - power_output) * ramp_calc(&super_ramp));
+    Power_Output = (power_output + (600 - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
@@ -222,6 +222,7 @@ void SuperLimitOutput()
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
     DJIMotorSetRef(motor_lb, vt_lb);
+
     DJIMotorSetRef(motor_rb, vt_rb);
 }
 
@@ -231,15 +232,16 @@ void SuperLimitOutput()
  *
  */
 uint8_t UIflag = 1;
-uint8_t Super_Allow_Flag;
+uint8_t Super_Voltage_Allow_Flag;
 uint8_t Super_Condition;
-int supercap_open_delay;
+int supercap_accel_delay, supercap_moderate_delay;
 
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
-
+float voltage;
 void Super_Cap_control()
 {
-    float voltage = cap->cap_msg_s.CapVot;
+    // 电容电压
+    voltage = cap->cap_msg_s.CapVot;
 
     // 状态机逻辑
     switch (SuperCap_state) {
@@ -248,43 +250,57 @@ void Super_Cap_control()
                 SuperCap_state = SUPER_STATE_HIGH;
             }
             break;
-
         case SUPER_STATE_HIGH:
             if (voltage < SUPER_VOLTAGE_THRESHOLD_LOW) {
                 SuperCap_state = SUPER_STATE_LOW;
             }
             break;
+        default:
+            SuperCap_state = SUPER_STATE_LOW;
+            break;
     }
 
     // 小于12V关闭
     if (SuperCap_state == SUPER_STATE_LOW) {
-        Super_Allow_Flag = SUPER_RELAY_CLOSE;
+        Super_Voltage_Allow_Flag = SUPER_VOLTAGE_CLOSE;
+    } else if (SuperCap_state == SUPER_STATE_HIGH) {
+        Super_Voltage_Allow_Flag = SUPER_VOLTAGE_OPEN;
     } else {
-        Super_Allow_Flag = SUPER_RELAY_OPEN;
+        // none
     }
 
     // User允许开启电容 且 电压充足
-    if (Super_flag == SUPER_OPEN && Super_Allow_Flag == SUPER_RELAY_OPEN) {
+    if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && SuperCap_flag_from_user == SUPER_USER_OPEN) {
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+        supercap_moderate_delay         = 0;
     } else {
+        LimitChassisOutput();
+        supercap_moderate_delay++;
+        if (supercap_moderate_delay > 30) {
+            supercap_moderate_delay         = 31;
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+        } else {
+            cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+        }
     }
 
     // 物理层继电器状态改变，功率限制状态改变
-    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
-        supercap_open_delay = 0;
-        LimitChassisOutput();
-    } else {
-        supercap_open_delay++;
-        if (supercap_open_delay > 30) {
-            supercap_open_delay = 31;
+    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN) {
+        // 延时，超电打开后再提高功率
+        supercap_accel_delay++;
+        if (supercap_accel_delay > 30) {
+            supercap_accel_delay = 31;
             SuperLimitOutput();
         } else {
             LimitChassisOutput();
         }
+    } else {
+        supercap_accel_delay = 0;
     }
 }
-void Power_level_get() // 获取功率裆位
+
+// 获取功率裆位
+void Power_level_get()
 {
     switch (referee_info.GameRobotState.robot_level) {
         case 1:
@@ -323,6 +339,10 @@ void Power_level_get() // 获取功率裆位
     }
     if (referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10) {
         cap->cap_msg_g.power_level = 9;
+    }
+
+    if (referee_data->PowerHeatData.chassis_power_buffer < 30) {
+        cap->cap_msg_g.power_level = 0;
     }
 
     cap->cap_msg_g.chassic_power_remaining = referee_data->PowerHeatData.chassis_power_buffer;
@@ -394,8 +414,7 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    LimitChassisOutput();
-    // SuperLimitOutput();
+    Super_Cap_control();
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();
@@ -410,3 +429,69 @@ void ChassisTask()
     CANCommSend(chasiss_can_comm, (void *)&chassis_feedback_data);
 #endif // CHASSIS_BOARD
 }
+
+// typedef enum
+// {
+//     STATE_ACCELERATING,
+//     STATE_HIGH_SPEED,
+//     STATE_DECELERATING,
+//     STATE_LOW_SPEED
+// } State;
+// // 模拟用户允许开启的变量
+// int IS_pressed_shift = 1; // 假设用户按下了shift键
+// // 模拟超级电容和电压状态
+// int IS_SuperCap_Voltage_Enough = 1; // 假设超级电容电压足够
+// int Is_SuperCap_Open           = 0; // 初始状态为未开启
+// int func()
+// {
+//     State state = STATE_LOW_SPEED; // 初始状态为低速
+//     while (1)
+//     {
+//         switch (state)
+//         {
+//         case STATE_ACCELERATING:
+//             UseLowSpeed(); // 切换到低速
+
+//             if (IS_pressed_shift && IS_SuperCap_Voltage_Enough)
+//             {
+//                 if (Is_SuperCap_Open)
+//                 {
+// 假设加速Nms后进入高速
+//                     wait_ms(100); // 等待100ms
+//                     state = STATE_HIGH_SPEED; // 进入高速状态
+//                 }
+//             }
+//             break;
+//         case STATE_HIGH_SPEED:
+//             UseHighSpeed(); // 调用高速函数
+//             if (!IS_pressed_shift || !IS_SuperCap_Voltage_Enough)
+//             {
+//                 state = STATE_DECELERATING; // 进入减速状态
+//             }
+//             break;
+//         case STATE_DECELERATING:
+//             UseLowSpeed(); // 切换到低速
+// 等待多少秒
+//             wait_ms(100);            // 等待100ms
+//             state = STATE_LOW_SPEED; // 进入低速状态
+//             break;
+//         case STATE_LOW_SPEED:
+//             if (IS_pressed_shift && IS_SuperCap_Voltage_Enough)
+//             {
+//                 Open_SuperCap(); // 打开超级电容
+//                 if (Is_SuperCap_Open)
+//                 {
+//                     // 假设加速Nms后进入高速
+//                     state = STATE_ACCELERATING; // 进入加速状态
+//                 }
+//             }
+//             else
+//             {
+//                 Close_SuperCap(); // 关闭超级电容
+//             }
+
+//             UseLowSpeed(); // 切换到低速
+//             break;
+//         }
+//     }
+// }

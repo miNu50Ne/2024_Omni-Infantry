@@ -22,33 +22,36 @@
 
 #pragma pack(1)
 
-#define SUPER_OPEN  1
-#define SUPER_CLOSE 0
+#define SUPER_USER_OPEN     1
+#define SUPER_USER_CLOSE    0
 
-#define SUPER_RELAY_OPEN 1
-#define SUPER_RELAY_CLOSE 0
+#define SUPER_VOLTAGE_OPEN  1
+#define SUPER_VOLTAGE_CLOSE 0
+
+#define SUPER_RELAY_OPEN    1
+#define SUPER_RELAY_CLOSE   0
 
 // 定义电压阈值
-#define SUPER_VOLTAGE_THRESHOLD_LOW 12.0f
-#define SUPER_VOLTAGE_THRESHOLD_HIGH 16.0f
+#define SUPER_VOLTAGE_THRESHOLD_LOW        12.0f
+#define SUPER_VOLTAGE_THRESHOLD_HIGH       20.0f
 
-#define SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN 0
+#define SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN  0
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE 1
 
 /* 超级电容发送信息 */
 typedef struct
 {
-    float CapVot;         // 电压
-    uint8_t SuperCap_open_flag_from_real;    // 开关指示 未开启为1
+    float CapVot;                         // 电压
+    uint8_t SuperCap_open_flag_from_real; // 开关指示 未开启为1
 } SuperCap_Msg_s;
 
 /* 超级电容接收信息 */
-typedef struct 
+typedef struct
 {
-    uint8_t power_relay_flag;           //继电器开启状态
-    uint8_t power_level;                //功率等级
-    uint16_t chassic_power_remaining;   //剩余功率
-}SuperCap_Msg_g;
+    uint8_t power_relay_flag;         // 继电器开启状态
+    uint8_t power_level;              // 功率等级
+    uint16_t chassic_power_remaining; // 剩余功率
+} SuperCap_Msg_g;
 #pragma pack()
 
 /* 超级电容实例 */
@@ -56,7 +59,7 @@ typedef struct
 {
     CANInstance *can_ins;     // CAN实例
     SuperCap_Msg_s cap_msg_s; // 超级电容发送,本机接受的信息
-    SuperCap_Msg_g cap_msg_g; //超级电容接收,本机发送的信息
+    SuperCap_Msg_g cap_msg_g; // 超级电容接收,本机发送的信息
 } SuperCapInstance;
 
 /* 超级电容初始化配置 */
@@ -69,6 +72,8 @@ typedef struct
 typedef enum {
     SUPER_STATE_LOW = 0,
     SUPER_STATE_HIGH,
+    SUPER_STATE_ACCEL,
+    SUPER_STATE_DECELER,
 } SuperCap_State_e;
 
 /**

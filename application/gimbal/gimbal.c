@@ -59,23 +59,23 @@ void GimbalInit()
             .tx_id      = 1,
         },
         .controller_param_init_config = {
-            .angle_PID = {
+              .angle_PID = {
                 .Kp            = 0.3,//0.24, // 0.31, // 0.45
                 .Ki            = 0,
-                .Kd            = 0.0,
+                .Kd            = 0.001,
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
 
-                .MaxOut = 20,
+                .MaxOut = 10,
             },
             .speed_PID = {
-                .Kp            = 12700,//18000, // 10500,//1000,//10000,// 11000
+                .Kp            = 20000,//18000, // 10500,//1000,//10000,// 11000
                 .Ki            = 0,     // 0
-                .Kd            = 0.2,    // 10, // 30
+                .Kd            = 30,    // 10, // 30
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 5000,
-                .MaxOut        = 17000, // 20000
+                .MaxOut        = 20000, // 20000
             },
             .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET],//,Yaw_total_angle_deg//yaw反馈角度值
             // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
@@ -96,22 +96,22 @@ void GimbalInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            .angle_PID = {
-                .Kp            = 20,//35, // 40, // 10
-                .Ki            = 0.0,
+                     .angle_PID = {
+                .Kp            = 40,//35, // 40, // 10
+                .Ki            = 0.4,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
-                .MaxOut        = 30,
+                .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 10500,//10500, // 13000,//10500,  // 10500
+                .Kp            = 11500,//10500, // 13000,//10500,  // 10500
                 .Ki            = 0,//12000, // 10000, // 10000
-                .Kd            = 0.1,     // 0
+                .Kd            = 0,     // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 3000,
                 .MaxOut        = 20000,
-            },
+            },  
             .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET],//pitch反馈弧度制
             // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
             .other_speed_feedback_ptr = &gimbal_IMU_data->INS_data.INS_gyro[INS_PITCH_ADDRESS_OFFSET],

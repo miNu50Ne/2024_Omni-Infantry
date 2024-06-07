@@ -76,7 +76,7 @@ float rec_yaw, rec_pitch;
 
 uint8_t Shoot_Flag = 0;
 
-uint8_t Super_flag = 0; // 超电标志位
+uint8_t SuperCap_flag_from_user = 0; // 超电标志位
 void HOST_RECV_CALLBACK()
 {
     memcpy(vision_recv_data, host_instance->comm_instance, host_instance->RECV_SIZE);
@@ -203,9 +203,9 @@ static void RemoteControlSet()
 {
     shoot_cmd_send.shoot_mode = SHOOT_ON; // 发射机构常开
     if (rc_data[TEMP].rc.dial > 400) {
-        Super_flag = SUPER_OPEN;
+        SuperCap_flag_from_user = SUPER_USER_OPEN;
     } else {
-        Super_flag = SUPER_CLOSE; // 默认关闭超电
+        SuperCap_flag_from_user = SUPER_USER_CLOSE; // 默认关闭超电
     }
     shoot_cmd_send.shoot_rate = 20; // 射频默认25Hz
 
@@ -606,9 +606,9 @@ static void KeyGetMode()
 static void SuperCapMode()
 {
     if (rc_data[TEMP].key[KEY_PRESS].shift) {
-        Super_flag = SUPER_OPEN;
+        SuperCap_flag_from_user = SUPER_USER_OPEN;
     } else {
-        Super_flag = SUPER_CLOSE;
+        SuperCap_flag_from_user = SUPER_USER_CLOSE;
     }
 }
 
@@ -643,7 +643,7 @@ static void EmergencyHandler()
     shoot_cmd_send.shoot_mode     = SHOOT_OFF;
     shoot_cmd_send.friction_mode  = FRICTION_OFF;
     shoot_cmd_send.load_mode      = LOAD_STOP;
-    Super_flag                    = SUPER_CLOSE;
+    SuperCap_flag_from_user                    = SUPER_USER_CLOSE;
     LOGERROR("[CMD] emergency stop!");
 }
 
