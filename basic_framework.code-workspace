@@ -32,7 +32,8 @@
     },
     "cortex-debug.variableUseNaturalFormat": true,
     "cortex-debug.armToolchainPath": "C:\\USERS\\LENOVO\\.EIDE\\TOOLS\\GCC_ARM\\BIN",
-    "cortex-debug.openocdPath": "D:\\MSYS64\\MINGW64\\BIN\\OPENOCD.EXE"
+    "cortex-debug.openocdPath": "D:\\MSYS64\\MINGW64\\BIN\\OPENOCD.EXE",
+    "EIDE.ARM.GCC.Prefix": "arm-none-eabi-"
   },
   "extensions": {
     "recommendations": [

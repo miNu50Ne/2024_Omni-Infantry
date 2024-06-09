@@ -223,6 +223,7 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     motor->motor_controller.pid_ref = ref;
 }
 
+float motorset[4];
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
@@ -311,11 +312,12 @@ void DJIMotorControl()
     int index = 0;
     if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
         power_data.total_power = TotalPowerCalc(power_data.input_power);
-        for (int i = 0; i < 4; i++) {    
-            set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+        for (int i = 0; i < 4; i++) {
+            set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
             sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
             sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
-        }    
+            motorset[i]                             = set;
+        }
     }
 
     // 遍历flag,检查是否要发送这一帧报文

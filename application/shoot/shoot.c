@@ -19,8 +19,7 @@ static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信�
 // dwt定时,计算冷却用
 static float hibernate_time = 0, dead_time = 0;
 static uint32_t shoot_count_flag = 1;
-// 用来控制UI的刷新频率
-static uint8_t UI_timer = 0;
+
 
 // #pragma messsage "TODO"
 uint32_t shoot_count = 0;
@@ -66,21 +65,13 @@ void ShootInit()
             .tx_id      = 2,
         },
         .controller_param_init_config = {
-            // .angle_PID = {
-            //     .Kp            = 10, // 10
-            //     .Ki            = 0, // 1
-            //     .Kd            = 0,
-            //     .Improve       = PID_Integral_Limit,
-            //     .IntegralLimit = 5000,
-            //     .MaxOut        = 20000,
-            // },
             .speed_PID = {
                 .Kp            = 5, // 10
                 .Ki            = 0, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
                 .IntegralLimit = 5000,
-                .MaxOut        = 20000,
+                .MaxOut        = 10000,
             },
         },
         .controller_setting_init_config = {
@@ -183,13 +174,6 @@ float shoot_time;
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
-    // 10 * 5 = 50ms
-    if (UI_timer < 10) {
-        UI_timer++;
-    } else {
-        UI_timer = 0;
-        My_UIGraphRefresh();
-    }
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 
@@ -219,19 +203,10 @@ void ShootTask()
             break;
         // 激活能量机关
         case LOAD_1_BULLET:
-            // DJIMotorOuterLoop(loader, ANGLE_LOOP);                                        // 切换到角度环
-            // DJIMotorSetRef(loader, loader->measure.total_angle + ONE_BULLET_DELTA_ANGLE); // 控制量增加一发弹丸的角度
-            // hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
-            // dead_time      = 150;
-            // shoot_time     = hibernate_time /1000.0;
-            // if (shoot_count_flag == 1) {
-            //     DJIMotorSetRef(loader, 3000); // 控制量增加一发弹丸的角度
-            // } else {
-            // DJIMotorSetRef(loader, 0);
-            // }
+            hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
+            dead_time      = 150;
             shoot_cmd_recv.shoot_rate = 1;
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
-
             break;
         // 连发模式
         case LOAD_BURSTFIRE:

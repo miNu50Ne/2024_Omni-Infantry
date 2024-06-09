@@ -6,7 +6,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-
 #include "referee_init.h"
 #include "master_process.h"
 #include "daemon.h"
@@ -42,48 +41,53 @@ __attribute__((noreturn)) void StartINSTASK(void *argument)
 
 __attribute__((noreturn)) void _RobotCMDTask(void *argument)
 {
-  for(;;)
-  {
-    RobotCMDTask();
-    osDelay(1);
-  }
+    static uint32_t robot_time;
+    static float robot_dt;
+    LOGINFO("[freeRTOS] Robot Task Start");
+    for (;;) {
+        RobotTask();
+        robot_dt = 1000 * DWT_GetDeltaT(&robot_time);
+        if (robot_dt > 1.2f)
+            LOGERROR("[freeRTOS] INS Task is being DELAY! dt = [%f]ms", &robot_dt);
+        osDelay(1);
+    }
+}
+
+__attribute__((noreturn)) void motorControlTask(void *argument)
+{
+    for (;;) {
+        MotorControlTask();
+        osDelay(1);
+    }
 }
 
 __attribute__((noreturn)) void _GimbalTask(void *argument)
 {
   for(;;)
   {
-    GimbalTask();
-    osDelay(1);
+    My_UIGraphRefresh();
+    osDelay(40);
   }
 }
 
-__attribute__((noreturn)) void _ChassisTask(void *argument)
-{
-  for(;;)
-  {
-    ChassisTask();
-    osDelay(1);
-  }
-}
+// __attribute__((noreturn)) void _ChassisTask(void *argument)
+// {
+//   for(;;)
+//   {
+//     ChassisTask();
+//     osDelay(1);
+//   }
+// }
 
-__attribute__((noreturn)) void _ShootTask(void *argument)
-{
-  for(;;)
-  {
-    ShootTask();
-    osDelay(1);
-  }
-}
+// __attribute__((noreturn)) void _ShootTask(void *argument)
+// {
+//   for(;;)
+//   {
+//     ShootTask();
+//     osDelay(1);
+//   }
+// }
 
-__attribute__((noreturn)) void motorControlTask(void *argument)
-{
-  for(;;)
-  {
-    MotorControlTask();
-    osDelay(1);
-  }
-}
 
 // #include "robot.h"
 // __attribute__((noreturn)) void TestTask(void *argument)
