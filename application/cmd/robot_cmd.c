@@ -75,6 +75,7 @@ float rec_yaw, rec_pitch;
 uint8_t Shoot_Flag = 0;
 
 uint8_t SuperCap_flag_from_user = 0; // 超电标志位
+
 void HOST_RECV_CALLBACK()
 {
     memcpy(vision_recv_data, host_instance->comm_instance, host_instance->RECV_SIZE);
@@ -200,13 +201,13 @@ uint8_t auto_rune; // 自瞄打符标志位
 static void RemoteControlSet()
 {
     shoot_cmd_send.shoot_mode = SHOOT_ON; // 发射机构常开
+    shoot_cmd_send.shoot_rate = 20;       // 射频默认25Hz
+
     if (rc_data[TEMP].rc.dial > 400) {
         SuperCap_flag_from_user = SUPER_USER_OPEN;
     } else {
         SuperCap_flag_from_user = SUPER_USER_CLOSE; // 默认关闭超电
     }
-    shoot_cmd_send.shoot_rate = 20; // 射频默认25Hz
-
     // 左侧开关为[下]右侧开关为[中]，且接收到上位机的相对角度,视觉模式
     if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right)) {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
@@ -233,7 +234,7 @@ static void RemoteControlSet()
         }
 
         if (vision_recv_data[8] == 1 && shoot_cmd_send.friction_mode == FRICTION_ON) {
-            shoot_cmd_send.load_mode = LOAD_1_BULLET; // 火控
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE; // 火控
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
@@ -291,7 +292,7 @@ static void RemoteControlSet()
             chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             gimbal_cmd_send.gimbal_mode   = GIMBAL_FREE_MODE;
             shoot_cmd_send.friction_mode  = FRICTION_ON;
-            shoot_cmd_send.load_mode      = LOAD_1_BULLET;
+            shoot_cmd_send.load_mode      = LOAD_BURSTFIRE;
             if (referee_info.GameRobotState.shooter_id1_17mm_cooling_limit - local_heat <= heat_control) {
                 shoot_cmd_send.shoot_rate = 0;
                 Shoot_Flag                = 40;
@@ -313,8 +314,8 @@ static void RemoteControlSet()
         }
 
         // 控制云台旋转
-        yaw_control -= 0.0004f * (float)rc_data[TEMP].rc.rocker_l_;
-        pitch_control -= 0.000005f * (float)rc_data[TEMP].rc.rocker_l1;
+        yaw_control -= 0.0005f * (float)rc_data[TEMP].rc.rocker_l_;
+        pitch_control -= 0.0000065f * (float)rc_data[TEMP].rc.rocker_l1;
     }
     // 底盘参数
     chassis_cmd_send.vx = 70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
@@ -328,27 +329,6 @@ static void RemoteControlSet()
     // 云台软件限位
     PitchAngleLimit(); // PITCH限位
 }
-
-int Chassis_Rotate_Flag;     // 底盘陀螺标志位
-int Chassis_Rotate_Off_Flag; // 关闭陀螺
-int Shoot_Mode_Flag;         // 发射模式标志位
-int Shoot_Run_Flag;          // 摩擦轮标志位
-int Shoot_Run_Off_Flag;      // 关闭摩擦轮
-int Rune_Mode_Flag;          // 打符模式标志位
-
-int Shoot_rate_flag; // 彈頻標志位
-
-#pragma message "TODO"
-int Enable_buff_mode_Flag = 0; // 自瞄开启标志位
-
-// // 底盘状态（按键用）
-// Chassis_Status_Enum Chassis_Status = CHASSIS_STATUS_FOLLOW;
-
-// // 云台状态（按键用）
-// Gimbal_Status_Enum Gimbal_Status = GIMBAL_STATUS_GYRO;
-
-// // 發射機構狀態
-// Shoot_Rate_Status_Enum Shoot_Rate_Status = SHOOT_RATE_HIGH;
 
 /**
  * @brief 键盘设定速度
@@ -489,7 +469,7 @@ static void ShootSet()
 
 static void KeyGetMode()
 {
-    switch (rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_C] % 2) {
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_C] % 2) {
         case 1:
             if (chassis_cmd_send.chassis_mode == CHASSIS_FOLLOW_GIMBAL_YAW)
                 chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
@@ -499,7 +479,7 @@ static void KeyGetMode()
                 chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
             break;
     }
-    switch (rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_V] % 2) {
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_V] % 2) {
         case 1:
             if (shoot_cmd_send.friction_mode != FRICTION_ON)
                 shoot_cmd_send.friction_mode = FRICTION_ON;
@@ -508,17 +488,19 @@ static void KeyGetMode()
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             break;
     }
-    switch (rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_X] % 2) {
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_X] % 2) {
         case 1:
+            auto_rune = 1;
             if (chassis_cmd_send.chassis_mode == CHASSIS_FOLLOW_GIMBAL_YAW)
                 chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             break;
         case 0:
+            auto_rune = 0;
             if (chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW)
                 chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
             break;
     }
-    switch (rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_Z] % 2) {
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_Z] % 2) {
         case 1:
             if (shoot_cmd_send.shoot_rate != 8)
                 shoot_cmd_send.shoot_rate = 8;
@@ -527,26 +509,6 @@ static void KeyGetMode()
             shoot_cmd_send.shoot_rate = 20;
             break;
     }
-    // if (rc_data[TEMP].key_count[KEY_PRESS][Key_C] % 2 == 1) {
-    //     rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_C] = 0;
-    //     if (chassis_cmd_send.chassis_mode != CHASSIS_ROTATE) {
-    //         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-    //     }
-    // } else {
-    //     rc_data[TEMP].key_count[KEY_PRESS][Key_C]           = 0;
-    //     rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_C] = 0;
-    // }
-
-    // if (rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_C] % 2 == 1) {
-
-    //     rc_data[TEMP].key_count[KEY_PRESS][Key_C] = 0;
-    //     if (chassis_cmd_send.chassis_mode == CHASSIS_ROTATE) {
-    //         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-    //     }
-    // } else {
-    //     rc_data[TEMP].key_count[KEY_PRESS_WITH_CTRL][Key_C] = 0;
-    //     rc_data[TEMP].key_count[KEY_PRESS][Key_C]           = 0;
-    // }
 
     switch (rc_data[TEMP].key[KEY_PRESS].r) {
         case 1:
@@ -612,7 +574,6 @@ void UpDateUI()
     Referee_Interactive_info.rec_pitch      = rec_pitch;
     Referee_Interactive_info.rec_yaw        = rec_yaw;
     Referee_Interactive_info.VisionRecvData = vision_recv_data[8];
-    // Referee_Interactive_info.ShootRateStatus = Shoot_Rate_Status;
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;

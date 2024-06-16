@@ -230,7 +230,6 @@ typedef struct
 } ext_shoot_data_t;
 
 /* ID: 0x0208 Byte : 6   允许发弹量 */
-
 typedef struct
 {
     uint16_t projectile_allowance_17mm;

@@ -48,7 +48,7 @@ __attribute__((noreturn)) void _RobotCMDTask(void *argument)
         RobotTask();
         robot_dt = 1000 * DWT_GetDeltaT(&robot_time);
         if (robot_dt > 1.2f)
-            LOGERROR("[freeRTOS] INS Task is being DELAY! dt = [%f]ms", &robot_dt);
+            LOGERROR("[freeRTOS] Robot Task is being DELAY! dt = [%f]ms", &robot_dt);
         osDelay(1);
     }
 }
@@ -63,11 +63,10 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
 
 __attribute__((noreturn)) void _GimbalTask(void *argument)
 {
-  for(;;)
-  {
-    My_UIGraphRefresh();
-    osDelay(40);
-  }
+    for (;;) {
+        My_UIGraphRefresh();
+        osDelay(40);
+    }
 }
 
 // __attribute__((noreturn)) void _ChassisTask(void *argument)
@@ -87,7 +86,6 @@ __attribute__((noreturn)) void _GimbalTask(void *argument)
 //     osDelay(1);
 //   }
 // }
-
 
 // #include "robot.h"
 // __attribute__((noreturn)) void TestTask(void *argument)

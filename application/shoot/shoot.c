@@ -17,14 +17,13 @@ static Subscriber_t *shoot_sub;
 static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信息
 
 // dwt定时,计算冷却用
-static float hibernate_time = 0, dead_time = 0;
-static uint32_t shoot_count_flag = 1;
-
+static float hibernate_time = 0, dead_time = 0; // stop_time = 0;
+static uint32_t shoot_heat[2];
 
 // #pragma messsage "TODO"
 uint32_t shoot_count = 0;
 // float d_watch; // 创建一个全局变量来记录微分值，便于调试
-
+#if INFANTRY
 void ShootInit()
 {
     // 左摩擦轮
@@ -51,11 +50,13 @@ void ShootInit()
             .motor_reverse_flag = MOTOR_DIRECTION_REVERSE,
         },
         .motor_type = M3508};
-    friction_config.can_init_config.tx_id = 4;
-    friction_l                            = DJIMotorInit(&friction_config);
-
-    friction_config.can_init_config.tx_id                             = 3; // 右摩擦轮,改txid和方向就行
+    friction_config.can_init_config.tx_id                             = 3; // 左摩擦轮,改txid和方向就行
     friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+
+    friction_l = DJIMotorInit(&friction_config);
+
+    friction_config.can_init_config.tx_id                             = 4; // 右摩擦轮,改txid和方向就行
+    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     friction_r                                                        = DJIMotorInit(&friction_config);
 
     // 拨盘电机
@@ -76,8 +77,8 @@ void ShootInit()
         },
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
-            .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = SPEED_LOOP ,//| ANGLE_LOOP,
+            .outer_loop_type    = SPEED_LOOP,             // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP,             //| ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
@@ -90,34 +91,102 @@ void ShootInit()
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
 
-float speed_record[6] = {0};
-int speed_add;
-int speed_sub;
-float shoot_speed_get;
-/**
- * @brief 弹速反馈检测
- *
- */
-static void BulletSpeed_Ctrl()
+#else
+void ShootInit()
 {
-    speed_record[0] = speed_record[1];
-    speed_record[1] = speed_record[2];
-    speed_record[2] = speed_record[3];
-    speed_record[3] = speed_record[4];
-    speed_record[4] = referee_info.ShootData.bullet_speed;
-    speed_record[5] = (speed_record[0] + speed_record[1] + speed_record[2] + speed_record[3] + speed_record[4]) / 5.0;
-    if (speed_record[5] >= 28.5) // 最近五颗弹速平均值>=28.5 摩擦轮降速
-    {
-        speed_sub++;
-        speed_add = 0;
-    } else if (speed_record[5] <= 27.5) {
-        speed_add++;
-        speed_sub = 0;
-    } else {
-        speed_add = 0;
-        speed_sub = 0;
-    }
+    // 左摩擦轮
+    Motor_Init_Config_s friction_config = {
+        .can_init_config = {
+            .can_handle = &hcan2,
+        },
+        .controller_param_init_config = {
+            .speed_PID = {
+                .Kp            = 5,
+                .Ki            = 0,
+                .Kd            = 0,
+                .Improve       = PID_Integral_Limit,
+                .IntegralLimit = 10000,
+                .MaxOut        = 20000,
+            },
+        },
+        .controller_setting_init_config = {
+            .angle_feedback_source = MOTOR_FEED,
+            .speed_feedback_source = MOTOR_FEED,
+
+            .outer_loop_type    = SPEED_LOOP,
+            .close_loop_type    = SPEED_LOOP,
+            .motor_reverse_flag = MOTOR_DIRECTION_REVERSE,
+        },
+        .motor_type = M3508};
+    friction_config.can_init_config.tx_id                             = 4;
+    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+    friction_l                                                        = DJIMotorInit(&friction_config);
+
+    friction_config.can_init_config.tx_id                             = 1; // 右摩擦轮,改txid和方向就行
+    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    friction_r                                                        = DJIMotorInit(&friction_config);
+
+    // 拨盘电机
+    Motor_Init_Config_s loader_config = {
+        .can_init_config = {
+            .can_handle = &hcan2,
+            .tx_id      = 3,
+        },
+        .controller_param_init_config = {
+            .speed_PID = {
+                .Kp            = 5, // 10
+                .Ki            = 0, // 1
+                .Kd            = 0,
+                .Improve       = PID_Integral_Limit,
+                .IntegralLimit = 5000,
+                .MaxOut        = 10000,
+            },
+        },
+        .controller_setting_init_config = {
+            .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
+            .outer_loop_type    = SPEED_LOOP,             // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP,             //| ANGLE_LOOP,
+            .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
+        },
+        .motor_type = M2006 // 英雄使用m3508
+    };
+    loader = DJIMotorInit(&loader_config);
+
+    shoot_cmd_recv.shoot_mode = SHOOT_ON; // 初始化后摩擦轮进入准备模式,也可将右拨杆拨至上一次来手动开启
+
+    shoot_pub = PubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
+    shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
 }
+#endif
+
+float speed_record[6] = {0};
+// int speed_add;
+// int speed_sub;
+// float shoot_speed_get;
+// /**
+//  * @brief 弹速反馈检测
+//  *
+//  */
+// static void BulletSpeed_Ctrl()
+// {
+//     speed_record[0] = speed_record[1];
+//     speed_record[1] = speed_record[2];
+//     speed_record[2] = speed_record[3];
+//     speed_record[3] = speed_record[4];
+//     speed_record[4] = referee_info.ShootData.bullet_speed;
+//     speed_record[5] = (speed_record[0] + speed_record[1] + speed_record[2] + speed_record[3] + speed_record[4]) / 5.0;
+//     if (speed_record[5] >= 28.5) // 最近五颗弹速平均值>=28.5 摩擦轮降速
+//     {
+//         speed_sub++;
+//         speed_add = 0;
+//     } else if (speed_record[5] <= 27.5) {
+//         speed_add++;
+//         speed_sub = 0;
+//     } else {
+//         speed_add = 0;
+//         speed_sub = 0;
+//     }
+// }
 
 float Block_Time;        // 堵转时间
 float Reverse_Time;      // 反转时间
@@ -200,13 +269,20 @@ void ShootTask()
         // 停止拨盘
         case LOAD_STOP:
             DJIMotorSetRef(loader, 0); // 同时设定参考值为0,这样停止的速度最快
+            // shoot_heat[0] = referee_info.PowerHeatData.shooter_17mm_heat0;
+            // shoot_heat[1] = 0;
             break;
         // 激活能量机关
         case LOAD_1_BULLET:
             hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
             dead_time      = 150;
-            shoot_cmd_recv.shoot_rate = 1;
+            // shoot_cmd_recv.shoot_rate = 1;
             DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
+            // DJIMotorSetRef(loader, 15000);
+            // shoot_heat[1] = referee_info.PowerHeatData.shooter_17mm_heat0;
+            // if (shoot_heat[1] == (shoot_heat[0] + 10)) {
+            //     DJIMotorSetRef(loader, 0);
+            // }
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
@@ -221,14 +297,14 @@ void ShootTask()
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
     }
 
-    BulletSpeed_Ctrl();
+    // BulletSpeed_Ctrl();
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        // DJIMotorSetRef(friction_l, 42000);
-        // DJIMotorSetRef(friction_r, 42000);
-        DJIMotorSetRef(friction_l, 42000 + speed_add * 200 - speed_sub * 200);
-        DJIMotorSetRef(friction_r, 42000 + speed_add * 200 - speed_sub * 200);
+        DJIMotorSetRef(friction_l, 42000);
+        DJIMotorSetRef(friction_r, 42000);
+        // DJIMotorSetRef(friction_l, 42000 + speed_add * 200 - speed_sub * 200);
+        // DJIMotorSetRef(friction_r, 42000 + speed_add * 200 - speed_sub * 200);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);
@@ -285,10 +361,7 @@ void Shoot_Fric_data_process(void)
             if (bullet_waiting_confirm == true) {
                 local_heat += One_bullet_heat; // 确认打出
                 shoot_count++;
-                shoot_count_flag       = 1;
                 bullet_waiting_confirm = false;
-            } else {
-                shoot_count_flag = 0;
             }
         }
         rear++;
