@@ -75,17 +75,17 @@ const osThreadAttr_t instask_attributes = {
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityRealtime7,
 };
-/* Definitions for CMD */
-osThreadId_t CMDHandle;
-const osThreadAttr_t CMD_attributes = {
-  .name = "CMD",
+/* Definitions for Robot */
+osThreadId_t RobotHandle;
+const osThreadAttr_t Robot_attributes = {
+  .name = "Robot",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh7,
 };
-/* Definitions for Gimbal */
-osThreadId_t GimbalHandle;
-const osThreadAttr_t Gimbal_attributes = {
-  .name = "Gimbal",
+/* Definitions for UI */
+osThreadId_t UIHandle;
+const osThreadAttr_t UI_attributes = {
+  .name = "UI",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
@@ -110,13 +110,6 @@ const osThreadAttr_t motorControl_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal7,
 };
-/* Definitions for Daemon */
-osThreadId_t DaemonHandle;
-const osThreadAttr_t Daemon_attributes = {
-  .name = "Daemon",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh7,
-};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -127,12 +120,11 @@ void StartDefaultTask(void *argument);
 void TestTask(void *argument);
 void BuzzerTask(void *argument);
 void StartINSTASK(void *argument);
-void _RobotCMDTask(void *argument);
-void _GimbalTask(void *argument);
+void _RobotTask(void *argument);
+void _UITask(void *argument);
 void _ChassisTask(void *argument);
 void _ShootTask(void *argument);
 void motorControlTask(void *argument);
-void _DaemonTask(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -176,11 +168,11 @@ void MX_FREERTOS_Init(void) {
   /* creation of instask */
   instaskHandle = osThreadNew(StartINSTASK, NULL, &instask_attributes);
 
-  /* creation of CMD */
-  CMDHandle = osThreadNew(_RobotCMDTask, NULL, &CMD_attributes);
+  /* creation of Robot */
+  RobotHandle = osThreadNew(_RobotTask, NULL, &Robot_attributes);
 
-  /* creation of Gimbal */
-  GimbalHandle = osThreadNew(_GimbalTask, NULL, &Gimbal_attributes);
+  /* creation of UI */
+  UIHandle = osThreadNew(_UITask, NULL, &UI_attributes);
 
   /* creation of Chassis */
   ChassisHandle = osThreadNew(_ChassisTask, NULL, &Chassis_attributes);
@@ -190,9 +182,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of motorControl */
   motorControlHandle = osThreadNew(motorControlTask, NULL, &motorControl_attributes);
-
-  /* creation of Daemon */
-  DaemonHandle = osThreadNew(_DaemonTask, NULL, &Daemon_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -277,40 +266,40 @@ __weak void StartINSTASK(void *argument)
   /* USER CODE END StartINSTASK */
 }
 
-/* USER CODE BEGIN Header__RobotCMDTask */
+/* USER CODE BEGIN Header__RobotTask */
 /**
-* @brief Function implementing the CMD thread.
+* @brief Function implementing the Robot thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header__RobotCMDTask */
-__weak void _RobotCMDTask(void *argument)
+/* USER CODE END Header__RobotTask */
+__weak void _RobotTask(void *argument)
 {
-  /* USER CODE BEGIN _RobotCMDTask */
+  /* USER CODE BEGIN _RobotTask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END _RobotCMDTask */
+  /* USER CODE END _RobotTask */
 }
 
-/* USER CODE BEGIN Header__GimbalTask */
+/* USER CODE BEGIN Header__UITask */
 /**
-* @brief Function implementing the Gimbal thread.
+* @brief Function implementing the UI thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header__GimbalTask */
-__weak void _GimbalTask(void *argument)
+/* USER CODE END Header__UITask */
+__weak void _UITask(void *argument)
 {
-  /* USER CODE BEGIN _GimbalTask */
+  /* USER CODE BEGIN _UITask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END _GimbalTask */
+  /* USER CODE END _UITask */
 }
 
 /* USER CODE BEGIN Header__ChassisTask */
@@ -365,24 +354,6 @@ __weak void motorControlTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END motorControlTask */
-}
-
-/* USER CODE BEGIN Header__DaemonTask */
-/**
-* @brief Function implementing the Daemon thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header__DaemonTask */
-__weak void _DaemonTask(void *argument)
-{
-  /* USER CODE BEGIN _DaemonTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END _DaemonTask */
 }
 
 /* Private application code --------------------------------------------------*/

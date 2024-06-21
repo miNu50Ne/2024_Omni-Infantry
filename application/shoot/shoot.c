@@ -17,7 +17,7 @@ static Subscriber_t *shoot_sub;
 static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信息
 
 // dwt定时,计算冷却用
-static float hibernate_time = 0, dead_time = 0; // stop_time = 0;
+static float hibernate_time = 0, dead_time = 0;
 static uint32_t shoot_heat[2];
 
 // #pragma messsage "TODO"
@@ -67,7 +67,7 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 5, // 10
+                .Kp            = 1, // 10
                 .Ki            = 0, // 1
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
@@ -159,41 +159,11 @@ void ShootInit()
 }
 #endif
 
-float speed_record[6] = {0};
-// int speed_add;
-// int speed_sub;
-// float shoot_speed_get;
-// /**
-//  * @brief 弹速反馈检测
-//  *
-//  */
-// static void BulletSpeed_Ctrl()
-// {
-//     speed_record[0] = speed_record[1];
-//     speed_record[1] = speed_record[2];
-//     speed_record[2] = speed_record[3];
-//     speed_record[3] = speed_record[4];
-//     speed_record[4] = referee_info.ShootData.bullet_speed;
-//     speed_record[5] = (speed_record[0] + speed_record[1] + speed_record[2] + speed_record[3] + speed_record[4]) / 5.0;
-//     if (speed_record[5] >= 28.5) // 最近五颗弹速平均值>=28.5 摩擦轮降速
-//     {
-//         speed_sub++;
-//         speed_add = 0;
-//     } else if (speed_record[5] <= 27.5) {
-//         speed_add++;
-//         speed_sub = 0;
-//     } else {
-//         speed_add = 0;
-//         speed_sub = 0;
-//     }
-// }
 
 float Block_Time;        // 堵转时间
 float Reverse_Time;      // 反转时间
 float current_record[6]; // 第五个为最近的射速 第六个为平均射速
 float Block_Status;      // 拨弹盘状态
-float Shoot_speed;
-
 /**
  * @brief 堵转，弹速检测
  *
@@ -238,8 +208,6 @@ static void Load_Reverse()
 }
 
 int one_bullet;
-float one_bullet_time;
-float shoot_time;
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
@@ -269,20 +237,26 @@ void ShootTask()
         // 停止拨盘
         case LOAD_STOP:
             DJIMotorSetRef(loader, 0); // 同时设定参考值为0,这样停止的速度最快
-            // shoot_heat[0] = referee_info.PowerHeatData.shooter_17mm_heat0;
-            // shoot_heat[1] = 0;
+            shoot_heat[0] = shoot_count;
+            shoot_heat[1] = shoot_heat[0];
+            one_bullet    = 0;
             break;
         // 激活能量机关
         case LOAD_1_BULLET:
-            hibernate_time = DWT_GetTimeline_ms(); // 记录触发指令的时间
-            dead_time      = 150;
-            // shoot_cmd_recv.shoot_rate = 1;
-            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
-            // DJIMotorSetRef(loader, 15000);
-            // shoot_heat[1] = referee_info.PowerHeatData.shooter_17mm_heat0;
-            // if (shoot_heat[1] == (shoot_heat[0] + 10)) {
-            //     DJIMotorSetRef(loader, 0);
-            // }
+            hibernate_time            = DWT_GetTimeline_ms(); // 记录触发指令的时间
+            dead_time                 = 150;
+            shoot_heat[1]             = shoot_count;
+            if (shoot_heat[1] - shoot_heat[0] >= 1) {
+                one_bullet = 1;
+            }
+            switch (one_bullet) {
+                case 1:
+                    DJIMotorSetRef(loader, 0);
+                    break;
+                case 0:
+                    DJIMotorSetRef(loader, 10000);
+                    break;
+            }
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
@@ -297,14 +271,11 @@ void ShootTask()
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
     }
 
-    // BulletSpeed_Ctrl();
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 42000);
-        DJIMotorSetRef(friction_r, 42000);
-        // DJIMotorSetRef(friction_l, 42000 + speed_add * 200 - speed_sub * 200);
-        // DJIMotorSetRef(friction_r, 42000 + speed_add * 200 - speed_sub * 200);
+        DJIMotorSetRef(friction_l, 44000);
+        DJIMotorSetRef(friction_r, 44000);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
         DJIMotorSetRef(friction_l, 0);
         DJIMotorSetRef(friction_r, 0);

@@ -123,6 +123,8 @@ int main(void)
     MX_DAC_Init();
     MX_TIM6_Init();
     /* USER CODE BEGIN 2 */
+    HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+    HAL_TIM_Base_Start_IT(&htim4);
     HAL_TIM_Base_Start_IT(&htim6);
     RobotInit(); // 唯一的初始化函数
     LOGINFO("[main] SystemInit() and RobotInit() done");

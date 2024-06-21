@@ -39,7 +39,7 @@ __attribute__((noreturn)) void StartINSTASK(void *argument)
     }
 }
 
-__attribute__((noreturn)) void _RobotCMDTask(void *argument)
+__attribute__((noreturn)) void _RobotTask(void *argument)
 {
     static uint32_t robot_time;
     static float robot_dt;
@@ -61,31 +61,14 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
     }
 }
 
-__attribute__((noreturn)) void _GimbalTask(void *argument)
+__attribute__((noreturn)) void _UITask(void *argument)
 {
     for (;;) {
         My_UIGraphRefresh();
-        osDelay(40);
+        osDelay(20);
     }
 }
 
-// __attribute__((noreturn)) void _ChassisTask(void *argument)
-// {
-//   for(;;)
-//   {
-//     ChassisTask();
-//     osDelay(1);
-//   }
-// }
-
-// __attribute__((noreturn)) void _ShootTask(void *argument)
-// {
-//   for(;;)
-//   {
-//     ShootTask();
-//     osDelay(1);
-//   }
-// }
 
 // #include "robot.h"
 // __attribute__((noreturn)) void TestTask(void *argument)
