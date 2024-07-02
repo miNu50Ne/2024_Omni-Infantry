@@ -62,13 +62,13 @@ extern float Super_condition_volt;      // 超电的电压
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 70,
+    .Kp            = 130,
     .Ki            = 0,
-    .Kd            = 0.75,
-    .DeadBand      = 0.0, // 跟随模式设置了死区，防止抖动
+    .Kd            = 4.0,
+    .DeadBand      = 10.0, // 跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 50000,
+    .MaxOut        = 15000,
 };
 
 /* 用于自旋变速策略的时间变量 */
@@ -78,7 +78,8 @@ static PIDInstance Chassis_Follow_PID = {
 static float chassis_vx, chassis_vy, chassis_vw; // 将云台系的速度投影到底盘
 static float vt_lf, vt_rf, vt_lb, vt_rb;         // 底盘速度解算后的临时输出,待进行限幅
 static ramp_t vw_ramp, super_ramp;
-static float power_output, Power_Output, current_speed_vw;
+static float current_speed_vw;
+uint16_t power_output, Power_Output;
 
 void ChassisInit()
 {
@@ -192,20 +193,18 @@ static void LimitChassisOutput()
         Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
     else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
         Plimit = 1;
-    Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
 
-    PowerControlupdate(referee_info.GameRobotState.chassis_power_limit, 1.0f / REDUCTION_RATIO_WHEEL);
+    // Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
+    // Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
 
+    // PowerControlupdate(Power_Output -20 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
+    // PowerControlupdate(referee_info.GameRobotState.chassis_power_limit - 40, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate(60, 1.0f / REDUCTION_RATIO_WHEEL);
     // power_output = Power_Output;
 
     ramp_init(&super_ramp, 300);
 
-    // #ifdef INFANTRY
-    //     chassis_vw = (current_speed_vw + (6000 - current_speed_vw) * ramp_calc(&vw_ramp));
-    //     #else
     chassis_vw = (current_speed_vw + (4000 - current_speed_vw) * ramp_calc(&vw_ramp));
-    // #endif // INFANTRY
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -214,7 +213,7 @@ static void LimitChassisOutput()
 }
 
 // 提高功率上限，飞坡或跑路
-void SuperLimitOutput()
+static void SuperLimitOutput()
 {
     Power_Output = (power_output + (200 - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
@@ -243,7 +242,7 @@ int supercap_accel_delay, supercap_moderate_delay;
 
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
 float voltage;
-void Super_Cap_control()
+static void Super_Cap_control()
 {
     // 电容电压
     voltage = cap->cap_msg_s.CapVot;
@@ -306,7 +305,7 @@ void Super_Cap_control()
 }
 
 // 获取功率裆位
-void Power_level_get()
+static void Power_level_get()
 {
     switch (referee_info.GameRobotState.robot_level) {
         case 1:
@@ -354,7 +353,7 @@ void Power_level_get()
     cap->cap_msg_g.chassic_power_remaining = referee_data->PowerHeatData.chassis_power_buffer;
 }
 
-// float off_watch;
+float off_watch;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
@@ -391,7 +390,6 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            // off_watch           = offset_angle;
             chassis_cmd_recv.wz = 0;
 
             cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
@@ -404,8 +402,8 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            // off_watch           = offset_angle;
-            chassis_cmd_recv.wz = 1.5 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
+            off_watch           = offset_angle;
+            chassis_cmd_recv.wz = 1.2 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
 
             cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
@@ -435,9 +433,9 @@ void ChassisTask()
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     // #ifdef INFANTRY
-    //     LimitChassisOutput();
+    LimitChassisOutput();
     // #else
-    Super_Cap_control();
+    // Super_Cap_control();
     // #endif // INFANTRY
 
     // 获得给电容传输的电容吸取功率等级
@@ -454,69 +452,3 @@ void ChassisTask()
     CANCommSend(chasiss_can_comm, (void *)&chassis_feedback_data);
 #endif // CHASSIS_BOARD
 }
-
-// typedef enum
-// {
-//     STATE_ACCELERATING,
-//     STATE_HIGH_SPEED,
-//     STATE_DECELERATING,
-//     STATE_LOW_SPEED
-// } State;
-// // 模拟用户允许开启的变量
-// int IS_pressed_shift = 1; // 假设用户按下了shift键
-// // 模拟超级电容和电压状态
-// int IS_SuperCap_Voltage_Enough = 1; // 假设超级电容电压足够
-// int Is_SuperCap_Open           = 0; // 初始状态为未开启
-// int func()
-// {
-//     State state = STATE_LOW_SPEED; // 初始状态为低速
-//     while (1)
-//     {
-//         switch (state)
-//         {
-//         case STATE_ACCELERATING:
-//             UseLowSpeed(); // 切换到低速
-
-//             if (IS_pressed_shift && IS_SuperCap_Voltage_Enough)
-//             {
-//                 if (Is_SuperCap_Open)
-//                 {
-// 假设加速Nms后进入高速
-//                     wait_ms(100); // 等待100ms
-//                     state = STATE_HIGH_SPEED; // 进入高速状态
-//                 }
-//             }
-//             break;
-//         case STATE_HIGH_SPEED:
-//             UseHighSpeed(); // 调用高速函数
-//             if (!IS_pressed_shift || !IS_SuperCap_Voltage_Enough)
-//             {
-//                 state = STATE_DECELERATING; // 进入减速状态
-//             }
-//             break;
-//         case STATE_DECELERATING:
-//             UseLowSpeed(); // 切换到低速
-// 等待多少秒
-//             wait_ms(100);            // 等待100ms
-//             state = STATE_LOW_SPEED; // 进入低速状态
-//             break;
-//         case STATE_LOW_SPEED:
-//             if (IS_pressed_shift && IS_SuperCap_Voltage_Enough)
-//             {
-//                 Open_SuperCap(); // 打开超级电容
-//                 if (Is_SuperCap_Open)
-//                 {
-//                     // 假设加速Nms后进入高速
-//                     state = STATE_ACCELERATING; // 进入加速状态
-//                 }
-//             }
-//             else
-//             {
-//                 Close_SuperCap(); // 关闭超级电容
-//             }
-
-//             UseLowSpeed(); // 切换到低速
-//             break;
-//         }
-//     }
-// }

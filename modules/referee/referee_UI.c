@@ -474,6 +474,8 @@ void My_UIGraphRefresh()
 
     if (Send_Once_Flag == 0) {
 
+        Send_Once_Flag = 1;
+
         // 清空UI
         UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 9);
         UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 8);
@@ -482,15 +484,16 @@ void My_UIGraphRefresh()
 
         // 射击线
         UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
-        UILineDraw(&UI_shoot_line[2], "sl2", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 80, SCREEN_WIDTH / 2 - 90, SCREEN_LENGTH / 2 + 80, SCREEN_WIDTH / 2 - 90);
-        UILineDraw(&UI_shoot_line[4], "sl4", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 40, SCREEN_WIDTH / 2 - 220, SCREEN_LENGTH / 2 + 40, SCREEN_WIDTH / 2 - 220);
-        UILineDraw(&UI_shoot_line[5], "sl5", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 + 20, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 210);
-        UILineDraw(&UI_shoot_line[7], "sl7", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 90, SCREEN_WIDTH / 2 - 40, SCREEN_LENGTH / 2 + 90, SCREEN_WIDTH / 2 - 40);
-        UILineDraw(&UI_shoot_line[8], "sl8", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 70, SCREEN_WIDTH / 2 - 120, SCREEN_LENGTH / 2 + 70, SCREEN_WIDTH / 2 - 120);
+        UILineDraw(&UI_shoot_line[1], "sl1", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 80, SCREEN_WIDTH / 2 - 90, SCREEN_LENGTH / 2 + 80, SCREEN_WIDTH / 2 - 90);
+        UILineDraw(&UI_shoot_line[2], "sl2", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 40, SCREEN_WIDTH / 2 - 220, SCREEN_LENGTH / 2 + 40, SCREEN_WIDTH / 2 - 220);
+        UILineDraw(&UI_shoot_line[3], "sl3", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 + 20, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 210);
+        UILineDraw(&UI_shoot_line[4], "sl4", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 90, SCREEN_WIDTH / 2 - 40, SCREEN_LENGTH / 2 + 90, SCREEN_WIDTH / 2 - 40);
+        UILineDraw(&UI_shoot_line[5], "sl5", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 70, SCREEN_WIDTH / 2 - 120, SCREEN_LENGTH / 2 + 70, SCREEN_WIDTH / 2 - 120);
         // 位置标定线
         UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, L_CRC_location[0], L_CRC_location[1], L_CRC_location[2], L_CRC_location[3]);
         UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, R_CRC_location[0], R_CRC_location[1], R_CRC_location[2], R_CRC_location[3]);
         // 小陀螺
+        // sprintf(friction_mode.show_Data, "BIU ON");
         UICharDraw(&UI_State_sta[0], "ss0", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 660, 100, "Rotate");
         UICharRefresh(&referee_info.referee_id, UI_State_sta[0]);
         UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_ADD, 9, UI_Color_White, 10, 700, 160, 8);
@@ -515,7 +518,7 @@ void My_UIGraphRefresh()
             UIRectangleDraw(&UI_Rectangle[2], "sr2", UI_Graph_ADD, 9, (int)AIM_Rec_Color + 1, 2, AIM_Rect_X - AIM_Rect_half_length, AIM_Rect_Y - AIM_Rect_half_length, AIM_Rect_X + AIM_Rect_half_length, AIM_Rect_Y + AIM_Rect_half_length);
         }
         // 云台朝向圆弧
-        if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f) {
+        if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f) {    
             UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 8, UI_Color_Green, angle_start, 360, 8, 960, 540, 100, 100);
             UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 8, UI_Color_Green, 0, angle_end, 8, 960, 540, 100, 100);
         } else {
@@ -524,7 +527,7 @@ void My_UIGraphRefresh()
         }
 
         // 射击线
-        UIGraphRefresh(&referee_info.referee_id, 7, UI_shoot_line[0], UI_shoot_line[7], UI_shoot_line[2], UI_shoot_line[3], UI_shoot_line[4], UI_shoot_line[5], UI_shoot_line[8]);
+        UIGraphRefresh(&referee_info.referee_id, 7, UI_shoot_line[0], UI_shoot_line[1], UI_shoot_line[2], UI_shoot_line[3], UI_shoot_line[4], UI_shoot_line[5], UI_shoot_line[6]);
         // 将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[0], UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
         UIGraphRefresh(&referee_info.referee_id, 5, UI_Arco_t[0], UI_Arco_t[1], UI_Rectangle[2], UI_Rectangle[1], UI_Energy[1]);

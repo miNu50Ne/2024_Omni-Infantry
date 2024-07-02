@@ -33,7 +33,8 @@
     "cortex-debug.variableUseNaturalFormat": true,
     "cortex-debug.armToolchainPath": "C:\\USERS\\LENOVO\\.EIDE\\TOOLS\\GCC_ARM\\BIN",
     "cortex-debug.openocdPath": "D:\\MSYS64\\MINGW64\\BIN\\OPENOCD.EXE",
-    "EIDE.ARM.GCC.Prefix": "arm-none-eabi-"
+    "EIDE.ARM.GCC.Prefix": "arm-none-eabi-",
+    "EIDE.JLink.InstallDirectory": "D:\\Program Files\\SEGGER\\JLink"
   },
   "extensions": {
     "recommendations": [

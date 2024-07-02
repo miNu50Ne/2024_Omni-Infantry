@@ -65,7 +65,7 @@ __attribute__((noreturn)) void _UITask(void *argument)
 {
     for (;;) {
         My_UIGraphRefresh();
-        osDelay(20);
+        osDelay(40);
     }
 }
 

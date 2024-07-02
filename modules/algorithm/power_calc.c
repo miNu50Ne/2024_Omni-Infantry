@@ -15,11 +15,11 @@ float motor_current_output = 0;
 float Power_Input          = 0;
 
 float reduction_ratio, total_power;
-uint16_t max_power;
+uint16_t max_power = 0;
 
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init)
 {
-    max_power = max_power_init;
+    max_power = max_power_init; 
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
@@ -59,7 +59,7 @@ float torque_output;
 float CurrentOutputCalc(float motor_power, float motor_speed, float motor_current)
 {
     if (total_power > max_power) {
-        power_scale = max_power / total_power;
+        power_scale =  max_power/ total_power;
         give_power  = motor_power * power_scale;
         if (motor_power < 0) {
             if (motor_current > 15000) {
