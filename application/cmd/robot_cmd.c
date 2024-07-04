@@ -538,24 +538,12 @@ void UpDateUI()
 {
     // 更新UI数据
     Referee_Interactive_info.chassis_mode   = chassis_cmd_send.chassis_mode;
-    Referee_Interactive_info.gimbal_mode    = gimbal_cmd_send.gimbal_mode;
     Referee_Interactive_info.friction_mode  = shoot_cmd_send.friction_mode;
-    Referee_Interactive_info.shoot_mode     = shoot_cmd_send.shoot_mode;
-    Referee_Interactive_info.rec_pitch      = rec_pitch;
-    Referee_Interactive_info.rec_yaw        = rec_yaw;
-    Referee_Interactive_info.VisionRecvData = vision_recv_data[8];
 
     // 保存上一次的UI数据
     Referee_Interactive_info.chassis_last_mode       = Referee_Interactive_info.chassis_mode;
-    Referee_Interactive_info.gimbal_last_mode        = Referee_Interactive_info.gimbal_mode;
-    Referee_Interactive_info.shoot_last_mode         = Referee_Interactive_info.shoot_mode;
     Referee_Interactive_info.friction_last_mode      = Referee_Interactive_info.friction_mode;
-    Referee_Interactive_info.lid_last_mode           = Referee_Interactive_info.lid_mode;
-    Referee_Interactive_info.Chassis_last_Power_Data = Referee_Interactive_info.Chassis_Power_Data;
-    Referee_Interactive_info.last_rec_pitch          = Referee_Interactive_info.rec_pitch;
-    Referee_Interactive_info.last_rec_yaw            = Referee_Interactive_info.rec_yaw;
-    Referee_Interactive_info.last_VisionRecvData     = Referee_Interactive_info.VisionRecvData;
-    Referee_Interactive_info.LastShootRateStatus     = Referee_Interactive_info.ShootRateStatus;
+
 }
 
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */

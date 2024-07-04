@@ -58,6 +58,10 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
     for (;;) {
         MotorControlTask();
         osDelay(1);
+        // My_UIGraphRefresh();
+        // osDelay(20);
+        // My_UIGraphRefresh();
+        // osDelay(40);
     }
 }
 
@@ -65,26 +69,6 @@ __attribute__((noreturn)) void _UITask(void *argument)
 {
     for (;;) {
         My_UIGraphRefresh();
-        osDelay(40);
+        osDelay(100);
     }
 }
-
-
-// #include "robot.h"
-// __attribute__((noreturn)) void TestTask(void *argument)
-// {
-//     UNUSED(argument);
-//     osDelay(500);
-//     BuzzerPlay(StartUP_sound);
-
-//     while (1) {
-//         C_board_LEDSet(0x33ffff);
-//         /*osDelay(500);
-//         C_board_LEDSet(0xd633ff);
-//         osDelay(500);*/
-//         RobotTask();
-//         MotorControlTask();
-
-//         osDelay(1);
-//     }
-// }

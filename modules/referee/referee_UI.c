@@ -31,9 +31,9 @@ static Graph_Data_t UI_Energy[3];         // 电容能量条
 static Graph_Data_t UI_Rectangle[10];     // 矩形
 static Graph_Data_t UI_Circle_t[10];      // 圆形
 static Graph_Data_t UI_Arco_t[10];        // 圆弧
-static Graph_Data_t UI_Number_t[10];      // 数字
+// static Graph_Data_t UI_Number_t[10];      // 数字
 static String_Data_t UI_State_sta[10];    // 机器人状态,静态只需画一次
-static String_Data_t UI_State_dyn[6];     // 机器人状态,动态先add才能change
+// static String_Data_t UI_State_dyn[6];     // 机器人状态,动态先add才能change
 
 uint8_t Super_condition;    // 超电的开关状态
 float Super_condition_volt; // 超电的电压
@@ -464,11 +464,11 @@ static uint32_t R_CRC_location[10] = {1283, 1, 1070, 347};
 
 void My_UIGraphRefresh()
 {
-    const float arc                 = 45.0f; // 弧长
-    const uint16_t Mechangle_offset = 10546;
-    float mid_point_angle           = fmod(720.0f - (YAW_CHASSIS_ALIGN_ECD - Mechangle_offset) * (360.0f / 8192.0f), 360.0f);
-    float angle_start               = fmod(mid_point_angle + 360.0f - arc / 2.0f, 360.0f);
-    float angle_end                 = fmod(mid_point_angle + arc / 2.0f, 360.0f);
+    // const float arc                 = 45.0f; // 弧长
+    // const uint16_t Mechangle_offset = 10546;
+    // float mid_point_angle           = fmod(720.0f - (YAW_CHASSIS_ALIGN_ECD - Mechangle_offset) * (360.0f / 8192.0f), 360.0f);
+    // float angle_start               = fmod(mid_point_angle + 360.0f - arc / 2.0f, 360.0f);
+    // float angle_end                 = fmod(mid_point_angle + arc / 2.0f, 360.0f);
 
     DeterminRobotID();
 
@@ -478,20 +478,17 @@ void My_UIGraphRefresh()
 
         // 清空UI
         UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 9);
-        UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 8);
-        UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 7);
-        UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 6);
 
         // 射击线
-        UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
-        UILineDraw(&UI_shoot_line[1], "sl1", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 80, SCREEN_WIDTH / 2 - 90, SCREEN_LENGTH / 2 + 80, SCREEN_WIDTH / 2 - 90);
-        UILineDraw(&UI_shoot_line[2], "sl2", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 40, SCREEN_WIDTH / 2 - 220, SCREEN_LENGTH / 2 + 40, SCREEN_WIDTH / 2 - 220);
-        UILineDraw(&UI_shoot_line[3], "sl3", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 + 20, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 210);
-        UILineDraw(&UI_shoot_line[4], "sl4", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 90, SCREEN_WIDTH / 2 - 40, SCREEN_LENGTH / 2 + 90, SCREEN_WIDTH / 2 - 40);
-        UILineDraw(&UI_shoot_line[5], "sl5", UI_Graph_ADD, 7, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 70, SCREEN_WIDTH / 2 - 120, SCREEN_LENGTH / 2 + 70, SCREEN_WIDTH / 2 - 120);
+        UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
+        UILineDraw(&UI_shoot_line[1], "sl1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 80, SCREEN_WIDTH / 2 - 90, SCREEN_LENGTH / 2 + 80, SCREEN_WIDTH / 2 - 90);
+        UILineDraw(&UI_shoot_line[2], "sl2", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 40, SCREEN_WIDTH / 2 - 220, SCREEN_LENGTH / 2 + 40, SCREEN_WIDTH / 2 - 220);
+        UILineDraw(&UI_shoot_line[3], "sl3", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 + 20, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 210);
+        UILineDraw(&UI_shoot_line[4], "sl4", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 90, SCREEN_WIDTH / 2 - 40, SCREEN_LENGTH / 2 + 90, SCREEN_WIDTH / 2 - 40);
+        UILineDraw(&UI_shoot_line[5], "sl5", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 70, SCREEN_WIDTH / 2 - 120, SCREEN_LENGTH / 2 + 70, SCREEN_WIDTH / 2 - 120);
         // 位置标定线
-        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 6, UI_Color_White, 1, L_CRC_location[0], L_CRC_location[1], L_CRC_location[2], L_CRC_location[3]);
-        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 6, UI_Color_White, 1, R_CRC_location[0], R_CRC_location[1], R_CRC_location[2], R_CRC_location[3]);
+        UILineDraw(&UI_Deriction_line[0], "sq0", UI_Graph_ADD, 9, UI_Color_White, 1, L_CRC_location[0], L_CRC_location[1], L_CRC_location[2], L_CRC_location[3]);
+        UILineDraw(&UI_Deriction_line[1], "sq1", UI_Graph_ADD, 9, UI_Color_White, 1, R_CRC_location[0], R_CRC_location[1], R_CRC_location[2], R_CRC_location[3]);
         // 小陀螺
         // sprintf(friction_mode.show_Data, "BIU ON");
         UICharDraw(&UI_State_sta[0], "ss0", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 660, 100, "Rotate");
@@ -506,31 +503,16 @@ void My_UIGraphRefresh()
         UICharRefresh(&referee_info.referee_id, UI_State_sta[2]);
         UICircleDraw(&UI_Circle_t[2], "sc2", UI_Graph_ADD, 9, UI_Color_White, 10, 1180, 160, 8);
         // 电容
-        UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "SuperCap");
-        UICharRefresh(&referee_info.referee_id, UI_State_sta[3]);
-        UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, 80, 710, 280, 730);
-        UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20, 80, 720, (cap.cap_msg_s.CapVot - 12) / 12 * 200 + 80, 720);
-
-        // 初始自瞄框
-        if ((Referee_Interactive_info.rec_yaw == 0) & (Referee_Interactive_info.rec_pitch == 0)) {
-            UIRectangleDraw(&UI_Rectangle[2], "sr2", UI_Graph_ADD, 9, (int)AIM_Rec_Color + 1, 2, 960, 540, 961, 541);
-        } else {
-            UIRectangleDraw(&UI_Rectangle[2], "sr2", UI_Graph_ADD, 9, (int)AIM_Rec_Color + 1, 2, AIM_Rect_X - AIM_Rect_half_length, AIM_Rect_Y - AIM_Rect_half_length, AIM_Rect_X + AIM_Rect_half_length, AIM_Rect_Y + AIM_Rect_half_length);
-        }
-        // 云台朝向圆弧
-        if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f) {    
-            UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 8, UI_Color_Green, angle_start, 360, 8, 960, 540, 100, 100);
-            UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 8, UI_Color_Green, 0, angle_end, 8, 960, 540, 100, 100);
-        } else {
-            UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_ADD, 8, UI_Color_Green, angle_start, mid_point_angle, 8, 960, 540, 100, 100);
-            UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_ADD, 8, UI_Color_Green, mid_point_angle, angle_end, 8, 960, 540, 100, 100);
-        }
+        UICircleDraw(&UI_Circle_t[3], "sc2", UI_Graph_ADD, 9, UI_Color_White, 10, 1300, 160, 8);
+        // UICharDraw(&UI_State_sta[3], "ss3", UI_Graph_ADD, 9, UI_Color_Yellow, 20, 2, 80, 800, "SuperCap");
+        // UICharRefresh(&referee_info.referee_id, UI_State_sta[3]);
+        // UIRectangleDraw(&UI_Rectangle[1], "sr1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, 80, 710, 280, 730);
+        // UILineDraw(&UI_Energy[1], "sn1", UI_Graph_ADD, 8, UI_Color_Green, 20, 80, 720, (cap.cap_msg_s.CapVot - 12) / 12 * 200 + 80, 720);
 
         // 射击线
-        UIGraphRefresh(&referee_info.referee_id, 7, UI_shoot_line[0], UI_shoot_line[1], UI_shoot_line[2], UI_shoot_line[3], UI_shoot_line[4], UI_shoot_line[5], UI_shoot_line[6]);
+        UIGraphRefresh(&referee_info.referee_id, 7, UI_shoot_line[0], UI_shoot_line[1], UI_shoot_line[2], UI_shoot_line[3], UI_shoot_line[4], UI_shoot_line[5], UI_Deriction_line[0]);
         // 将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
-        UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[0], UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2]);
-        UIGraphRefresh(&referee_info.referee_id, 5, UI_Arco_t[0], UI_Arco_t[1], UI_Rectangle[2], UI_Rectangle[1], UI_Energy[1]);
+        UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2],UI_Circle_t[3]);
     }
 
     else {
@@ -560,20 +542,6 @@ void My_UIGraphRefresh()
             UICircleDraw(&UI_Circle_t[1], "sc1", UI_Graph_Change, 9, UI_Color_White, 10, 940, 160, 8);
         }
         UICharRefresh(&referee_info.referee_id, UI_State_sta[5]);
-        // 云台朝向圆弧
-        if (mid_point_angle > 360.0f - arc / 2.0f || mid_point_angle < arc / 2.0f) {
-            UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_Change, 8, UI_Color_Green, angle_start, 360, 8, 960, 540, 100, 100);
-            UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_Change, 8, UI_Color_Green, 0, angle_end, 8, 960, 540, 100, 100);
-        } else {
-            UIArcDraw(&UI_Arco_t[0], "sol", UI_Graph_Change, 8, UI_Color_Green, angle_start, mid_point_angle, 8, 960, 540, 100, 100);
-            UIArcDraw(&UI_Arco_t[1], "sor", UI_Graph_Change, 8, UI_Color_Green, mid_point_angle, angle_end, 8, 960, 540, 100, 100);
-        }
-        // 动态自瞄框
-        if ((Referee_Interactive_info.rec_yaw == 0) & (Referee_Interactive_info.rec_pitch == 0)) {
-            UIRectangleDraw(&UI_Rectangle[2], "sr2", UI_Graph_Change, 9, (int)AIM_Rec_Color + 1, 2, 960, 540, 961, 541);
-        } else {
-            UIRectangleDraw(&UI_Rectangle[2], "sr2", UI_Graph_Change, 9, (int)AIM_Rec_Color + 1, 2, AIM_Rect_X - AIM_Rect_half_length, AIM_Rect_Y - AIM_Rect_half_length, AIM_Rect_X + AIM_Rect_half_length, AIM_Rect_Y + AIM_Rect_half_length);
-        }
 
         // 动态图形正好7个，打包一块发
         UIGraphRefresh(&referee_info.referee_id, 1, UI_Rectangle[2]);

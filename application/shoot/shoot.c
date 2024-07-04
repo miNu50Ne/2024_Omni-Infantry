@@ -225,7 +225,7 @@ void Shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
     static bool bullet_waiting_confirm = false;                                         // 等待比较器确认
-    uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速
+    // uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速 
     float data                         = friction_l->measure.speed_aps;                 // 获取摩擦轮转速
     static uint16_t data_histroy[MAX_HISTROY];                                          // 做循环队列
     static uint8_t head = 0, rear = 0;                                                  // 队列下标

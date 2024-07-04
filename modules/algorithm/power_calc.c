@@ -5,7 +5,7 @@
 #include <math.h>
 
 float k1                   = 1.874137214E-07f;
-float k2                   = 1.13e-07f;
+float k2                   = 1.83e-07f;
 float constant             = 1.0f;
 float torque_coefficient   = 2.94974577124e-06f; // (20/16384) * (0.3) /13 / (9.55)
 float machine_power        = 0;

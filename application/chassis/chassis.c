@@ -194,13 +194,9 @@ static void LimitChassisOutput()
     else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
         Plimit = 1;
 
-    // Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    // Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
-
-    // PowerControlupdate(Power_Output -20 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
-    // PowerControlupdate(referee_info.GameRobotState.chassis_power_limit - 40, 1.0f / REDUCTION_RATIO_WHEEL);
-    PowerControlupdate(60, 1.0f / REDUCTION_RATIO_WHEEL);
-    // power_output = Power_Output;
+    Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
+    PowerControlupdate(referee_info.GameRobotState.chassis_power_limit -10 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
+    power_output = Power_Output;
 
     ramp_init(&super_ramp, 300);
 
@@ -242,7 +238,7 @@ int supercap_accel_delay, supercap_moderate_delay;
 
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
 float voltage;
-static void Super_Cap_control()
+void Super_Cap_control()
 {
     // 电容电压
     voltage = cap->cap_msg_s.CapVot;
