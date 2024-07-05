@@ -66,9 +66,6 @@ typedef struct
 typedef struct
 {
     uint32_t chassis_flag : 1;
-    uint32_t gimbal_flag : 1;
-    uint32_t shoot_flag : 1;
-    uint32_t lid_flag : 1;
     uint32_t friction_flag : 1;
     uint32_t Power_flag : 1;
 } Referee_Interactive_Flag_t;
@@ -87,7 +84,7 @@ typedef struct
     chassis_mode_e chassis_last_mode;
     shoot_mode_e shoot_last_mode;
     friction_mode_e friction_last_mode;
-    uint8_t last_auto_rune;
+    uint8_t last_rune;
 
 } Referee_Interactive_info_t;
 

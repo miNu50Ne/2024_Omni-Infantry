@@ -68,7 +68,7 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
 __attribute__((noreturn)) void _UITask(void *argument)
 {
     for (;;) {
-        My_UIGraphRefresh();
-        osDelay(100);
+        // My_UIGraphRefresh();
+        // osDelay(100);
     }
 }

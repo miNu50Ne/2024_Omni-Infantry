@@ -66,9 +66,9 @@ static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
 extern referee_info_t referee_info; // 裁判系统数据
+extern Referee_Interactive_info_t Referee_Interactive_info; // 绘制UI所需的数据
 
-Referee_Interactive_info_t Referee_Interactive_info; // 发送给UI绘制的数据
-extern char Send_Once_Flag;                          // 初始化UI标志
+extern char Send_Once_Flag;  
 
 uint8_t auto_rune; // 自瞄打符标志位
 

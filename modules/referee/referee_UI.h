@@ -12,32 +12,33 @@
 /* 此处的定义只与UI绘制有关 */
 typedef struct
 {
-   xFrameHeader FrameHeader;
-   uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
-   uint8_t Delete_Operate; // 删除操作
-   uint8_t Layer;
-   uint16_t frametail;
+    xFrameHeader FrameHeader;
+    uint16_t CmdID;
+    ext_student_interactive_header_data_t datahead;
+    uint8_t Delete_Operate; // 删除操作
+    uint8_t Layer;
+    uint16_t frametail;
 } UI_delete_t;
 
 typedef struct
 {
-   xFrameHeader FrameHeader;
-   uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
-   uint16_t frametail;
+    xFrameHeader FrameHeader;
+    uint16_t CmdID;
+    ext_student_interactive_header_data_t datahead;
+    uint16_t frametail;
 } UI_GraphReFresh_t;
 
 typedef struct
 {
-   xFrameHeader FrameHeader;
-   uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
-   String_Data_t String_Data;
-   uint16_t frametail;
+    xFrameHeader FrameHeader;
+    uint16_t CmdID;
+    ext_student_interactive_header_data_t datahead;
+    String_Data_t String_Data;
+    uint16_t frametail;
 } UI_CharReFresh_t; // 打印字符串数据
 
 #pragma pack()
+
 
 void UIDelete(referee_id_t *_id, uint8_t Del_Operate, uint8_t Del_Layer);
 
@@ -70,6 +71,6 @@ void UIGraphRefresh(referee_id_t *_id, int cnt, ...);
 
 void UICharRefresh(referee_id_t *_id, String_Data_t string_Data);
 
-void My_UIGraphRefresh();
+void DeterminRobotID();
 
 #endif

@@ -78,7 +78,7 @@ UILineDraw(&UI_Energy[2], "sd6", UI_Graph_ADD, 8, UI_Color_Pink, 30, 720, 160, 1
 
 将两个图形打包发送
 
-```
+```c
 UIRefresh(&referee_recv_info->referee_id, 2, UI_Energy[1], UI_Energy[2]);
 ```
 
@@ -115,7 +115,7 @@ typedef struct
 
 添加功率变化标志位，`uint32_t Power_flag : 1;`，1为检测到变化，0为未检测到变换
 
-```
+```c
 typedef struct
 {
  uint32_t chassis_flag : 1;
@@ -129,7 +129,7 @@ typedef struct
 
 在变化检测函数中增加对应判断,由于voltage和能量条的变化对应同一个参数`Chassis_last_Power_Data.chassis_power_mx`的变化，所以只需要一个参数即可：
 
-```
+```c
 static void UIChangeCheck(Referee_Interactive_info_t *_Interactive_data)
 {
     if (_Interactive_data->chassis_mode != _Interactive_data->chassis_last_mode)
@@ -155,7 +155,7 @@ static void UIChangeCheck(Referee_Interactive_info_t *_Interactive_data)
 
 同时，完成UI刷新后，需要将对应的flag置0，以便于下次检测变化
 
-```
+```c
 if (_Interactive_data->Referee_Interactive_Flag.Power_flag == 1)
 {
  UIFloatDraw(&UI_Energy[1], "sd5", UI_Graph_Change, 8, UI_Color_Green, 18, 2, 2, 750, 230, _Interactive_data->Chassis_Power_Data.chassis_power_mx * 1000);
