@@ -110,7 +110,8 @@
           "application",
           "application/test",
           "modules/tool",
-          "modules/power_control"
+          "modules/power_control",
+          "application/UI"
         ],
         "libList": [
           "Middlewares/ST/ARM/DSP/Lib",

@@ -12,7 +12,7 @@
 #include "dji_motor.h"
 #include "super_cap.h"
 
-extern referee_info_t referee_info;                         // 裁判系统数据
+extern referee_info_t referee_info;                  // 裁判系统数据
 Referee_Interactive_info_t Referee_Interactive_info; // 绘制UI所需的数据
 extern SuperCapInstance cap;
 extern uint8_t auto_rune;   // 自瞄打符标志位
@@ -30,7 +30,7 @@ Graph_Data_t UI_Number_t[10];      // 数字
 String_Data_t UI_State_sta[10];    // 机器人状态,静态只需画一次
 String_Data_t UI_State_dyn[6];     // 机器人状态,动态先add才能change
 
-char Send_Once_Flag = 0; // 初始化标志
+char UI_SendFlag = 0; // 初始化标志
 uint32_t Rect_De[4] = {1540, 555, 1660, 645};
 int16_t AIM_Rect_X, AIM_Rect_Y; // 自瞄框中心点的坐标信息
 int16_t AIM_Rect_half_length = 50;
@@ -41,20 +41,8 @@ static uint32_t R_CRC_location[10] = {1283, 1, 1070, 347};
 
 void UI_Init()
 {
-    // const float arc                 = 45.0f; // 弧长
-    // const uint16_t Mechangle_offset = 10546;
-    // float mid_point_angle           = fmod(720.0f - (YAW_CHASSIS_ALIGN_ECD - Mechangle_offset) * (360.0f / 8192.0f), 360.0f);
-    // float angle_start               = fmod(mid_point_angle + 360.0f - arc / 2.0f, 360.0f);
-    // float angle_end                 = fmod(mid_point_angle + arc / 2.0f, 360.0f);
-
-    DeterminRobotID();
-
-    // if (Send_Once_Flag == 0) {
-
-    //     Send_Once_Flag = 1;
-
     // 清空UI
-    UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 9);
+    UIDelete(&referee_info.referee_id, UI_Data_Del_ALL, 0);
 
     // 射击线
     UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
@@ -90,15 +78,19 @@ void UI_Init()
     UIGraphRefresh(&referee_info.referee_id, 7, UI_shoot_line[0], UI_shoot_line[1], UI_shoot_line[2], UI_shoot_line[3], UI_shoot_line[4], UI_shoot_line[5], UI_Deriction_line[0]);
     // 将位置标定线，小陀螺，弹舱盖，摩擦轮，电容一共7个图形打包一块发
     UIGraphRefresh(&referee_info.referee_id, 5, UI_Deriction_line[1], UI_Circle_t[0], UI_Circle_t[1], UI_Circle_t[2], UI_Circle_t[3]);
-    // }
-
-    // else {
-
-    // }
 }
 
-void UITask()
+// static void UIChangeCheck(Referee_Interactive_info_t *_Interactive_data){
+
+// }
+
+void My_UIGraphRefresh()
 {
+    if(UI_SendFlag == 0){
+        UI_Init();
+        UI_SendFlag = 1;
+    }
+    DeterminRobotID();
     // 底盘模式
     if (Referee_Interactive_info.chassis_mode == CHASSIS_ROTATE) {
         UICircleDraw(&UI_Circle_t[0], "sc0", UI_Graph_Change, 9, UI_Color_Green, 10, 700, 160, 8);

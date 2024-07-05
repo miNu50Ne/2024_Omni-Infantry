@@ -30,6 +30,7 @@
 #include "shoot.h"
 #include "robot_cmd.h"
 #endif
+#include "omni_UI.h"
 
 void RobotInit()
 {
@@ -53,7 +54,8 @@ void RobotInit()
     ChassisInit();
     buzzer_one_note(So_freq, 0.1f);
 #endif
-
+    UI_Init();
+    buzzer_one_note(La_freq, 0.1f);
     // 初始化完成,开启中断
     __enable_irq();
 }

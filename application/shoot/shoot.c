@@ -20,8 +20,13 @@ static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信�
 static float hibernate_time = 0, dead_time = 0;
 static uint32_t shoot_heat_count[2];
 
-uint32_t shoot_count = 0;
-// float d_watch;  // 创建一个全局变量来记录微分值，便于调试
+static int one_bullet;
+static ramp_t fric_on_ramp;
+static ramp_t fric_off_ramp;
+static float fric_speed = 0; // 摩擦轮转速参考值
+int32_t shoot_count;
+
+// int32_t d_watch; // 创建一个全局变量来记录微分值，便于调试
 
 void ShootInit()
 {
@@ -118,7 +123,7 @@ static void Load_Reverse()
         Reverse_Time++;
 
         // 反转时间
-        if (Reverse_Time >= 300) {
+        if (Reverse_Time >= 400) {
             Reverse_Time = 0;
             Block_Time   = 0;
         }
@@ -138,10 +143,10 @@ static void Load_Reverse()
     }
 }
 
-int one_bullet;
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
+    static float shoot_speed;
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 
@@ -195,7 +200,7 @@ void ShootTask()
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
         case LOAD_REVERSE:
-            DJIMotorSetRef(loader, -20000);
+            DJIMotorSetRef(loader, -40000);
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
         default:
@@ -205,17 +210,18 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        DJIMotorSetRef(friction_l, 40000);
-        DJIMotorSetRef(friction_r, 40000);
-    } else if (shoot_cmd_recv.friction_mode == FRICTION_REVERSE) {
-        DJIMotorSetRef(friction_l, 0);
-        DJIMotorSetRef(friction_r, 0);
-    } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) // 关闭摩擦轮
-    {
-        DJIMotorSetRef(friction_l, 0);
-        DJIMotorSetRef(friction_r, 0);
+        fric_speed = (shoot_speed + (40000 - shoot_speed) * ramp_calc(&fric_on_ramp));
+        ramp_init(&fric_off_ramp, 100);
+    } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
+        fric_speed = (shoot_speed + (0 - shoot_speed) * ramp_calc(&fric_off_ramp));
+        ramp_init(&fric_on_ramp, 100);
     }
 
+    DJIMotorSetRef(friction_l, fric_speed);
+    DJIMotorSetRef(friction_r, fric_speed);
+    shoot_speed = fric_speed;
+
+    // 反馈数据
     // 反馈数据,目前暂时没有要设定的反馈数据,后续可能增加应用离线监测以及卡弹反馈
     PubPushMessage(shoot_pub, (void *)&shoot_feedback_data);
 }
@@ -225,7 +231,7 @@ void Shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
     static bool bullet_waiting_confirm = false;                                         // 等待比较器确认
-    // uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速 
+    uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速
     float data                         = friction_l->measure.speed_aps;                 // 获取摩擦轮转速
     static uint16_t data_histroy[MAX_HISTROY];                                          // 做循环队列
     static uint8_t head = 0, rear = 0;                                                  // 队列下标
@@ -256,10 +262,9 @@ void Shoot_Fric_data_process(void)
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
         /*导数比较*/
-        // d_watch = derivative;
         if (derivative < -300) {
             bullet_waiting_confirm = true;
-        } else if (derivative > -100) {
+        } else if (derivative > -110) {
             if (bullet_waiting_confirm == true) {
                 local_heat += One_bullet_heat; // 确认打出
                 shoot_count++;
