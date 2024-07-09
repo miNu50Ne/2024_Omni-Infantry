@@ -75,7 +75,7 @@ static Robot_Status_e robot_state; // 机器人整体工作状态
 
 static referee_info_t *referee_data; // 用于获取裁判系统的数据
 
-uint8_t UI_SendFlag; // UI发送标志位
+uint8_t UI_SendFlag = 1; // UI发送标志位
 
 uint8_t auto_rune; // 自瞄打符标志位
 

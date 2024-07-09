@@ -22,6 +22,7 @@
 #include "chassis.h"
 #include "shoot.h"
 #include "motor_task.h"
+#include "omni_UI.h"
 
 //! 任务直接在cubeMX中配置,不再使用这种方式
 __attribute__((noreturn)) void StartINSTASK(void *argument)
@@ -63,6 +64,7 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
 
 __attribute__((noreturn)) void _UITask(void *argument)
 {
+    UI_Init();
     for (;;) {
         My_UIGraphRefresh();
         osDelay(100);

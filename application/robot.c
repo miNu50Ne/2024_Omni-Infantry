@@ -54,6 +54,7 @@ void RobotInit()
     ChassisInit();
     buzzer_one_note(So_freq, 0.1f);
 #endif
+    UI_Init();
     // 初始化完成,开启中断
     __enable_irq();
 }

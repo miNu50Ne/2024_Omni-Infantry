@@ -70,8 +70,8 @@ static void UI_StaticRefresh()
 
 void UI_Init()
 {
-    ui_pub = PubRegister("ui_cmd", sizeof(UI_Cmd_s));
-    ui_sub = SubRegister("ui_feed", sizeof(UI_Upload_Data_s));
+    ui_pub = PubRegister("ui_feed", sizeof(UI_Upload_Data_s));
+    ui_sub = SubRegister("ui_cmd", sizeof(UI_Cmd_s));
 
     UI_StaticRefresh();
 }
@@ -83,6 +83,7 @@ void UI_Init()
 void My_UIGraphRefresh()
 {
     SubGetMessage(ui_sub, (void *)&ui_cmd_recv);
+
     if (ui_cmd_recv.ui_send_flag == 0) {
         UI_StaticRefresh();
     }
