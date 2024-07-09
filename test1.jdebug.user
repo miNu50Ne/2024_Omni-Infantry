@@ -42,7 +42,7 @@ TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["
 TableHeader="Source Files", SortCol="File", SortOrder="DESCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[223;100;100;100;100]
 WatchedExpression="friction_l", Window=Watched Data 1
 WatchedExpression="loader", RefreshRate=5, Window=Watched Data 1
-WatchedExpression="referee_info", Window=Watched Data 1
+WatchedExpression="", Window=Watched Data 1
 WatchedExpression="yaw_motor", RefreshRate=5, Window=Watched Data 1
 WatchedExpression="referee_data", Window=Watched Data 1
 WatchedExpression="power", Window=Watched Data 1

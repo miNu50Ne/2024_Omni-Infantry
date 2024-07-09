@@ -19,8 +19,6 @@
 #include "dji_motor.h"
 #include "super_cap.h"
 
-extern referee_info_t referee_info; // 裁判系统数据
-
 /********************************************删除操作*************************************
 **参数：_id 对应的id结构体
         Del_Operate  对应头文件删除操作
@@ -421,17 +419,3 @@ void UICharRefresh(referee_id_t *_id, String_Data_t string_Data)
     UI_Seq++; // 包序号+1
 }
 
-/**
- * @brief  判断各种ID，选择客户端ID
- * @param  referee_info_t *referee_info
- * @retval none
- * @attention
- */
-void DeterminRobotID()
-{
-    // id小于7是红色,大于7是蓝色,0为红色，1为蓝色   #define Robot_Red 0    #define Robot_Blue 1
-    referee_info.referee_id.Robot_Color       = referee_info.GameRobotState.robot_id > 7 ? Robot_Blue : Robot_Red;
-    referee_info.referee_id.Cilent_ID         = 0x0100 + referee_info.GameRobotState.robot_id; // 计算客户端ID
-    referee_info.referee_id.Robot_ID          = referee_info.GameRobotState.robot_id;          // 计算机器人ID
-    referee_info.referee_id.Receiver_Robot_ID = 0;
-}

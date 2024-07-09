@@ -12,21 +12,12 @@
 static DJIMotorInstance *friction_l, *friction_r, *loader; // 拨盘电机
 
 static Publisher_t *shoot_pub;
-static Shoot_Ctrl_Cmd_s shoot_cmd_recv; // 来自cmd的发射控制信息
 static Subscriber_t *shoot_sub;
+static Shoot_Ctrl_Cmd_s shoot_cmd_recv;         // 来自cmd的发射控制信息
 static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信息
 
 // dwt定时,计算冷却用
 static float hibernate_time = 0, dead_time = 0;
-static uint32_t shoot_heat_count[2];
-
-static int one_bullet;
-static ramp_t fric_on_ramp;
-static ramp_t fric_off_ramp;
-static float fric_speed = 0; // 摩擦轮转速参考值
-int32_t shoot_count;
-
-// int32_t d_watch; // 创建一个全局变量来记录微分值，便于调试
 
 void ShootInit()
 {
@@ -37,7 +28,7 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp            = 5,
+                .Kp            = 1,
                 .Ki            = 0,
                 .Kd            = 0,
                 .Improve       = PID_Integral_Limit,
@@ -81,8 +72,8 @@ void ShootInit()
         },
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
-            .outer_loop_type    = SPEED_LOOP,             // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = SPEED_LOOP,             //| ANGLE_LOOP,
+            .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
+            .close_loop_type    = SPEED_LOOP, 
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
@@ -113,7 +104,7 @@ static void Load_Reverse()
     current_record[4] = loader->measure.real_current; // 第五个为最近的拨弹盘電流
     current_record[5] = (current_record[0] + current_record[1] + current_record[2] + current_record[3] + current_record[4]) / 5.0;
 
-    if (current_record[5] > 10000) {
+    if (current_record[5] > 9900) {
         Block_Time++;
     }
 
@@ -123,7 +114,7 @@ static void Load_Reverse()
         Reverse_Time++;
 
         // 反转时间
-        if (Reverse_Time >= 400) {
+        if (Reverse_Time >= 200) {
             Reverse_Time = 0;
             Block_Time   = 0;
         }
@@ -137,11 +128,70 @@ static void Load_Reverse()
 
     else {
         // 堵转时间5*发射任务周期（5ms）= 25ms
-        if (Block_Time > 1) {
+        if (Block_Time > 200) {
             Reverse_Time = 1;
         }
     }
 }
+
+int heat_control    = 15; // 热量控制
+float local_heat    = 0;  // 本地热量
+int One_bullet_heat = 10; // 打一发消耗热量
+int32_t shoot_count;      // 已发弹量
+// 热量控制算法
+static void Shoot_Fric_data_process(void)
+{
+    /*----------------------------------变量常量------------------------------------------*/
+    static bool bullet_waiting_confirm = false;                         // 等待比较器确认
+    float data                         = friction_l->measure.speed_aps; // 获取摩擦轮转速
+    static uint16_t data_histroy[MAX_HISTROY];                          // 做循环队列
+    static uint8_t head = 0, rear = 0;                                  // 队列下标
+    float moving_average[2];                                            // 移动平均滤波
+    uint8_t data_num;                                                   // 循环队列元素个数
+    float derivative;                                                   // 微分
+    /*-----------------------------------逻辑控制-----------------------------------------*/
+    data = abs(data);
+    /*入队*/
+    data_histroy[head] = data;
+    head++;
+    head %= MAX_HISTROY;
+    /*判断队列数据量*/
+    data_num = (head - rear + MAX_HISTROY) % MAX_HISTROY;
+    if (data_num >= Fliter_windowSize + 1) // 队列数据量满足要求
+    {
+        moving_average[0] = 0;
+        moving_average[1] = 0;
+        /*同时计算两个滤波*/
+        for (uint8_t i = rear, j = rear + 1, index = rear; index < rear + Fliter_windowSize; i++, j++, index++) {
+            i %= MAX_HISTROY;
+            j %= MAX_HISTROY;
+            moving_average[0] += data_histroy[i];
+            moving_average[1] += data_histroy[j];
+        }
+        moving_average[0] /= Fliter_windowSize;
+        moving_average[1] /= Fliter_windowSize;
+        /*滤波求导*/
+        derivative = moving_average[1] - moving_average[0];
+        /*导数比较*/
+        if (derivative < -300) {
+            bullet_waiting_confirm = true;
+        } else if (derivative > 50) {
+            if (bullet_waiting_confirm == true) {
+                local_heat += One_bullet_heat; // 确认打出
+                shoot_count++;
+                bullet_waiting_confirm = false;
+            }
+        }
+        rear++;
+        rear %= MAX_HISTROY;
+    }
+}
+
+static int one_bullet;
+static ramp_t fric_on_ramp;
+static ramp_t fric_off_ramp;
+float fric_speed = 0; // 摩擦轮转速参考值
+uint32_t shoot_heat_count[2];
 
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
@@ -211,10 +261,10 @@ void ShootTask()
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
         fric_speed = (shoot_speed + (40000 - shoot_speed) * ramp_calc(&fric_on_ramp));
-        ramp_init(&fric_off_ramp, 100);
+        ramp_init(&fric_off_ramp, 300);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
         fric_speed = (shoot_speed + (0 - shoot_speed) * ramp_calc(&fric_off_ramp));
-        ramp_init(&fric_on_ramp, 100);
+        ramp_init(&fric_on_ramp, 300);
     }
 
     DJIMotorSetRef(friction_l, fric_speed);
@@ -222,56 +272,40 @@ void ShootTask()
     shoot_speed = fric_speed;
 
     // 反馈数据
-    // 反馈数据,目前暂时没有要设定的反馈数据,后续可能增加应用离线监测以及卡弹反馈
+    memcpy(&shoot_feedback_data.shooter_local_heat, &local_heat, sizeof(float));
+    memcpy(&shoot_feedback_data.shooter_heat_control, &heat_control, sizeof(int));
+
     PubPushMessage(shoot_pub, (void *)&shoot_feedback_data);
 }
 
-// 热量控制算法
-void Shoot_Fric_data_process(void)
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM14 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    /*----------------------------------变量常量------------------------------------------*/
-    static bool bullet_waiting_confirm = false;                                         // 等待比较器确认
-    uint8_t shoot_speed                = referee_info.PowerHeatData.shooter_17mm_heat0; // 获取弹速
-    float data                         = friction_l->measure.speed_aps;                 // 获取摩擦轮转速
-    static uint16_t data_histroy[MAX_HISTROY];                                          // 做循环队列
-    static uint8_t head = 0, rear = 0;                                                  // 队列下标
-    float moving_average[2];                                                            // 移动平均滤波
-    uint8_t data_num;                                                                   // 循环队列元素个数
-    float derivative;                                                                   // 微分
-    /*-----------------------------------逻辑控制-----------------------------------------*/
-    data = abs(data);
-    /*入队*/
-    data_histroy[head] = data;
-    head++;
-    head %= MAX_HISTROY;
-    /*判断队列数据量*/
-    data_num = (head - rear + MAX_HISTROY) % MAX_HISTROY;
-    if (data_num >= Fliter_windowSize + 1) // 队列数据量满足要求
-    {
-        moving_average[0] = 0;
-        moving_average[1] = 0;
-        /*同时计算两个滤波*/
-        for (uint8_t i = rear, j = rear + 1, index = rear; index < rear + Fliter_windowSize; i++, j++, index++) {
-            i %= MAX_HISTROY;
-            j %= MAX_HISTROY;
-            moving_average[0] += data_histroy[i];
-            moving_average[1] += data_histroy[j];
-        }
-        moving_average[0] /= Fliter_windowSize;
-        moving_average[1] /= Fliter_windowSize;
-        /*滤波求导*/
-        derivative = moving_average[1] - moving_average[0];
-        /*导数比较*/
-        if (derivative < -300) {
-            bullet_waiting_confirm = true;
-        } else if (derivative > -110) {
-            if (bullet_waiting_confirm == true) {
-                local_heat += One_bullet_heat; // 确认打出
-                shoot_count++;
-                bullet_waiting_confirm = false;
-            }
-        }
-        rear++;
-        rear %= MAX_HISTROY;
+    /* USER CODE BEGIN Callback 0 */
+
+    /* USER CODE END Callback 0 */
+    if (htim->Instance == TIM14) {
+        HAL_IncTick();
     }
+    /* USER CODE BEGIN Callback 1 */
+    if (htim->Instance == TIM6) {
+        /*-------------------------------------------热量控制部分---------------------------------------------*/
+        local_heat -= (shoot_cmd_recv.shooter_heat_cooling_rate / 1000.0f); // 1000Hz冷却
+        if (local_heat < 0) {
+            local_heat = 0;
+        }
+        if (shoot_cmd_recv.shooter_referee_heat - shoot_cmd_recv.shooter_cooling_limit >= 15) // 裁判系统判断已经超了热量
+        {
+            local_heat = shoot_cmd_recv.shooter_referee_heat;
+        }
+        Shoot_Fric_data_process();
+    }
+    /* USER CODE END Callback 1 */
 }

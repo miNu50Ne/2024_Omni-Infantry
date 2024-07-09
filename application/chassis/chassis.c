@@ -45,9 +45,6 @@ static Subscriber_t *chassis_sub;                   // 用于订阅底盘的控�
 static Chassis_Ctrl_Cmd_s chassis_cmd_recv;         // 底盘接收到的控制命令
 static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数据
 
-extern referee_info_t referee_info;
-static referee_info_t *referee_data; // 用于获取裁判系统的数据
-
 SuperCapInstance *cap;                                              // 超级电容
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
@@ -55,31 +52,24 @@ static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left righ
 static uint8_t center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 
-extern uint8_t SuperCap_flag_from_user; // 超电的标志位
-extern uint8_t Super_condition;         // 超电的开关状态
-extern float Super_condition_volt;      // 超电的电压
-
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 110,
+    .Kp            = 75,
     .Ki            = 0,
-    .Kd            = 6.0,
-    .DeadBand      = 8.0, // 跟随模式设置了死区，防止抖动
+    .Kd            = 1.0,
+    .DeadBand      = 6.0, // 跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 15000,
+    .MaxOut        = 20000,
 };
 
 /* 用于自旋变速策略的时间变量 */
 // static float t;
 
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
-static float chassis_vx, chassis_vy, chassis_vw; // 将云台系的速度投影到底盘
-static float vt_lf, vt_rf, vt_lb, vt_rb;         // 底盘速度解算后的临时输出,待进行限幅
-static ramp_t vw_ramp, super_ramp;
-static float current_speed_vw;
-float Power_Output;
+static float chassis_vx, chassis_vy;     // 将云台系的速度投影到底盘
+static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出,待进行限幅
 
 void ChassisInit()
 {
@@ -119,8 +109,6 @@ void ChassisInit()
     chassis_motor_config.can_init_config.tx_id                             = 4;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     motor_lb                                                               = DJIMotorInit(&chassis_motor_config);
-
-    referee_data = RefereeHardwareInit(&huart6); // 裁判系统初始化,会同时初始化UI
 
     SuperCap_Init_Config_s cap_conf = {
         .can_config = {
@@ -169,9 +157,8 @@ static void MecanumCalculate()
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
 
-static float power_output = 0;
-ramp_t limit_ramp;
-float Plimit;
+static ramp_t super_ramp, limit_ramp;
+static float Plimit, Power_Output, power_output;
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  * @param
@@ -181,28 +168,26 @@ float Plimit;
 static void LimitChassisOutput()
 {
 
-    if (referee_data->PowerHeatData.chassis_power_buffer < 50 && referee_data->PowerHeatData.chassis_power_buffer >= 40)
-        Plimit = 0.9 + (referee_data->PowerHeatData.chassis_power_buffer - 40) * 0.01; // 15
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 40 && referee_data->PowerHeatData.chassis_power_buffer >= 35)
-        Plimit = 0.75 + (referee_data->PowerHeatData.chassis_power_buffer - 35) * (0.15f / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 35 && referee_data->PowerHeatData.chassis_power_buffer >= 30)
-        Plimit = 0.6 + (referee_data->PowerHeatData.chassis_power_buffer - 30) * (0.15 / 5);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 30 && referee_data->PowerHeatData.chassis_power_buffer >= 20)
-        Plimit = 0.35 + (referee_data->PowerHeatData.chassis_power_buffer - 20) * (0.25f / 10);
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 20 && referee_data->PowerHeatData.chassis_power_buffer >= 10)
-        Plimit = 0.15 + (referee_data->PowerHeatData.chassis_power_buffer - 10) * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer < 10 && referee_data->PowerHeatData.chassis_power_buffer > 0)
-        Plimit = 0.05 + referee_data->PowerHeatData.chassis_power_buffer * 0.01;
-    else if (referee_data->PowerHeatData.chassis_power_buffer == 60)
+    if (chassis_cmd_recv.power_buffer < 50 && chassis_cmd_recv.power_buffer >= 40)
+        Plimit = 0.9 + (chassis_cmd_recv.power_buffer - 40) * 0.01; // 15
+    else if (chassis_cmd_recv.power_buffer < 40 && chassis_cmd_recv.power_buffer >= 35)
+        Plimit = 0.75 + (chassis_cmd_recv.power_buffer - 35) * (0.15f / 5);
+    else if (chassis_cmd_recv.power_buffer < 35 && chassis_cmd_recv.power_buffer >= 30)
+        Plimit = 0.6 + (chassis_cmd_recv.power_buffer - 30) * (0.15 / 5);
+    else if (chassis_cmd_recv.power_buffer < 30 && chassis_cmd_recv.power_buffer >= 20)
+        Plimit = 0.35 + (chassis_cmd_recv.power_buffer - 20) * (0.25f / 10);
+    else if (chassis_cmd_recv.power_buffer < 20 && chassis_cmd_recv.power_buffer >= 10)
+        Plimit = 0.15 + (chassis_cmd_recv.power_buffer - 10) * 0.01;
+    else if (chassis_cmd_recv.power_buffer < 10 && chassis_cmd_recv.power_buffer > 0)
+        Plimit = 0.05 + chassis_cmd_recv.power_buffer * 0.01;
+    else if (chassis_cmd_recv.power_buffer == 60)
         Plimit = 1;
 
-    Power_Output = (power_output + (referee_info.GameRobotState.chassis_power_limit - power_output) * ramp_calc(&limit_ramp));
-    PowerControlupdate(referee_info.GameRobotState.chassis_power_limit - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
+    Power_Output = (power_output + (chassis_cmd_recv.power_limit - power_output) * ramp_calc(&limit_ramp));
+    PowerControlupdate(Power_Output - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
     power_output = Power_Output;
 
     ramp_init(&super_ramp, 300);
-
-    chassis_vw = (current_speed_vw + (5000 - current_speed_vw) * ramp_calc(&vw_ramp));
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -213,14 +198,12 @@ static void LimitChassisOutput()
 // 提高功率上限，飞坡或跑路
 static void SuperLimitOutput()
 {
-    Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
+    Power_Output = (power_output + (800 - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
-    power_output = Power_Output;    
+    power_output = Power_Output;
 
     ramp_init(&limit_ramp, 300);
-
-    chassis_vw = (current_speed_vw + (7000 - current_speed_vw) * ramp_calc(&vw_ramp));
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -229,13 +212,11 @@ static void SuperLimitOutput()
 }
 
 /**
- * @brief 自制超电控制算法
+ * @brief 超电控制算法
  *
  *
  */
-uint8_t UIflag = 1;
 uint8_t Super_Voltage_Allow_Flag;
-uint8_t Super_Condition;
 int supercap_accel_delay, supercap_moderate_delay;
 
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
@@ -272,7 +253,7 @@ void Super_Cap_control()
     }
 
     // User允许开启电容 且 电压充足
-    if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && SuperCap_flag_from_user == SUPER_USER_OPEN) {
+    if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
         supercap_moderate_delay         = 0;
     } else {
@@ -304,7 +285,7 @@ void Super_Cap_control()
 // 获取功率裆位
 static void Power_level_get()
 {
-    switch (referee_info.GameRobotState.robot_level) {
+    switch (chassis_cmd_recv.level) {
         case 1:
             cap->cap_msg_g.power_level = 1;
             break;
@@ -339,23 +320,18 @@ static void Power_level_get()
             cap->cap_msg_g.power_level = 0;
             break;
     }
-    if (referee_data->GameRobotState.chassis_power_limit > robot_power_level_9to10) {
+    if (chassis_cmd_recv.power_limit > robot_power_level_9to10) {
         cap->cap_msg_g.power_level = 9;
     }
 
-    if (referee_data->PowerHeatData.chassis_power_buffer < 30) {
-        cap->cap_msg_g.power_level = 0;
-    }
-
-    cap->cap_msg_g.chassic_power_remaining = referee_data->PowerHeatData.chassis_power_buffer;
+    cap->cap_msg_g.chassic_power_remaining = chassis_cmd_recv.power_buffer;
 }
 
-float off_watch;
+static float chassis_vw, current_speed_vw, vw_set;
+static ramp_t rotate_ramp;
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
-    Super_condition      = cap->cap_msg_s.SuperCap_open_flag_from_real;
-    Super_condition_volt = cap->cap_msg_s.CapVot;
     // 后续增加没收到消息的处理(双板的情况)
     // 获取新的控制信息
 #ifdef ONE_BOARD
@@ -382,16 +358,11 @@ void ChassisTask()
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
             // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
-            if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
-                offset_angle = chassis_cmd_recv.offset_angle;
-            else {
-                offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
-            }
             chassis_cmd_recv.wz = 0;
 
             cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-            ramp_init(&vw_ramp, 250);
+            ramp_init(&rotate_ramp, 250);
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW:                                                      // 跟随云台
             if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
@@ -399,15 +370,22 @@ void ChassisTask()
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            off_watch           = offset_angle;
             chassis_cmd_recv.wz = 1.2 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
 
             cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
 
-            ramp_init(&vw_ramp, 250);
+            ramp_init(&rotate_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
+            if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
+                vw_set = 5000;
+            } else {
+                vw_set = 7000;
+            }
+            chassis_vw       = (current_speed_vw + (vw_set - current_speed_vw) * ramp_calc(&rotate_ramp));
+            current_speed_vw = chassis_vw;
+
             chassis_cmd_recv.wz = chassis_vw;
             cos_theta           = arm_cos_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
             sin_theta           = arm_sin_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD);
@@ -431,11 +409,7 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    // #ifdef INFANTRY
     Super_Cap_control();
-    // #else
-    // Super_Cap_control();
-    // #endif // INFANTRY
 
     // 获得给电容传输的电容吸取功率等级
     Power_level_get();
@@ -444,6 +418,9 @@ void ChassisTask()
     SuperCapSend(cap, (uint8_t *)&cap->cap_msg_g);
 
     // 推送反馈消息
+    memcpy(&chassis_feedback_data.CapFlag_open_from_real, &cap->cap_msg_s.SuperCap_open_flag_from_real, sizeof(uint8_t));
+    memcpy(&chassis_feedback_data.cap_voltage, &cap->cap_msg_s.CapVot, sizeof(float));
+
 #ifdef ONE_BOARD
     PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);
 #endif

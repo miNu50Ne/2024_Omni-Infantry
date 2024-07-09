@@ -72,5 +72,3 @@ float heat_remain   = 0;  // 剩余热量
 float local_heat    = 0;  // 本地热量
 int One_bullet_heat = 10; // 打一发消耗热量
 ```
-
-具体值待测。

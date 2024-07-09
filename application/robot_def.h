@@ -38,7 +38,7 @@
 #define YAW_CHASSIS_ALIGN_ECD     7508 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         1355 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
-#define PITCH_POS_UP_LIMIT_ECD    868 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
+#define PITCH_POS_UP_LIMIT_ECD    868  // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  1940 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
 
 #endif // 0
@@ -131,32 +131,12 @@ typedef enum {
     CHASSIS_REVERSE_ROTATE,    // 反方向小陀螺
 } chassis_mode_e;
 
-// 底盘状态标志位
-typedef enum {
-    CHASSIS_STATUS_ROTATE = 0,
-    CHASSIS_STATUS_FOLLOW,
-    CHASSIS_STATUS_FREE,
-} Chassis_Status_Enum;
-
 // 云台模式设置
 typedef enum {
     GIMBAL_ZERO_FORCE = 0, // 电流零输入
     GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
-
-// 云台状态标志位
-typedef enum {
-    GIMBAL_STATUS_GYRO = 0,
-    GIMBAL_STATUS_FREE,
-    GIMBAL_STATUS_AUTOAIM,
-} Gimbal_Status_Enum;
-
-// 發射機構狀態位
-typedef enum {
-    SHOOT_RATE_LOW = 0,
-    SHOOT_RATE_HIGH,
-} Shoot_Rate_Status_Enum;
 
 // 发射模式设置
 typedef enum {
@@ -166,29 +146,16 @@ typedef enum {
 typedef enum {
     FRICTION_OFF = 0, // 摩擦轮关闭
     FRICTION_ON,      // 摩擦轮开启
-    FRICTION_REVERSE, // 摩擦轮倒转，防塞弹
 } friction_mode_e;
-
-typedef enum {
-    LID_OPEN = 0, // 弹舱盖打开
-    LID_CLOSE,    // 弹舱盖关闭
-} lid_mode_e;
 
 typedef enum {
     LOAD_STOP = 0,  // 停止发射
     LOAD_REVERSE,   // 反转
     LOAD_1_BULLET,  // 单发
-    LOAD_3_BULLET,  // 三发
     LOAD_BURSTFIRE, // 连发
 } loader_mode_e;
 
-// 功率限制,从裁判系统获取,是否有必要保留?
-typedef struct
-{ // 功率控制
-    float chassis_power_mx;
-} Chassis_Power_Data_s;
-
-/* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot订阅---------------- */
+/* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot/UI订阅---------------- */
 /**
  * @brief 对于双板情况,遥控器和pc在云台,裁判系统在底盘
  *
@@ -197,13 +164,15 @@ typedef struct
 typedef struct
 {
     // 控制部分
-    float INS_angle[3]; // 云台yaw角度
-    float vx;           // 前进方向速度
-    float vy;           // 横移方向速度
-    float wz;           // 旋转速度
-    float offset_angle; // 底盘和归中位置的夹角
+    uint16_t power_buffer;           // 60焦耳缓冲能量
+    uint8_t level;                   // 机器人等级
+    uint16_t power_limit;            // 底盘功率限制
+    uint8_t SuperCap_flag_from_user; // 超电的标志位
+    float vx;                        // 前进方向速度
+    float vy;                        // 横移方向速度
+    float wz;                        // 旋转速度
+    float offset_angle;              // 底盘和归中位置的夹角
     chassis_mode_e chassis_mode;
-    int chassis_speed_buff;
     // UI部分
     //  ...
 
@@ -214,7 +183,6 @@ typedef struct
 { // 云台角度控制
     float yaw;
     float pitch;
-    float chassis_rotate_wz;
 
     gimbal_mode_e gimbal_mode;
 } Gimbal_Ctrl_Cmd_s;
@@ -224,14 +192,27 @@ typedef struct
 {
     shoot_mode_e shoot_mode;
     loader_mode_e load_mode;
-    lid_mode_e lid_mode;
     friction_mode_e friction_mode;
-    Bullet_Speed_limit_e bullet_speed; // 弹速枚举
     uint8_t rest_heat;
-    float shoot_rate; // 连续发射的射频,unit per s,发/秒
+    uint16_t shooter_heat_cooling_rate; // 枪口热量冷却
+    uint16_t shooter_referee_heat;      // 17mm枪口热量
+    uint16_t shooter_cooling_limit;     // 枪口热量上限
+    float shoot_rate;                   // 连续发射的射频,unit per s,发/秒
 } Shoot_Ctrl_Cmd_s;
 
-/* ----------------gimbal/shoot/chassis发布的反馈数据----------------*/
+// cmd发布的UI数据,由UI订阅
+typedef struct
+{
+    uint8_t ui_send_flag; // UI发送标志位
+    chassis_mode_e chassis_mode;
+    friction_mode_e friction_mode;
+    uint8_t rune_mode;
+    uint8_t SuperCap_mode;  // 开关指示 未开启为1
+    float SuperCap_voltage; // 超电电压
+
+} UI_Cmd_s;
+
+/* ----------------gimbal/shoot/chassis/UI发布的反馈数据----------------*/
 /**
  * @brief 由cmd订阅,其他应用也可以根据需要获取.
  *
@@ -247,10 +228,8 @@ typedef struct
     // float real_vy;
     // float real_wz;
 
-    uint8_t rest_heat; // 剩余枪口热量
-    // Bullet_Speed_e bullet_speed; // 弹速限制
-    Enemy_Color_e enemy_color; // 0 for blue, 1 for red
-
+    uint8_t CapFlag_open_from_real;
+    float cap_voltage;
 } Chassis_Upload_Data_s;
 
 typedef struct
@@ -261,9 +240,14 @@ typedef struct
 
 typedef struct
 {
-    // code to go here
-    // ...
+    int shooter_heat_control; // 热量控制
+    float shooter_local_heat; // 本地热量
 } Shoot_Upload_Data_s;
+
+typedef struct
+{
+    // code to go here
+} UI_Upload_Data_s;
 
 #pragma pack() // 开启字节对齐,结束前面的#pragma pack(1)
 
