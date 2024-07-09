@@ -31,7 +31,7 @@ static void UI_StaticRefresh()
     UIDelete(&referee_data_for_ui->referee_id, UI_Data_Del_ALL, 0);
 
     // 射击线
-    UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
+    UILineDraw(&UI_shoot_line[0], "sl0", UI_Graph_ADD, 9, UI_Color_Green, 5, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2, SCREEN_LENGTH / 2, SCREEN_WIDTH / 2 - 500);
     // UIGraphRefresh(&referee_info.referee_id, 1, UI_shoot_line[0]);
     // UILineDraw(&UI_shoot_line[1], "sl1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 80, SCREEN_WIDTH / 2 - 90, SCREEN_LENGTH / 2 + 80, SCREEN_WIDTH / 2 - 90);
     // UILineDraw(&UI_shoot_line[2], "sl2", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 40, SCREEN_WIDTH / 2 - 220, SCREEN_LENGTH / 2 + 40, SCREEN_WIDTH / 2 - 220);

@@ -11,8 +11,6 @@
         "language-cpp": "gnu++17",
         "optimization": "level-0",
         "warnings": "all-warnings",
-        "turn-Warning-into-errors": true,
-        "C_FLAGS": "-Wall -Wextra -Wshadow -Werror -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-unused-parameter -fmessage-length=0",
         "one-elf-section-per-function": true,
         "one-elf-section-per-data": true
     },

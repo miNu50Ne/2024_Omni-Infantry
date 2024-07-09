@@ -61,13 +61,6 @@ const osThreadAttr_t Test_attributes = {
   .stack_size = 2048 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for Buzzer */
-osThreadId_t BuzzerHandle;
-const osThreadAttr_t Buzzer_attributes = {
-  .name = "Buzzer",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* Definitions for instask */
 osThreadId_t instaskHandle;
 const osThreadAttr_t instask_attributes = {
@@ -118,7 +111,6 @@ const osThreadAttr_t motorControl_attributes = {
 
 void StartDefaultTask(void *argument);
 void TestTask(void *argument);
-void BuzzerTask(void *argument);
 void StartINSTASK(void *argument);
 void _RobotTask(void *argument);
 void _UITask(void *argument);
@@ -161,9 +153,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Test */
   TestHandle = osThreadNew(TestTask, NULL, &Test_attributes);
-
-  /* creation of Buzzer */
-  BuzzerHandle = osThreadNew(BuzzerTask, NULL, &Buzzer_attributes);
 
   /* creation of instask */
   instaskHandle = osThreadNew(StartINSTASK, NULL, &instask_attributes);
@@ -227,25 +216,6 @@ __weak void TestTask(void *argument)
         osDelay(1);
     }
   /* USER CODE END TestTask */
-}
-
-/* USER CODE BEGIN Header_BuzzerTask */
-/**
-* @brief Function implementing the Buzzer thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_BuzzerTask */
-__weak void BuzzerTask(void *argument)
-{
-  /* USER CODE BEGIN BuzzerTask */
-  UNUSED(argument);
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END BuzzerTask */
 }
 
 /* USER CODE BEGIN Header_StartINSTASK */
