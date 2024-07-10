@@ -28,6 +28,7 @@
 #define SUPER_VOLTAGE_OPEN  1
 #define SUPER_VOLTAGE_CLOSE 0
 
+<<<<<<< HEAD
 #define SUPER_RELAY_OPEN    1
 #define SUPER_RELAY_CLOSE   0
 
@@ -37,6 +38,14 @@
 
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN  0
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE 1
+=======
+// 定义电压阈值
+#define SUPER_VOLTAGE_THRESHOLD_LOW 12.0f
+#define SUPER_VOLTAGE_THRESHOLD_HIGH 16.0f
+
+#define SUPERCAP_OPEN_FLAG_FROM_REAL_Opened 0
+#define SUPERCAP_OPEN_FLAG_FROM_REAL_Closed 1
+>>>>>>> master
 
 /* 超级电容发送信息 */
 typedef struct
@@ -72,8 +81,11 @@ typedef struct
 typedef enum {
     SUPER_STATE_LOW = 0,
     SUPER_STATE_HIGH,
+<<<<<<< HEAD
     SUPER_STATE_ACCEL,
     SUPER_STATE_DECELER,
+=======
+>>>>>>> master
 } SuperCap_State_e;
 
 /**

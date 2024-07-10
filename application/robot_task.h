@@ -16,6 +16,7 @@
 #include "led.h"
 #include "buzzer.h"
 #include "ins_task.h"
+#include "referee_UI.h"
 
 #include "robot_cmd.h"
 #include "gimbal.h"
@@ -42,6 +43,7 @@ __attribute__((noreturn)) void StartINSTASK(void *argument)
 
 __attribute__((noreturn)) void _RobotTask(void *argument)
 {
+<<<<<<< HEAD
     static uint32_t robot_time;
     static float robot_dt;
     LOGINFO("[freeRTOS] Robot Task Start");
@@ -50,10 +52,46 @@ __attribute__((noreturn)) void _RobotTask(void *argument)
         robot_dt = 1000 * DWT_GetDeltaT(&robot_time);
         if (robot_dt > 1.2f)
             LOGERROR("[freeRTOS] Robot Task is being DELAY! dt = [%f]ms", &robot_dt);
+=======
+
+    static uint32_t cmd_time;
+    static float cmd_dt;
+    for (;;) {
+        cmd_dt = 1000 * DWT_GetDeltaT(&cmd_time);
+        if (cmd_dt > 1.2f)
+            LOGERROR("[freeRTOS] CMD Task is being DELAY! dt = [%f]ms", &cmd_dt);
+        RobotCMDTask();
+>>>>>>> master
         osDelay(1);
     }
 }
 
+<<<<<<< HEAD
+=======
+__attribute__((noreturn)) void _GimbalTask(void *argument)
+{
+    for (;;) {
+        GimbalTask();
+        osDelay(5);
+    }
+}
+
+__attribute__((noreturn)) void _ChassisTask(void *argument)
+{
+    for (;;) {
+        ChassisTask();
+        osDelay(5);
+    }
+}
+
+__attribute__((noreturn)) void _ShootTask(void *argument)
+{
+    for (;;) {
+        ShootTask();
+        osDelay(5);
+    }
+}
+>>>>>>> master
 
 __attribute__((noreturn)) void motorControlTask(void *argument)
 {
@@ -66,7 +104,28 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
 __attribute__((noreturn)) void _UITask(void *argument)
 {
     for (;;) {
+<<<<<<< HEAD
         My_UIGraphRefresh();
         osDelay(100);
+=======
+        DaemonTask();
+        osDelay(1);
+    }
+}
+
+// __attribute__((noreturn)) void _VisionTask(void *argument)
+// {
+//   for(;;){
+//     VisionTask();
+//     osDelay(1);
+//   }
+// }
+
+__attribute__((noreturn)) void _My_UIGraphRefresh(void *argument)
+{
+    for (;;) {
+        My_UIGraphRefresh();
+        osDelay(50);
+>>>>>>> master
     }
 }

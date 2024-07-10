@@ -67,8 +67,8 @@ INS_Instance *INS_Init(BMI088Instance *bmi088)
     INS = INSinstance;
     return INSinstance;
 }
-void INS_Task(void)
-{
+
+void INS_Task(){
     BMI088_Data_t raw_data;
     BMI088Acquire(INS->BMI088, &raw_data);
 
@@ -99,18 +99,18 @@ void INS_Task(void)
 
     INS->timing_time = DWT_GetDeltaT(&INS->BMI088->bias_dwt_cnt);
     AHRS_update(INS->INS_data.INS_quat, INS->timing_time, INS->INS_data.INS_gyro, accel_fliter_3, INS->INS_data.INS_mag);
-    get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
+        get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
-    static float last_yaw_angle = 0; // 上一次的yaw角度
-    static int16_t yaw_round_count     = 0; // yaw转过的圈数
+    static float last_yaw_angle    = 0; // 上一次的yaw角度
+    static int16_t yaw_round_count = 0; // yaw转过的圈数
     if (INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] - last_yaw_angle > PI) {
         yaw_round_count--;
     } else if (INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] - last_yaw_angle < -PI) {
         yaw_round_count++;
     }
     INS->output.Yaw_total_angle = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET] + yaw_round_count * 2 * PI;
-    last_yaw_angle = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET];
+    last_yaw_angle              = INS->output.INS_angle[INS_YAW_ADDRESS_OFFSET];
 
     // 弧度转角度
     for (uint8_t i = 0; i < 3; i++) {

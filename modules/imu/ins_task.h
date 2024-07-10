@@ -34,4 +34,5 @@ INS_Instance *INS_Init(BMI088Instance *bmi088);
  */
 void INS_Task(void);
 
+
 #endif

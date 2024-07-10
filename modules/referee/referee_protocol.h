@@ -78,9 +78,13 @@ typedef enum {
     ID_aerial_robot_energy       = 0x0205, // 空中机器人能量状态数据
     ID_robot_hurt                = 0x0206, // 伤害状态数据
     ID_shoot_data                = 0x0207, // 实时射击数据
+<<<<<<< HEAD
     ID_projectile_allowance      = 0x0208, // 允许发弹量数据
 
     ID_student_interactive = 0x0301, // 机器人间交互数据
+=======
+    ID_student_interactive       = 0x0301, // 机器人间交互数据
+>>>>>>> master
 } CmdID_e;
 
 /* 命令码数据段长,根据官方协议来定义长度，还有自定义数据长度 */
@@ -92,12 +96,19 @@ typedef enum {
     LEN_supply_projectile_action = 4,                        // 0x0102
     LEN_game_robot_state         = 13,                       // 0x0201
     LEN_power_heat_data          = 16,                       // 0x0202
+<<<<<<< HEAD
     LEN_game_robot_pos           = 16,                       // 0x0203
+=======
+    LEN_game_robot_pos           = 16,                       // 0x0203	
+>>>>>>> master
     LEN_buff_musk                = 6,                        // 0x0204
     LEN_aerial_robot_energy      = 1,                        // 0x0205
     LEN_robot_hurt               = 1,                        // 0x0206
     LEN_shoot_data               = 7,                        // 0x0207
+<<<<<<< HEAD
     LEN_projectile_allowance     = 6,                        // 0x0208
+=======
+>>>>>>> master
     LEN_receive_data             = 6 + Communicate_Data_LEN, // 0x0301
 
 } JudgeDataLength_e;

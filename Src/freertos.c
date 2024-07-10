@@ -103,6 +103,23 @@ const osThreadAttr_t motorControl_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal7,
 };
+<<<<<<< HEAD
+=======
+/* Definitions for VisionTask */
+osThreadId_t VisionTaskHandle;
+const osThreadAttr_t VisionTask_attributes = {
+  .name = "VisionTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime7,
+};
+/* Definitions for UIDraw */
+osThreadId_t UIDrawHandle;
+const osThreadAttr_t UIDraw_attributes = {
+  .name = "UIDraw",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+>>>>>>> master
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -117,6 +134,11 @@ void _UITask(void *argument);
 void _ChassisTask(void *argument);
 void _ShootTask(void *argument);
 void motorControlTask(void *argument);
+<<<<<<< HEAD
+=======
+void _VisionTask(void *argument);
+void _My_UIGraphRefresh(void *argument);
+>>>>>>> master
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -172,6 +194,15 @@ void MX_FREERTOS_Init(void) {
   /* creation of motorControl */
   motorControlHandle = osThreadNew(motorControlTask, NULL, &motorControl_attributes);
 
+<<<<<<< HEAD
+=======
+  /* creation of VisionTask */
+  VisionTaskHandle = osThreadNew(_VisionTask, NULL, &VisionTask_attributes);
+
+  /* creation of UIDraw */
+  UIDrawHandle = osThreadNew(_My_UIGraphRefresh, NULL, &UIDraw_attributes);
+
+>>>>>>> master
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
 
@@ -326,6 +357,45 @@ __weak void motorControlTask(void *argument)
   /* USER CODE END motorControlTask */
 }
 
+<<<<<<< HEAD
+=======
+/* USER CODE BEGIN Header__VisionTask */
+/**
+* @brief Function implementing the VisionTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header__VisionTask */
+__weak void _VisionTask(void *argument)
+{
+  /* USER CODE BEGIN _VisionTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END _VisionTask */
+}
+
+/* USER CODE BEGIN Header__My_UIGraphRefresh */
+/**
+* @brief Function implementing the UIDraw thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header__My_UIGraphRefresh */
+__weak void _My_UIGraphRefresh(void *argument)
+{
+  /* USER CODE BEGIN _My_UIGraphRefresh */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END _My_UIGraphRefresh */
+}
+
+>>>>>>> master
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 

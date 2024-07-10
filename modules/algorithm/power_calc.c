@@ -4,14 +4,22 @@
 #include <stdlib.h>
 #include <math.h>
 
+<<<<<<< HEAD
 float k1                   = 1.874137214E-07f;
 float k2                   = 1.83e-07f;
 float constant             = 1.0f;
 float torque_coefficient   = 2.94974577124e-06f; // (20/16384) * (0.3) /13 / (9.55)
+=======
+float k1                   = 1.8231377168e-07;
+float k2                   = 1.89e-07f;
+float constant             = 1.0f;
+float torque_coefficient   = 2.94974577124e-06f; // (20/16384) * (0.3) * (1/13) / (9.55)
+>>>>>>> master
 float machine_power        = 0;
 float current_power        = 0;
 float speed_power          = 0;
 float motor_current_output = 0;
+<<<<<<< HEAD
 float Power_Input          = 0;
 
 float reduction_ratio, total_power;
@@ -20,20 +28,45 @@ uint16_t max_power = 0;
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init)
 {
     max_power = max_power_init; 
+=======
+
+float reduction_ratio,
+    total_power;
+uint16_t max_power;
+
+void PowerControlInit(uint16_t max_power_init, float reduction_ratio_init)
+{
+    int cnt   = 0;
+    max_power = max_power_init;
+>>>>>>> master
     if (reduction_ratio_init != 0) {
         reduction_ratio = reduction_ratio_init;
     } else {
         reduction_ratio = (187.0f / 3591.0f);
     }
+<<<<<<< HEAD
+=======
+    // if (cnt == 0) {
+    //     toque_coefficient *= reduction_ratio;
+    //     cnt++;
+    // }
+>>>>>>> master
 }
 
 float PowerInputCalc(float motor_speed, float motor_current)
 {
+<<<<<<< HEAD
+=======
+    motor_speed = motor_speed / 6.0f;
+>>>>>>> master
     // P_input = I_cmd * C_t * w + k_1* w * w +k_2 * I_cmd * I_cmd
     float power_input = motor_current * torque_coefficient * motor_speed +
                         k1 * motor_speed * motor_speed +
                         k2 * motor_current * motor_current + constant;
+<<<<<<< HEAD
     Power_Input   = power_input;
+=======
+>>>>>>> master
     machine_power = motor_current * torque_coefficient * motor_speed;
     current_power = k2 * motor_current * motor_current + constant;
     speed_power   = k1 * motor_speed * motor_speed;
@@ -49,6 +82,10 @@ float TotalPowerCalc(float input_power[])
         } else {
             total_power += input_power[i];
         }
+<<<<<<< HEAD
+=======
+        // total_power += input_power[i];
+>>>>>>> master
     }
     return total_power;
 }
@@ -56,11 +93,22 @@ float TotalPowerCalc(float input_power[])
 float give_power;
 float power_scale;
 float torque_output;
+<<<<<<< HEAD
 float CurrentOutputCalc(float motor_power, float motor_speed, float motor_current)
 {
     if (total_power > max_power) {
         power_scale =  max_power/ total_power;
         give_power  = motor_power * power_scale;
+=======
+int8_t power_flag;
+float CurrentOutputCalc(float motor_power, float motor_speed, float motor_current)
+{
+    motor_speed = motor_speed / 6.0f;
+    if (total_power > max_power) {
+        power_scale = max_power / total_power;
+        give_power  = motor_power * power_scale;
+        power_flag  = 1;
+>>>>>>> master
         if (motor_power < 0) {
             if (motor_current > 15000) {
                 motor_current = 15000;

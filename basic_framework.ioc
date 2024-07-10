@@ -175,8 +175,13 @@ Dma.USART6_TX.1.Priority=DMA_PRIORITY_HIGH
 Dma.USART6_TX.1.RequestParameters=Instance,Direction,PeriphInc,MemInc,PeriphDataAlignment,MemDataAlignment,Mode,Priority,FIFOMode,FIFOThreshold,MemBurst,PeriphBurst
 FREERTOS.FootprintOK=true
 FREERTOS.INCLUDE_vTaskDelayUntil=1
+<<<<<<< HEAD
 FREERTOS.IPParameters=Tasks01,configENABLE_FPU,configMAX_TASK_NAME_LEN,configUSE_TIMERS,configUSE_POSIX_ERRNO,INCLUDE_vTaskDelayUntil,configTOTAL_HEAP_SIZE,configUSE_COUNTING_SEMAPHORES,configUSE_NEWLIB_REENTRANT,FootprintOK,configQUEUE_REGISTRY_SIZE
 FREERTOS.Tasks01=defaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;Test,40,2048,TestTask,As weak,NULL,Dynamic,NULL,NULL;instask,55,1024,StartINSTASK,As weak,NULL,Dynamic,NULL,NULL;Robot,47,128,_RobotTask,As weak,NULL,Dynamic,NULL,NULL;UI,40,128,_UITask,As weak,NULL,Dynamic,NULL,NULL;Chassis,40,128,_ChassisTask,As weak,NULL,Dynamic,NULL,NULL;Shoot,40,128,_ShootTask,As weak,NULL,Dynamic,NULL,NULL;motorControl,39,128,motorControlTask,As weak,NULL,Dynamic,NULL,NULL
+=======
+FREERTOS.IPParameters=Tasks01,configENABLE_FPU,configMAX_TASK_NAME_LEN,configUSE_TIMERS,configUSE_POSIX_ERRNO,INCLUDE_vTaskDelayUntil,configTOTAL_HEAP_SIZE,configUSE_COUNTING_SEMAPHORES,configUSE_NEWLIB_REENTRANT,FootprintOK
+FREERTOS.Tasks01=defaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;Test,40,2048,TestTask,As weak,NULL,Dynamic,NULL,NULL;Buzzer,24,128,BuzzerTask,As weak,NULL,Dynamic,NULL,NULL;instask,55,1024,StartINSTASK,As weak,NULL,Dynamic,NULL,NULL;CMD,47,128,_RobotCMDTask,As weak,NULL,Dynamic,NULL,NULL;Gimbal,40,128,_GimbalTask,As weak,NULL,Dynamic,NULL,NULL;Chassis,40,128,_ChassisTask,As weak,NULL,Dynamic,NULL,NULL;Shoot,40,128,_ShootTask,As weak,NULL,Dynamic,NULL,NULL;motorControl,39,128,motorControlTask,As weak,NULL,Dynamic,NULL,NULL;VisionTask,55,128,_VisionTask,As weak,NULL,Dynamic,NULL,NULL;UIDraw,40,512,_My_UIGraphRefresh,As weak,NULL,Dynamic,NULL,NULL
+>>>>>>> master
 FREERTOS.configENABLE_FPU=1
 FREERTOS.configMAX_TASK_NAME_LEN=32
 FREERTOS.configQUEUE_REGISTRY_SIZE=12

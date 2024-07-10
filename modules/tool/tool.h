@@ -7,7 +7,19 @@
 #define true  1
 #define false 0
 
+<<<<<<< HEAD
 #define RAMP_TIME 1000 // 1000
+=======
+#define RAMP_GEN_DAFAULT \
+    {                    \
+        0,               \
+            0,           \
+            0,           \
+    }
+
+#define RAMP_TIME 1000 //2000//1000
+#define SUPER_RAMP_TIME 100
+>>>>>>> master
 
 // 斜坡类型，计算WASD移动映射在底盘的速度
 typedef struct ramp_t {

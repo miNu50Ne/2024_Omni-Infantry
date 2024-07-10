@@ -123,8 +123,11 @@ int main(void)
   MX_DAC_Init();
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
+<<<<<<< HEAD
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
     HAL_TIM_Base_Start_IT(&htim4);
+=======
+>>>>>>> master
     HAL_TIM_Base_Start_IT(&htim6);
     RobotInit(); // 唯一的初始化函数
     LOGINFO("[main] SystemInit() and RobotInit() done");
@@ -197,7 +200,41 @@ void SystemClock_Config(void)
 
 /* USER CODE END 4 */
 
+<<<<<<< HEAD
 
+=======
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM14 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM14) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+    if (htim->Instance == TIM6) {
+        /*-------------------------------------------热量控制部分---------------------------------------------*/
+        local_heat -= (referee_info.GameRobotState.shooter_id1_17mm_cooling_rate / 1000.0f); // 1000Hz冷却
+        if (local_heat < 0) {
+            local_heat = 0;
+        }
+        if (referee_info.PowerHeatData.shooter_17mm_heat0 - referee_info.GameRobotState.shooter_id1_17mm_cooling_limit >= 15) // 裁判系统判断已经超了热量
+        {
+            local_heat = referee_info.PowerHeatData.shooter_17mm_heat0;
+        }
+        Shoot_Fric_data_process();
+    }
+  /* USER CODE END Callback 1 */
+}
+>>>>>>> master
 
 /**
   * @brief  This function is executed in case of error occurrence.

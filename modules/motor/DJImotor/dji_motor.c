@@ -2,6 +2,7 @@
 #include "general_def.h"
 #include "bsp_dwt.h"
 #include "bsp_log.h"
+#include "power_calc.h"
 #include <stdint.h>
 #include "power_calc.h"
 
@@ -9,7 +10,14 @@ static uint8_t idx = 0; // register idx,是该文件的全局电机索引,在注
 /* DJI电机的实例,此处仅保存指针,内存的分配将通过电机实例初始化时通过malloc()进行 */
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在control任务中遍历该指针数组进行pid计算
 
+<<<<<<< HEAD
 Power_Data_s power_data; // 电机功率数据
+=======
+Power_Data_s power_data;
+
+float motor_output;
+
+>>>>>>> master
 /**
  * @brief 由于DJI电机发送以四个一组的形式进行,故对其进行特殊处理,用6个(2can*3group)can_instance专门负责发送
  *        该变量将在 DJIMotorControl() 中使用,分组在 MotorSenderGrouping()中进行
@@ -223,7 +231,13 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     motor->motor_controller.pid_ref = ref;
 }
 
+<<<<<<< HEAD
 float motorset[4];
+=======
+DJI_Motor_Measure_s measure_data[4];
+float sample;
+
+>>>>>>> master
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
@@ -295,8 +309,13 @@ void DJIMotorControl()
         sender_assignment[group].tx_buff[2 * num + 1] = (uint8_t)(set & 0x00ff); // 高八位
 
         if (group == 1) {
+<<<<<<< HEAD
             power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
             power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
+=======
+            power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_aps, motor->motor_controller.speed_PID.Output);
+            power_data.wheel_speed[power_data.count]    = motor->measure.speed_aps;
+>>>>>>> master
             power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
             power_data.count++;
             if (power_data.count > 3) {
@@ -313,10 +332,18 @@ void DJIMotorControl()
     if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
         power_data.total_power = TotalPowerCalc(power_data.input_power);
         for (int i = 0; i < 4; i++) {
+<<<<<<< HEAD
             set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
             sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
             sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
             motorset[i]                             = set;
+=======
+
+            set = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+            sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
+            sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
+            motor_output = set;
+>>>>>>> master
         }
     }
 
