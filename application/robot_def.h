@@ -27,12 +27,8 @@
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
-<<<<<<< HEAD
 #if INFANTRY
 #define YAW_CHASSIS_ALIGN_ECD     6814 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-=======
-#define YAW_CHASSIS_ALIGN_ECD     4730 //4072//4097 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
->>>>>>> master
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         6783 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_UP_LIMIT_ECD    6317 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
@@ -63,14 +59,9 @@
 #define RADIUS_WHEEL           153   // 轮子半径
 #define REDUCTION_RATIO_WHEEL  13.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
-<<<<<<< HEAD
 #define CHASSIS_SPEED          40000 // 键盘控制不限功率时底盘最大移动速度
 #define YAW_K                  0.00025f
 #define PITCH_K                0.000004f
-=======
-#define CHASSIS_SPEED          20000 //15000  //9500 //键盘控制不限功率时底盘最大移动速度
-// #define YAW_
->>>>>>> master
 
 // 模拟小电脑负重 652.2
 // 其他参数(尽量所有参数集中到此文件)
@@ -140,17 +131,6 @@ typedef enum {
     CHASSIS_REVERSE_ROTATE,    // 反方向小陀螺
 } chassis_mode_e;
 
-<<<<<<< HEAD
-=======
-
-// 底盘状态标志位
-typedef enum {
-    CHASSIS_STATUS_ROTATE = 0,
-    CHASSIS_STATUS_FOLLOW,
-    CHASSIS_STATUS_FREE,
-} Chassis_Status_Enum;
-
->>>>>>> master
 // 云台模式设置
 typedef enum {
     GIMBAL_ZERO_FORCE = 0, // 电流零输入
@@ -158,23 +138,6 @@ typedef enum {
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
 
-<<<<<<< HEAD
-=======
-//自瞄状态设置
-typedef enum {
-    AutoShooting_Off = 0,    // 自瞄关闭
-    AutoShooting_Open,            // 自瞄开启
-    AutoShooting_Find,         // 自瞄识别到目标
-} auto_shoot_mode_e;
-
-//云台状态标志位
-typedef enum {
-    GIMBAL_STATUS_GYRO = 0,
-    GIMBAL_STATUS_FREE,
-    GIMBAL_STATUS_AUTOAIM,
-} Gimbal_Status_Enum;
-
->>>>>>> master
 // 发射模式设置
 typedef enum {
     SHOOT_OFF = 0,

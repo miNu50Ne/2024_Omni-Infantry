@@ -11,11 +11,7 @@ typedef struct
     uint8_t count;
 } Power_Data_s;
 
-<<<<<<< HEAD
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init);
-=======
-void PowerControlInit(uint16_t max_power_init, float reduction_ratio_init);
->>>>>>> master
 
 float PowerInputCalc(float motor_speed, float motor_current);
 
