@@ -165,6 +165,7 @@ typedef struct
 {
     // 控制部分
     uint16_t power_buffer;           // 60焦耳缓冲能量
+    float chassis_power;           // 底盘瞬时功率
     uint8_t level;                   // 机器人等级
     uint16_t power_limit;            // 底盘功率限制
     uint8_t SuperCap_flag_from_user; // 超电的标志位

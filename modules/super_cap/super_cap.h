@@ -32,8 +32,8 @@
 #define SUPER_RELAY_CLOSE   0
 
 // 定义电压阈值
-#define SUPER_VOLTAGE_THRESHOLD_LOW        12.0f
-#define SUPER_VOLTAGE_THRESHOLD_HIGH       20.0f
+#define SUPER_VOLTAGE_THRESHOLD_LOW        10.0f
+#define SUPER_VOLTAGE_THRESHOLD_HIGH       18.0f
 
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN  0
 #define SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE 1
@@ -42,15 +42,15 @@
 typedef struct
 {
     float CapVot;                         // 电压
+    float chassis_power_from_cap;         // 底盘功率
     uint8_t SuperCap_open_flag_from_real; // 开关指示 未开启为1
 } SuperCap_Msg_s;
 
 /* 超级电容接收信息 */
 typedef struct
 {
-    uint8_t power_relay_flag;         // 继电器开启状态
-    uint8_t power_level;              // 功率等级
-    uint16_t chassic_power_remaining; // 剩余功率
+    uint8_t power_relay_flag; // 继电器开启状态
+    uint8_t power;            // 具体功率
 } SuperCap_Msg_g;
 #pragma pack()
 

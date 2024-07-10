@@ -53,7 +53,6 @@ static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
 
 HostInstance *host_instance; // 上位机接口
 
-
 // 这里的四元数以wxyz的顺序
 static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
 static uint8_t vision_send_data[23]; // 给视觉上位机发送的数据-四元数
@@ -651,6 +650,7 @@ void RobotCMDTask()
     // 推送消息,双板通信,视觉通信等
     // 其他应用所需的控制数据在remotecontrolsetmode和mousekeysetmode中完成设置
     // chassis
+    memcpy(&chassis_cmd_send.chassis_power, &referee_data->PowerHeatData.chassis_power, sizeof(float));
     memcpy(&chassis_cmd_send.power_buffer, &referee_data->PowerHeatData.chassis_power_buffer, sizeof(uint16_t));
     memcpy(&chassis_cmd_send.level, &referee_data->GameRobotState.robot_level, sizeof(uint8_t));
     memcpy(&chassis_cmd_send.power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));

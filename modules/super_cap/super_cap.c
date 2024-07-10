@@ -21,14 +21,26 @@
 
 static SuperCapInstance *super_cap_instance = NULL; // 可以由app保存此指针
 
+static float uint_to_float(int x_int, float x_min, float x_max, int bits)
+{
+    float span   = x_max - x_min;
+    float offset = x_min;
+    return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
+}
+
 static void SuperCapRxCallback(CANInstance *_instance)
 {
     uint8_t *rxbuff;
     SuperCap_Msg_s *Msg;
-    rxbuff         = _instance->rx_buff;
-    Msg            = &super_cap_instance->cap_msg_s;
-    Msg->CapVot       = *(float *)rxbuff;
-    Msg->SuperCap_open_flag_from_real = rxbuff[4];
+    int power, voltage;
+    rxbuff = _instance->rx_buff;
+
+    power                             = ((rxbuff[0])<<8)|rxbuff[1];
+    voltage                           = ((rxbuff[2])<<8)|rxbuff[3];
+    Msg                               = &super_cap_instance->cap_msg_s;
+    Msg->chassis_power_from_cap       = uint_to_float(power, 0.0, 500.0, 16);
+    Msg->CapVot                       = uint_to_float(voltage, 0.0, 27.0, 16);
+    Msg->SuperCap_open_flag_from_real = !rxbuff[4];
 }
 
 SuperCapInstance *SuperCapInit(SuperCap_Init_Config_s *supercap_config)

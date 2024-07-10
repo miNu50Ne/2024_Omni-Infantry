@@ -262,79 +262,41 @@ void Super_Cap_control()
         // none
     }
 
-    // User允许开启电容 且 电压充足
-    if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
-        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-        supercap_moderate_delay         = 0;
-    } else {
-        LimitChassisOutput();
-        supercap_moderate_delay++;
-        if (supercap_moderate_delay > 100) {
-            supercap_moderate_delay         = 101;
-            cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
-        } else {
-            cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-        }
-    }
+    
 
-    // 物理层继电器状态改变，功率限制状态改变
-    if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN) {
-        // 延时，超电打开后再提高功率
-        supercap_accel_delay++;
-        if (supercap_accel_delay > 30) {
-            supercap_accel_delay = 31;
-            SuperLimitOutput();
-        } else {
-            LimitChassisOutput();
-        }
-    } else {
-        supercap_accel_delay = 0;
-    }
+    // // User允许开启电容 且 电压充足
+    // if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
+    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    //     supercap_moderate_delay         = 0;
+    // } else {
+    //     LimitChassisOutput();
+    //     supercap_moderate_delay++;
+    //     if (supercap_moderate_delay > 100) {
+    //         supercap_moderate_delay         = 101;
+    //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+    //     } else {
+    //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    //     }
+    // }
+    // // 物理层继电器状态改变，功率限制状态改变
+    // if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN) {
+    //     // 延时，超电打开后再提高功率
+    //     supercap_accel_delay++;
+    //     if (supercap_accel_delay > 30) {
+    //         supercap_accel_delay = 31;
+    //         SuperLimitOutput();
+    //     } else {
+    //         LimitChassisOutput();
+    //     }
+    // } else {
+    //     supercap_accel_delay = 0;
+    // }
 }
 
 // 获取功率裆位
-static void Power_level_get()
+static void Power_get()
 {
-    switch (chassis_cmd_recv.level) {
-        case 1:
-            cap->cap_msg_g.power_level = 1;
-            break;
-        case 2:
-            cap->cap_msg_g.power_level = 2;
-            break;
-        case 3:
-            cap->cap_msg_g.power_level = 3;
-            break;
-        case 4:
-            cap->cap_msg_g.power_level = 4;
-            break;
-        case 5:
-            cap->cap_msg_g.power_level = 5;
-            break;
-        case 6:
-            cap->cap_msg_g.power_level = 6;
-            break;
-        case 7:
-            cap->cap_msg_g.power_level = 7;
-            break;
-        case 8:
-            cap->cap_msg_g.power_level = 8;
-            break;
-        case 9:
-            cap->cap_msg_g.power_level = 9;
-            break;
-        case 10:
-            cap->cap_msg_g.power_level = 9;
-            break;
-        default:
-            cap->cap_msg_g.power_level = 0;
-            break;
-    }
-    if (chassis_cmd_recv.power_limit > robot_power_level_9to10) {
-        cap->cap_msg_g.power_level = 9;
-    }
-
-    cap->cap_msg_g.chassic_power_remaining = chassis_cmd_recv.power_buffer;
+    cap->cap_msg_g.power = chassis_cmd_recv.chassis_power;
 }
 
 static float chassis_vw, current_speed_vw, vw_set;
@@ -422,7 +384,7 @@ void ChassisTask()
     Super_Cap_control();
 
     // 获得给电容传输的电容吸取功率等级
-    Power_level_get();
+    Power_get();
 
     // 给电容传输数据
     SuperCapSend(cap, (uint8_t *)&cap->cap_msg_g);
