@@ -27,16 +27,17 @@ static float uint_to_float(int x_int, float x_min, float x_max, int bits)
     float offset = x_min;
     return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
 }
-
+int super_time = 0;
 static void SuperCapRxCallback(CANInstance *_instance)
 {
+    super_time++;
     uint8_t *rxbuff;
     SuperCap_Msg_s *Msg;
     int power, voltage;
     rxbuff = _instance->rx_buff;
 
-    power                             = ((rxbuff[0])<<8)|rxbuff[1];
-    voltage                           = ((rxbuff[2])<<8)|rxbuff[3];
+    power                             = ((rxbuff[1])<<8)|rxbuff[0];
+    voltage                           = ((rxbuff[3])<<8)|rxbuff[2];
     Msg                               = &super_cap_instance->cap_msg_s;
     Msg->chassis_power_from_cap       = uint_to_float(power, 0.0, 500.0, 16);
     Msg->CapVot                       = uint_to_float(voltage, 0.0, 27.0, 16);

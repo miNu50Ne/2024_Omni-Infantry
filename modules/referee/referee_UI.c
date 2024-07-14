@@ -418,4 +418,3 @@ void UICharRefresh(referee_id_t *_id, String_Data_t string_Data)
 
     UI_Seq++; // 包序号+1
 }
-

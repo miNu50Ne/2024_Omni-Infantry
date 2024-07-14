@@ -35,8 +35,8 @@
 #define PITCH_POS_DOWN_LIMIT_ECD  7343 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
 
 #else
-#define YAW_CHASSIS_ALIGN_ECD     4403 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
+#define YAW_CHASSIS_ALIGN_ECD     2037 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_ECD_GREATER_THAN_4096 0    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         1355 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_UP_LIMIT_ECD    868  // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  1940 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
@@ -134,7 +134,6 @@ typedef enum {
 // 云台模式设置
 typedef enum {
     GIMBAL_ZERO_FORCE = 0, // 电流零输入
-    GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
 
@@ -165,7 +164,7 @@ typedef struct
 {
     // 控制部分
     uint16_t power_buffer;           // 60焦耳缓冲能量
-    float chassis_power;           // 底盘瞬时功率
+    float chassis_power;             // 底盘瞬时功率
     uint8_t level;                   // 机器人等级
     uint16_t power_limit;            // 底盘功率限制
     uint8_t SuperCap_flag_from_user; // 超电的标志位
@@ -206,6 +205,7 @@ typedef struct
 {
     uint8_t ui_send_flag; // UI发送标志位
     chassis_mode_e chassis_mode;
+    uint16_t chassis_attitude_angle; // 底盘姿态角
     friction_mode_e friction_mode;
     uint8_t rune_mode;
     uint8_t SuperCap_mode;  // 开关指示 未开启为1

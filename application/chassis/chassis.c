@@ -166,8 +166,8 @@ static void MecanumCalculate()
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
 
-static ramp_t super_ramp, limit_ramp;
-static float Plimit, Power_Output, power_output;
+static ramp_t super_ramp;
+
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  * @param
@@ -176,7 +176,7 @@ static float Plimit, Power_Output, power_output;
  */
 static void LimitChassisOutput()
 {
-
+    static float Plimit;
     if (chassis_cmd_recv.power_buffer < 50 && chassis_cmd_recv.power_buffer >= 40)
         Plimit = 0.9 + (chassis_cmd_recv.power_buffer - 40) * 0.01; // 15
     else if (chassis_cmd_recv.power_buffer < 40 && chassis_cmd_recv.power_buffer >= 35)
@@ -192,9 +192,11 @@ static void LimitChassisOutput()
     else if (chassis_cmd_recv.power_buffer == 60)
         Plimit = 1;
 
-    Power_Output = (power_output + (chassis_cmd_recv.power_limit - power_output) * ramp_calc(&limit_ramp));
-    PowerControlupdate(Power_Output - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
-    power_output = Power_Output;
+    PowerControlupdate(chassis_cmd_recv.power_limit - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
+
+    // Power_Output = (power_output + (chassis_cmd_recv.power_limit - power_output) * ramp_calc(&limit_ramp));
+    // PowerControlupdate(Power_Output - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
+    // power_output = Power_Output;
 
     ramp_init(&super_ramp, 300);
 
@@ -208,12 +210,11 @@ static void LimitChassisOutput()
 // 提高功率上限，飞坡或跑路
 static void SuperLimitOutput()
 {
-    Power_Output = (power_output + (800 - power_output) * ramp_calc(&super_ramp));
+    static float Power_Output, power_output;
+    Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
-
-    ramp_init(&limit_ramp, 300);
 
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -227,8 +228,7 @@ static void SuperLimitOutput()
  *
  */
 uint8_t Super_Voltage_Allow_Flag;
-int supercap_accel_delay, supercap_moderate_delay;
-
+int accel_delay;
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
 float voltage;
 void Super_Cap_control()
@@ -262,41 +262,55 @@ void Super_Cap_control()
         // none
     }
 
-    
+    // // 电压大于12V开启
+    // if (voltage > 12.0f)
+    //     Super_Voltage_Allow_Flag = SUPER_VOLTAGE_OPEN;
+    // else
+    //     Super_Voltage_Allow_Flag = SUPER_VOLTAGE_CLOSE;
 
     // // User允许开启电容 且 电压充足
+    if (chassis_cmd_recv.SuperCap_flag_from_user == SUPER_RELAY_OPEN && Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN) {
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+        SuperLimitOutput();
+    } else {
+        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+        LimitChassisOutput();
+    }
+
+    // User允许开启电容 且 电压充足
     // if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
     //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    //     supercap_moderate_delay         = 0;
-    // } else {
-    //     LimitChassisOutput();
-    //     supercap_moderate_delay++;
-    //     if (supercap_moderate_delay > 100) {
-    //         supercap_moderate_delay         = 101;
+    //     accel_delay                     = 0;
+    //     accel_delay++;
+    //     if (accel_delay > 20) {
+    //         accel_delay                     = 1;
     //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
     //     } else {
     //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
     //     }
     // }
-    // // 物理层继电器状态改变，功率限制状态改变
-    // if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN) {
+    // 物理层继电器状态改变，功率限制状态改变
+    // if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
     //     // 延时，超电打开后再提高功率
-    //     supercap_accel_delay++;
-    //     if (supercap_accel_delay > 30) {
-    //         supercap_accel_delay = 31;
+    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    //     accel_delay++;
+    //     if (accel_delay > 30) {
+    //         accel_delay = 31;
     //         SuperLimitOutput();
     //     } else {
     //         LimitChassisOutput();
     //     }
     // } else {
-    //     supercap_accel_delay = 0;
+    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+    //     accel_delay = 0;
+    //     LimitChassisOutput();
     // }
 }
 
 // 获取功率裆位
 static void Power_get()
 {
-    cap->cap_msg_g.power = chassis_cmd_recv.chassis_power;
+    cap->cap_msg_g.power = chassis_cmd_recv.power_limit - 30;
 }
 
 static float chassis_vw, current_speed_vw, vw_set;
@@ -350,7 +364,7 @@ void ChassisTask()
             ramp_init(&rotate_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE) {
+            if (cap->cap_msg_g.power_relay_flag == SUPER_RELAY_CLOSE) {
                 vw_set = 5000;
             } else {
                 vw_set = 7000;
@@ -381,7 +395,8 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    Super_Cap_control();
+    // Super_Cap_control();
+    LimitChassisOutput();
 
     // 获得给电容传输的电容吸取功率等级
     Power_get();

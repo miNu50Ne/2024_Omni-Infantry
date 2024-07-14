@@ -222,31 +222,6 @@ static void YawControlProcess()
     }
 }
 
-// static void VisionControl()
-// {
-// if (rec_pitch == 0 && rec_yaw == 0) {
-// 视觉未识别到目标,纯遥控器拨杆控制
-// yaw_control -= YAW_K * (float)rc_data[TEMP].rc.rocker_l_;
-// pitch_control -= PITCH_K * (float)rc_data[TEMP].rc.rocker_l1;
-// } else {
-//     // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
-//     yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
-//     pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-// }
-
-// if (rc_data[TEMP].rc.dial < -400) {
-//     shoot_cmd_send.friction_mode = FRICTION_ON;
-// } else {
-//     shoot_cmd_send.friction_mode = FRICTION_OFF;
-// }
-
-// if (shoot_cmd_send.friction_mode == FRICTION_ON) {
-//     shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-// } else {
-//     shoot_cmd_send.load_mode = LOAD_STOP;
-// }
-// }
-
 static void HeatControl()
 {
     if (shoot_cmd_send.friction_mode == FRICTION_OFF) {
@@ -472,20 +447,8 @@ static void GimbalSet()
     memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
 
     // 按住鼠标右键且视觉识别到目标
-    // if (rc_data[TEMP].mouse.press_r) {
-    // shoot_cmd_send.shoot_rate = 18;
-    // if (rec_pitch == 0 && rec_yaw == 0) {
-    // yaw_control -= rc_data[TEMP].mouse.x / 350.0f;
-    // pitch_control -= -rc_data[TEMP].mouse.y / 15500.0f;
-    // } else {
-    //     // 将接收到的上位机发来的相对坐标叠加在云台当前姿态角上
-    //     yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
-    //     pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
-    // }
-    // } else {
     yaw_control -= rc_data[TEMP].mouse.x / 350.0f;
     pitch_control -= -rc_data[TEMP].mouse.y / 15500.0f;
-    // }
 
     YawControlProcess();
     gimbal_cmd_send.yaw   = yaw_control;
@@ -505,11 +468,7 @@ static void ShootSet()
         // 打弹，单击左键单发，长按连发
         if (rc_data[TEMP].mouse.press_l) {
             // 打符，单发
-            if (auto_rune == 1) {
-                shoot_cmd_send.load_mode = LOAD_1_BULLET;
-            } else {
-                shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-            }
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
@@ -545,25 +504,6 @@ static void KeyGetMode()
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             break;
     }
-    // switch (rc_data[TEMP].key[KEY_PRESS].b) {
-    //     case 1:
-    //         auto_rune = 1;
-    //         break;
-    //     case 0:
-    //         auto_rune = 0;
-    //         break;
-    // }
-    // switch (rc_data[TEMP].key_count[KEY_PRESS][Key_G] % 2) {
-    //     case 1:
-    //         chassis_cmd_send.chassis_mode             = CHASSIS_NO_FOLLOW;
-    //         rc_data[TEMP].key_count[KEY_PRESS][Key_C] = 0;
-    //         break;
-    //     case 0:
-    //         if (chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW)
-    //             chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
-    //         break;
-    // }
-
     switch (rc_data[TEMP].key[KEY_PRESS].r) {
         case 1:
             if (UI_SendFlag == 1) {
@@ -574,7 +514,16 @@ static void KeyGetMode()
             UI_SendFlag = 1;
             break;
     }
-
+    switch (rc_data[TEMP].key[KEY_PRESS].ctrl) {
+        case 1:
+            auto_rune = 1;
+            break;
+        case 0:
+            auto_rune = 0;
+            break;
+        default:
+            break;
+    }
     switch (rc_data[TEMP].key[KEY_PRESS].shift) {
         case 1:
             SuperCap_flag_from_user = SUPER_USER_OPEN;
@@ -637,10 +586,6 @@ void RobotCMDTask()
         MouseKeySet();
     else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right)) {
         EmergencyHandler(); // 调试/疯车时急停
-        memcpy(&rec_yaw, vision_recv_data, sizeof(float));
-        memcpy(&rec_pitch, vision_recv_data + 4, sizeof(float));
-        yaw_control   = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET] + rec_yaw / DEGREE_2_RAD;
-        pitch_control = gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET] + rec_pitch;
     } else {
         RemoteControlSet();
     }
@@ -662,9 +607,10 @@ void RobotCMDTask()
     memcpy(&shoot_cmd_send.shooter_cooling_limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
 
     // UI
-    memcpy(referee_data_for_ui, referee_data, sizeof(referee_info_t));
+    referee_data_for_ui = referee_data;
     memcpy(&ui_cmd_send.ui_send_flag, &UI_SendFlag, sizeof(uint8_t));
     memcpy(&ui_cmd_send.chassis_mode, &chassis_cmd_send.chassis_mode, sizeof(chassis_mode_e));
+    memcpy(&ui_cmd_send.chassis_attitude_angle, &gimbal_fetch_data.yaw_motor_single_round_angle, sizeof(uint16_t));
     memcpy(&ui_cmd_send.friction_mode, &shoot_cmd_send.friction_mode, sizeof(friction_mode_e));
     memcpy(&ui_cmd_send.rune_mode, &auto_rune, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_mode, &chassis_fetch_data.CapFlag_open_from_real, sizeof(uint8_t));

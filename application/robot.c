@@ -66,7 +66,6 @@ void RobotTask()
     RobotCMDTask();
     GimbalTask();
     ShootTask();
-    My_UIGraphRefresh();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)

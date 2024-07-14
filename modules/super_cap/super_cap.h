@@ -49,7 +49,7 @@ typedef struct
 /* 超级电容接收信息 */
 typedef struct
 {
-    uint8_t power_relay_flag; // 继电器开启状态
+    uint8_t power_relay_flag; // 电容开启状态
     uint8_t power;            // 具体功率
 } SuperCap_Msg_g;
 #pragma pack()

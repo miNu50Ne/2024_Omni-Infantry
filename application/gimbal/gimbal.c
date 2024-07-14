@@ -77,7 +77,7 @@ void GimbalInit()
                 .IntegralLimit = 5000,
                 .MaxOut        = 20000, // 20000
             },
-            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET], //,Yaw_total_angle_deg//yaw反馈角度值
+            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET], // yaw反馈角度值
             // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
             .other_speed_feedback_ptr = &gimbal_IMU_data->INS_data.INS_gyro[INS_YAW_ADDRESS_OFFSET],
         },
@@ -150,17 +150,6 @@ void GimbalTask()
             break;
         // 使用陀螺仪的反馈,底盘根据yaw电机的offset跟随云台或视觉模式采用
         case GIMBAL_GYRO_MODE: // 后续只保留此模式
-            DJIMotorEnable(yaw_motor);
-            DJIMotorEnable(pitch_motor);
-            DJIMotorChangeFeed(yaw_motor, ANGLE_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(yaw_motor, SPEED_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(pitch_motor, ANGLE_LOOP, OTHER_FEED);
-            DJIMotorChangeFeed(pitch_motor, SPEED_LOOP, OTHER_FEED);
-            DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
-            DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
-            break;
-        // 云台自由模式,使用编码器反馈,底盘和云台分离,仅云台旋转,一般用于调整云台姿态(英雄吊射等)/能量机关
-        case GIMBAL_FREE_MODE: // 后续删除,或加入云台追底盘的跟随模式(响应速度更快)
             DJIMotorEnable(yaw_motor);
             DJIMotorEnable(pitch_motor);
             DJIMotorChangeFeed(yaw_motor, ANGLE_LOOP, OTHER_FEED);
