@@ -269,7 +269,7 @@ static void RemoteControlSet()
 {
     shoot_cmd_send.shoot_mode   = SHOOT_ON; // 发射机构常开
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-    shoot_cmd_send.shoot_rate   = 20; // 射频默认20Hz
+    shoot_cmd_send.shoot_rate   = 30; // 射频默认30Hz
 
     if (rc_data[TEMP].rc.dial > 400) {
         SuperCap_flag_from_user = SUPER_USER_OPEN;
@@ -462,13 +462,18 @@ static void GimbalSet()
 static void ShootSet()
 {
     shoot_cmd_send.shoot_mode = SHOOT_ON;
+    shoot_cmd_send.shoot_rate = 30; // 射频默认30Hz
 
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
         // 打弹，单击左键单发，长按连发
         if (rc_data[TEMP].mouse.press_l) {
             // 打符，单发
-            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+            if (auto_rune == 1) {
+                shoot_cmd_send.load_mode = LOAD_1_BULLET;
+            } else {
+                shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+            }
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }

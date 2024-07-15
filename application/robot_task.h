@@ -90,7 +90,7 @@ __attribute__((noreturn)) void _UITask(void *argument)
 {
     UI_Init();
     for (;;) {
-        My_UIGraphRefresh();
+        UIDynamicRefresh();
         osDelay(100);
     }
 }

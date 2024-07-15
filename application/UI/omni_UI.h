@@ -10,6 +10,6 @@ void UI_Init();
  * @brief UI任务
  * 
  */
-void My_UIGraphRefresh();
+void UIDynamicRefresh();
 
 

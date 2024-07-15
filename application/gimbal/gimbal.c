@@ -70,7 +70,7 @@ void GimbalInit()
                 .MaxOut = 10,
             },
             .speed_PID = {
-                .Kp            = 20000, // 18000, // 10500,//1000,//10000,// 11000
+                .Kp            = 15000, // 18000, // 10500,//1000,//10000,// 11000
                 .Ki            = 0,     // 0
                 .Kd            = 30,    // 10, // 30
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,

@@ -19,6 +19,7 @@ static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信�
 // dwt定时,计算冷却用
 static float hibernate_time = 0, dead_time = 0;
 
+float d_watch;
 void ShootInit()
 {
     // 左摩擦轮
@@ -73,7 +74,7 @@ void ShootInit()
         .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type    = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
-            .close_loop_type    = SPEED_LOOP, 
+            .close_loop_type    = SPEED_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
@@ -176,6 +177,7 @@ static void Shoot_Fric_data_process(void)
         moving_average[1] /= Fliter_windowSize;
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
+        d_watch    = derivative;
         /*导数比较*/
         if (derivative < -300) {
             bullet_waiting_confirm = true;
@@ -244,7 +246,7 @@ void ShootTask()
                     DJIMotorSetRef(loader, 0);
                     break;
                 case 0:
-                    DJIMotorSetRef(loader, 10000);
+                    DJIMotorSetRef(loader, 5000);
                     break;
             }
             break;
@@ -264,7 +266,7 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        fric_speed = (shoot_speed + (40000 - shoot_speed) * ramp_calc(&fric_on_ramp));
+        fric_speed = (shoot_speed + (44000 - shoot_speed) * ramp_calc(&fric_on_ramp));
         ramp_init(&fric_off_ramp, 300);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
         fric_speed = (shoot_speed + (0 - shoot_speed) * ramp_calc(&fric_off_ramp));
