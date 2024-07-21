@@ -23,23 +23,39 @@
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
-#define INFANTRY 0 // 全向轮具体参数，1为新车，0为老车
+#define OLD    0 // 全向轮具体参数，1为新车或（唐珣），0为老车（唐枫）
+#define NEW    0
+#define NEWNEW 1 // 新新车
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
-#if INFANTRY
+#if OLD
+
 #define YAW_CHASSIS_ALIGN_ECD     6814 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         6783 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_UP_LIMIT_ECD    6317 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  7343 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
 
-#else
+#endif
+
+#if NEW
+
 #define YAW_CHASSIS_ALIGN_ECD     7141 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         1355 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_UP_LIMIT_ECD    868  // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  1940 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
+
+#endif // 0
+
+#ifdef NEWNEW
+
+#define YAW_CHASSIS_ALIGN_ECD     4779 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
+#define PITCH_HORIZON_ECD         6812 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
+#define PITCH_POS_UP_LIMIT_ECD    6348 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
+#define PITCH_POS_DOWN_LIMIT_ECD  7380 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
 
 #endif // 0
 
@@ -172,6 +188,7 @@ typedef struct
     float vy;                        // 横移方向速度
     float wz;                        // 旋转速度
     float offset_angle;              // 底盘和归中位置的夹角
+    float gimbal_error_angle;        // 云台当前位置与目标（归中）位置的夹角
     chassis_mode_e chassis_mode;
     // UI部分
     //  ...
@@ -198,6 +215,7 @@ typedef struct
     uint16_t shooter_referee_heat;      // 17mm枪口热量
     uint16_t shooter_cooling_limit;     // 枪口热量上限
     float shoot_rate;                   // 连续发射的射频,unit per s,发/秒
+    float bullet_speed;                 // 子弹速度
 } Shoot_Ctrl_Cmd_s;
 
 // cmd发布的UI数据,由UI订阅
@@ -208,9 +226,14 @@ typedef struct
     uint16_t chassis_attitude_angle; // 底盘姿态角
     friction_mode_e friction_mode;
     uint8_t rune_mode;
-    uint8_t SuperCap_mode;  // 开关指示 未开启为1
-    float SuperCap_voltage; // 超电电压
-
+    uint8_t SuperCap_mode;           // 开关指示 未开启为1
+    float SuperCap_voltage;          // 超电电压
+    float Chassis_Ctrl_power;        // 底盘控制功率
+    uint16_t Cap_absorb_power_limit; // 超电吸收功率
+    float Chassis_voltage;           // 底盘电压
+    uint16_t Chassis_power_limit;    // 底盘功率
+    float Shooter_heat;              // 枪口热量
+    uint16_t Heat_Limit;             // 热量上限
 } UI_Cmd_s;
 
 /* ----------------gimbal/shoot/chassis/UI发布的反馈数据----------------*/
@@ -231,12 +254,17 @@ typedef struct
 
     uint8_t CapFlag_open_from_real;
     float cap_voltage;
+    uint16_t capget_power_limit;
+    float chassis_power_output;
+    float chassis_voltage;
+
 } Chassis_Upload_Data_s;
 
 typedef struct
 {
     INS_Instance *gimbal_imu_data;
     uint16_t yaw_motor_single_round_angle;
+    uint16_t yaw_ecd;
 } Gimbal_Upload_Data_s;
 
 typedef struct

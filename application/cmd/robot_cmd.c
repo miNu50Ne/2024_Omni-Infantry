@@ -151,6 +151,9 @@ static void DeterminRobotID()
     referee_data->referee_id.Receiver_Robot_ID = 0;
 }
 
+float yaw_control;   // 遥控器YAW自由度输入值
+float pitch_control; // 遥控器PITCH自由度输入值
+
 /**
  * @brief 根据gimbal app传回的当前电机角度计算和零位的误差
  *        单圈绝对角度的范围是0~360,说明文档中有图示
@@ -161,8 +164,14 @@ static void CalcOffsetAngle()
 {
     // 别名angle提高可读性,不然太长了不好看,虽然基本不会动这个函数
     static float angle;
-    angle = gimbal_fetch_data.yaw_motor_single_round_angle; // 从云台获取的当前yaw电机单圈角度
-#if YAW_ECD_GREATER_THAN_4096                               // 如果大于180度
+    static float gimbal_yaw_current_angle;                                                // 云台yaw轴当前角度
+    static float gimbal_yaw_set_angle;                                                    // 云台yaw轴目标角度
+    angle                               = gimbal_fetch_data.yaw_motor_single_round_angle; // 从云台获取的当前yaw电机单圈角度
+    gimbal_yaw_current_angle            = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET];
+    gimbal_yaw_set_angle                = yaw_control;
+    chassis_cmd_send.gimbal_error_angle = gimbal_yaw_set_angle - gimbal_yaw_current_angle; // 云台误差角
+
+#if YAW_ECD_GREATER_THAN_4096 // 如果大于180度
     if (angle < 180.0f + YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
     else
@@ -175,9 +184,6 @@ static void CalcOffsetAngle()
     }
 #endif
 }
-
-float yaw_control;   // 遥控器YAW自由度输入值
-float pitch_control; // 遥控器PITCH自由度输入值
 
 /**
  * @brief 对Pitch轴角度变化进行限位
@@ -326,19 +332,10 @@ static void RemoteControlSet()
                 if (rc_mode[SHOOT_FRICTION] == 0 && shoot_cmd_send.friction_mode == FRICTION_OFF) {
                     rc_mode[SHOOT_FRICTION] = 1;
                 }
-                // 拨弹盘
-                if (rc_mode[SHOOT_LOAD] == 0 && shoot_cmd_send.load_mode == LOAD_STOP) {
-                    rc_mode[SHOOT_LOAD] = 1;
-                }
             }
-
             if (shoot_cmd_send.friction_mode == FRICTION_ON) {
                 rc_mode[SHOOT_FRICTION] = 0;
             }
-            if (shoot_cmd_send.load_mode == LOAD_BURSTFIRE || shoot_cmd_send.load_mode == LOAD_1_BULLET) {
-                rc_mode[SHOOT_LOAD] = 0;
-            }
-
             break;
         case RC_SW_UP:
             if (rc_mode[SHOOT_FRICTION] == 1) {
@@ -348,14 +345,10 @@ static void RemoteControlSet()
             }
             break;
         case RC_SW_DOWN:
-            if (rc_mode[SHOOT_LOAD] == 0) {
-                shoot_cmd_send.load_mode = LOAD_STOP;
+            if (rc_data[TEMP].rc.dial < -400) {
+                shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
             } else {
-                if (rc_data[TEMP].rc.dial < -400) {
-                    shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-                } else {
-                    shoot_cmd_send.load_mode = LOAD_1_BULLET;
-                }
+                shoot_cmd_send.load_mode = LOAD_1_BULLET;
             }
         default:
             break;
@@ -605,11 +598,13 @@ void RobotCMDTask()
     memcpy(&chassis_cmd_send.level, &referee_data->GameRobotState.robot_level, sizeof(uint8_t));
     memcpy(&chassis_cmd_send.power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
     memcpy(&chassis_cmd_send.SuperCap_flag_from_user, &SuperCap_flag_from_user, sizeof(uint8_t));
+    // memcpy
 
     // shoot
     memcpy(&shoot_cmd_send.shooter_heat_cooling_rate, &referee_data->GameRobotState.shooter_id1_17mm_cooling_rate, sizeof(uint16_t));
     memcpy(&shoot_cmd_send.shooter_referee_heat, &referee_data->PowerHeatData.shooter_17mm_heat0, sizeof(uint16_t));
     memcpy(&shoot_cmd_send.shooter_cooling_limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
+    memcpy(&shoot_cmd_send.bullet_speed, &referee_data->ShootData.bullet_speed, sizeof(float));
 
     // UI
     referee_data_for_ui = referee_data;
@@ -620,6 +615,11 @@ void RobotCMDTask()
     memcpy(&ui_cmd_send.rune_mode, &auto_rune, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_mode, &chassis_fetch_data.CapFlag_open_from_real, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_voltage, &chassis_fetch_data.cap_voltage, sizeof(float));
+    memcpy(&ui_cmd_send.Chassis_Ctrl_power, &chassis_fetch_data.chassis_power_output, sizeof(float));
+    memcpy(&ui_cmd_send.Cap_absorb_power_limit, &chassis_fetch_data.capget_power_limit, sizeof(uint16_t));
+    memcpy(&ui_cmd_send.Chassis_power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
+    memcpy(&ui_cmd_send.Shooter_heat, &shoot_fetch_data.shooter_local_heat, sizeof(float));
+    memcpy(&ui_cmd_send.Heat_Limit,&referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
 
 #ifdef ONE_BOARD
     PubPushMessage(chassis_cmd_pub, (void *)&chassis_cmd_send);

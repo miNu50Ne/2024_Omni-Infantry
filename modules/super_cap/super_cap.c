@@ -27,21 +27,24 @@ static float uint_to_float(int x_int, float x_min, float x_max, int bits)
     float offset = x_min;
     return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
 }
-int super_time = 0;
+
 static void SuperCapRxCallback(CANInstance *_instance)
 {
-    super_time++;
-    uint8_t *rxbuff;
+    struct _packed {
+        uint16_t chassis_power;
+        uint16_t cap_voltage;
+        uint16_t chassis_voltage;
+        uint8_t enabled;
+        uint8_t unused;
+    } *rxbuff;
     SuperCap_Msg_s *Msg;
-    int power, voltage;
     rxbuff = _instance->rx_buff;
 
-    power                             = ((rxbuff[1])<<8)|rxbuff[0];
-    voltage                           = ((rxbuff[3])<<8)|rxbuff[2];
     Msg                               = &super_cap_instance->cap_msg_s;
-    Msg->chassis_power_from_cap       = uint_to_float(power, 0.0, 500.0, 16);
-    Msg->CapVot                       = uint_to_float(voltage, 0.0, 27.0, 16);
-    Msg->SuperCap_open_flag_from_real = !rxbuff[4];
+    Msg->chassis_power_from_cap       = uint_to_float(rxbuff->chassis_power, 0.0, 500.0, 16);
+    Msg->chassis_voltage_from_cap     = uint_to_float(rxbuff->chassis_voltage, 0.0, 50.0, 16);
+    Msg->CapVot                       = uint_to_float(rxbuff->cap_voltage, 0.0, 50.0, 16);
+    Msg->SuperCap_open_flag_from_real = rxbuff->enabled;
 }
 
 SuperCapInstance *SuperCapInit(SuperCap_Init_Config_s *supercap_config)

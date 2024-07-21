@@ -3,9 +3,9 @@
 #include "main.h"
 #include "rm_referee.h"
 
-#define bool  _Bool
-#define true  1
-#define false 0
+#define bool      _Bool
+#define true      1
+#define false     0
 
 #define RAMP_TIME 1500 // 1000
 

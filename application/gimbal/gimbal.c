@@ -60,9 +60,9 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 0.3, // 0.24, // 0.31, // 0.45
+                .Kp            = 0.6, // 0.24, // 0.31, // 0.45
                 .Ki            = 0,
-                .Kd            = 0.001,
+                .Kd            = 0.0,
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
@@ -70,9 +70,9 @@ void GimbalInit()
                 .MaxOut = 10,
             },
             .speed_PID = {
-                .Kp            = 15000, // 18000, // 10500,//1000,//10000,// 11000
-                .Ki            = 0,     // 0
-                .Kd            = 30,    // 10, // 30
+                .Kp            = 7000, // 18000, // 10500,//1000,//10000,// 11000
+                .Ki            = 0,    // 0
+                .Kd            = 0,    // 10, // 30
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 5000,
                 .MaxOut        = 20000, // 20000
@@ -98,16 +98,16 @@ void GimbalInit()
         .controller_param_init_config = {
             .angle_PID = {
                 .Kp            = 40, // 35, // 40, // 10
-                .Ki            = 0.4,
+                .Ki            = 0,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 11500, // 10500, // 13000,//10500,  // 10500
-                .Ki            = 0,     // 12000, // 10000, // 10000
-                .Kd            = 0,     // 0
+                .Kp            = 8000, // 10500, // 13000,//10500,  // 10500
+                .Ki            = 0,    // 12000, // 10000, // 10000
+                .Kd            = 0,    // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 3000,
                 .MaxOut        = 20000,
@@ -151,11 +151,14 @@ void GimbalTask()
         // 使用陀螺仪的反馈,底盘根据yaw电机的offset跟随云台或视觉模式采用
         case GIMBAL_GYRO_MODE: // 后续只保留此模式
             DJIMotorEnable(yaw_motor);
+            // DJIMotorStop(yaw_motor);
             DJIMotorEnable(pitch_motor);
+            // DJIMotorStop(pitch_motor);
             DJIMotorChangeFeed(yaw_motor, ANGLE_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(yaw_motor, SPEED_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(pitch_motor, ANGLE_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(pitch_motor, SPEED_LOOP, OTHER_FEED);
+            // DJIMotorOuterLoop(yaw_motor, SPEED_LOOP);
             DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
             DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
             break;
@@ -169,6 +172,7 @@ void GimbalTask()
     // 设置反馈数据,主要是imu和yaw的ecd
     gimbal_feedback_data.gimbal_imu_data              = gimbal_IMU_data;
     gimbal_feedback_data.yaw_motor_single_round_angle = (uint16_t)yaw_motor->measure.angle_single_round; // 推送消息
+    gimbal_feedback_data.yaw_ecd                      = yaw_motor->measure.ecd;
 
     // 推送消息
     PubPushMessage(gimbal_pub, (void *)&gimbal_feedback_data);

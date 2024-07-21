@@ -28,29 +28,31 @@
 #define SUPER_VOLTAGE_OPEN  1
 #define SUPER_VOLTAGE_CLOSE 0
 
-#define SUPER_RELAY_OPEN    1
-#define SUPER_RELAY_CLOSE   0
+#define SUPER_CMD_OPEN      1
+#define SUPER_CMD_CLOSE     0
 
 // 定义电压阈值
-#define SUPER_VOLTAGE_THRESHOLD_LOW        10.0f
-#define SUPER_VOLTAGE_THRESHOLD_HIGH       18.0f
+#define SUPER_VOLTAGE_THRESHOLD_LOW  10.0f
+#define SUPER_VOLTAGE_THRESHOLD_HIGH 18.0f
 
-#define SUPERCAP_OPEN_FLAG_FROM_REAL_OPEN  0
-#define SUPERCAP_OPEN_FLAG_FROM_REAL_CLOSE 1
+#define SUPERCAP_PMOS_OPEN           1
+#define SUPERCAP_PMOS_CLOSE          0
 
 /* 超级电容发送信息 */
 typedef struct
 {
     float CapVot;                         // 电压
     float chassis_power_from_cap;         // 底盘功率
+    float chassis_voltage_from_cap;       // 底盘电压
     uint8_t SuperCap_open_flag_from_real; // 开关指示 未开启为1
 } SuperCap_Msg_s;
 
 /* 超级电容接收信息 */
 typedef struct
 {
-    uint8_t power_relay_flag; // 电容开启状态
-    uint8_t power;            // 具体功率
+    uint16_t unused[3];
+    uint8_t power_limit; // 功率限制
+    uint8_t enabled;     // 电容开启状态
 } SuperCap_Msg_g;
 #pragma pack()
 

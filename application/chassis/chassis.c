@@ -27,16 +27,14 @@
 #include "tool.h"
 
 /* 根据robot_def.h中的macro自动计算的参数 */
-#define HALF_WHEEL_BASE     (WHEEL_BASE / 2.0f)     // 半轴距
-#define HALF_TRACK_WIDTH    (TRACK_WIDTH / 2.0f)    // 半轮距
-#define PERIMETER_WHEEL     (RADIUS_WHEEL * 2 * PI) // 轮子周长
+#define HALF_WHEEL_BASE  (WHEEL_BASE / 2.0f)     // 半轴距
+#define HALF_TRACK_WIDTH (TRACK_WIDTH / 2.0f)    // 半轮距
+#define PERIMETER_WHEEL  (RADIUS_WHEEL * 2 * PI) // 轮子周长
 
-#define LF                  0
-#define RF                  1
-#define RB                  2
-#define LB                  3
-
-#define SuperCap_PowerLimit 1200
+#define LF               0
+#define RF               1
+#define RB               2
+#define LB               3
 
 /* 底盘应用包含的模块和信息存储,底盘是单例模式,因此不需要为底盘建立单独的结构体 */
 #ifdef CHASSIS_BOARD // 如果是底盘板,使用板载IMU获取底盘转动角速度
@@ -62,21 +60,21 @@ static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转�
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 75,
-    .Ki            = 0,
-    .Kd            = 1.0,
-    .DeadBand      = 6.0, // 跟随模式设置了死区，防止抖动
+    .Kp            = 50.0,
+    .Ki            = 3.0,
+    .Kd            = 0.0,
+    .DeadBand      = 8.0, // 跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 20000,
+    .MaxOut        = 60000,
 };
 
 /* 用于自旋变速策略的时间变量 */
 // static float t;
 
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
-static float chassis_vx, chassis_vy;     // 将云台系的速度投影到底盘
-static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出,待进行限幅
+static float chassis_vx, chassis_vy, chassis_vw; // 将云台系的速度投影到底盘
+static float vt_lf, vt_rf, vt_lb, vt_rb;         // 底盘速度解算后的临时输出,待进行限幅
 
 float aim_power = 0;
 
@@ -167,7 +165,7 @@ static void MecanumCalculate()
 }
 
 static ramp_t super_ramp;
-
+static float Power_Output;
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  * @param
@@ -177,8 +175,10 @@ static ramp_t super_ramp;
 static void LimitChassisOutput()
 {
     static float Plimit;
+
+    // 缓冲能量闭环
     if (chassis_cmd_recv.power_buffer < 50 && chassis_cmd_recv.power_buffer >= 40)
-        Plimit = 0.9 + (chassis_cmd_recv.power_buffer - 40) * 0.01; // 15
+        Plimit = 0.9 + (chassis_cmd_recv.power_buffer - 40) * 0.01;
     else if (chassis_cmd_recv.power_buffer < 40 && chassis_cmd_recv.power_buffer >= 35)
         Plimit = 0.75 + (chassis_cmd_recv.power_buffer - 35) * (0.15f / 5);
     else if (chassis_cmd_recv.power_buffer < 35 && chassis_cmd_recv.power_buffer >= 30)
@@ -192,34 +192,20 @@ static void LimitChassisOutput()
     else if (chassis_cmd_recv.power_buffer == 60)
         Plimit = 1;
 
-    PowerControlupdate(chassis_cmd_recv.power_limit - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
-
-    // Power_Output = (power_output + (chassis_cmd_recv.power_limit - power_output) * ramp_calc(&limit_ramp));
-    // PowerControlupdate(Power_Output - 15 + 20 * Plimit, 1.0f / REDUCTION_RATIO_WHEEL);
-    // power_output = Power_Output;
+    Power_Output = chassis_cmd_recv.power_limit - 15 + 20 * Plimit;
+    PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     ramp_init(&super_ramp, 300);
-
-    // 设定速度参考值
-    DJIMotorSetRef(motor_lf, vt_lf);
-    DJIMotorSetRef(motor_rf, vt_rf);
-    DJIMotorSetRef(motor_lb, vt_lb);
-    DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 // 提高功率上限，飞坡或跑路
 static void SuperLimitOutput()
 {
-    static float Power_Output, power_output;
-    Power_Output = (power_output + (400 - power_output) * ramp_calc(&super_ramp));
+    static float power_output;
+    Power_Output = (power_output + (250 - 20 + 40 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
-
-    DJIMotorSetRef(motor_lf, vt_lf);
-    DJIMotorSetRef(motor_rf, vt_rf);
-    DJIMotorSetRef(motor_lb, vt_lb);
-    DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 /**
@@ -228,7 +214,6 @@ static void SuperLimitOutput()
  *
  */
 uint8_t Super_Voltage_Allow_Flag;
-int accel_delay;
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
 float voltage;
 void Super_Cap_control()
@@ -236,7 +221,7 @@ void Super_Cap_control()
     // 电容电压
     voltage = cap->cap_msg_s.CapVot;
 
-    // 状态机逻辑
+    // 状态机逻辑,滞回
     switch (SuperCap_state) {
         case SUPER_STATE_LOW:
             if (voltage > SUPER_VOLTAGE_THRESHOLD_HIGH) {
@@ -262,59 +247,37 @@ void Super_Cap_control()
         // none
     }
 
-    // // 电压大于12V开启
-    // if (voltage > 12.0f)
-    //     Super_Voltage_Allow_Flag = SUPER_VOLTAGE_OPEN;
-    // else
-    //     Super_Voltage_Allow_Flag = SUPER_VOLTAGE_CLOSE;
-
-    // // User允许开启电容 且 电压充足
-    if (chassis_cmd_recv.SuperCap_flag_from_user == SUPER_RELAY_OPEN && Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN) {
-        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
+    // User允许开启电容 且 电压充足
+    if (chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN && Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN) {
+        cap->cap_msg_g.enabled = SUPER_CMD_OPEN;
         SuperLimitOutput();
     } else {
-        cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
+        cap->cap_msg_g.enabled = SUPER_CMD_CLOSE;
         LimitChassisOutput();
     }
 
-    // User允许开启电容 且 电压充足
-    // if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
-    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    //     accel_delay                     = 0;
-    //     accel_delay++;
-    //     if (accel_delay > 20) {
-    //         accel_delay                     = 1;
-    //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
-    //     } else {
-    //         cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    //     }
-    // }
-    // 物理层继电器状态改变，功率限制状态改变
-    // if (Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN && chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
-    //     // 延时，超电打开后再提高功率
-    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_OPEN;
-    //     accel_delay++;
-    //     if (accel_delay > 30) {
-    //         accel_delay = 31;
-    //         SuperLimitOutput();
-    //     } else {
-    //         LimitChassisOutput();
-    //     }
-    // } else {
-    //     cap->cap_msg_g.power_relay_flag = SUPER_RELAY_CLOSE;
-    //     accel_delay = 0;
-    //     LimitChassisOutput();
-    // }
+    // 设定速度参考值
+    DJIMotorSetRef(motor_lf, vt_lf);
+    DJIMotorSetRef(motor_rf, vt_rf);
+    DJIMotorSetRef(motor_lb, vt_lb);
+    DJIMotorSetRef(motor_rb, vt_rb);
 }
 
 // 获取功率裆位
 static void Power_get()
 {
-    cap->cap_msg_g.power = chassis_cmd_recv.power_limit - 30;
+    cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 40 + 40 * cap->cap_msg_s.CapVot - 17.0f / (6.0f);
+    // if (cap->cap_msg_s.CapVot >= 21) {
+    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 20;
+    // } else if (17 <= cap->cap_msg_s.CapVot) {
+    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 40;
+    // } else if (cap->cap_msg_s.CapVot < 17) {
+    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 60;
+    // }
 }
 
-static float chassis_vw, current_speed_vw, vw_set;
-static ramp_t rotate_ramp;
+float offset_angle_watch;
+
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
@@ -337,9 +300,10 @@ void ChassisTask()
         DJIMotorEnable(motor_lb);
         DJIMotorEnable(motor_rb);
     }
-
-    float offset_angle;
+    static float offset_angle;
     static float sin_theta, cos_theta;
+    static float current_speed_vw, vw_set;
+    static ramp_t rotate_ramp;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
@@ -350,13 +314,17 @@ void ChassisTask()
             sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             ramp_init(&rotate_ramp, 250);
             break;
-        case CHASSIS_FOLLOW_GIMBAL_YAW:                                                      // 跟随云台
+        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
+
             if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
                 offset_angle = chassis_cmd_recv.offset_angle;
             else {
                 offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             }
-            chassis_cmd_recv.wz = 1.2 * PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
+            offset_angle       = chassis_cmd_recv.offset_angle + chassis_cmd_recv.gimbal_error_angle;
+            offset_angle_watch = offset_angle;
+
+            chassis_cmd_recv.wz = PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
 
             cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
@@ -364,10 +332,10 @@ void ChassisTask()
             ramp_init(&rotate_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            if (cap->cap_msg_g.power_relay_flag == SUPER_RELAY_CLOSE) {
-                vw_set = 5000;
-            } else {
+            if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_PMOS_OPEN) {
                 vw_set = 7000;
+            } else {
+                vw_set = 5000;
             }
             chassis_vw       = (current_speed_vw + (vw_set - current_speed_vw) * ramp_calc(&rotate_ramp));
             current_speed_vw = chassis_vw;
@@ -395,8 +363,7 @@ void ChassisTask()
     MecanumCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
-    // Super_Cap_control();
-    LimitChassisOutput();
+    Super_Cap_control();
 
     // 获得给电容传输的电容吸取功率等级
     Power_get();
@@ -407,6 +374,8 @@ void ChassisTask()
     // 推送反馈消息
     memcpy(&chassis_feedback_data.CapFlag_open_from_real, &cap->cap_msg_s.SuperCap_open_flag_from_real, sizeof(uint8_t));
     memcpy(&chassis_feedback_data.cap_voltage, &cap->cap_msg_s.CapVot, sizeof(float));
+    memcpy(&chassis_feedback_data.chassis_power_output, &Power_Output, sizeof(float));
+    memcpy(&chassis_feedback_data.chassis_voltage, &cap->cap_msg_s.chassis_voltage_from_cap, sizeof(float));
 
 #ifdef ONE_BOARD
     PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);

@@ -91,6 +91,14 @@ __attribute__((noreturn)) void _UITask(void *argument)
     UI_Init();
     for (;;) {
         UIDynamicRefresh();
-        osDelay(100);
+        osDelay(20);
     }
 }
+
+// __attribute__((noreturn)) void _DaemonTask(void *argument)
+// {
+//     for (;;) {
+//         DaemonTask();
+//         osDelay(1);
+//     }
+// }

@@ -107,11 +107,11 @@
           "application/cmd",
           "application/gimbal",
           "application/shoot",
+          "application/UI",
           "application",
           "application/test",
           "modules/tool",
-          "modules/power_control",
-          "application/UI"
+          "modules/power_control"
         ],
         "libList": [
           "Middlewares/ST/ARM/DSP/Lib",
