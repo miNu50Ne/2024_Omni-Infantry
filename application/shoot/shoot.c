@@ -139,7 +139,7 @@ static void Load_Reverse()
     }
 }
 
-int heat_control    = 15; // 热量控制
+int heat_control    = 25; // 热量控制
 float local_heat    = 0;  // 本地热量
 int One_bullet_heat = 10; // 打一发消耗热量
 int32_t shoot_count;      // 已发弹量
@@ -181,7 +181,7 @@ static void Shoot_Fric_data_process(void)
         /*导数比较*/
         if (derivative < -300) {
             bullet_waiting_confirm = true;
-        } else if (derivative > 50) {
+        } else if (derivative > 30) {
             if (bullet_waiting_confirm == true) {
                 local_heat += One_bullet_heat; // 确认打出
                 shoot_count++;
@@ -266,9 +266,9 @@ void ShootTask()
     static float setfricspeed;
 
     if (shoot_cmd_recv.bullet_speed > 29.5) {
-        setfricspeed = 42000;
+        setfricspeed = 41000;
     } else if (shoot_cmd_recv.bullet_speed < 27) {
-        setfricspeed = 44000;
+        setfricspeed = 43000;
     }
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {

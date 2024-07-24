@@ -60,13 +60,13 @@ static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转�
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 50.0,
-    .Ki            = 3.0,
+    .Kp            = 60.0,
+    .Ki            = 5.0,
     .Kd            = 0.0,
-    .DeadBand      = 8.0, // 跟随模式设置了死区，防止抖动
+    .DeadBand      = 4.0, // 跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 60000,
+    .MaxOut        = 40000,
 };
 
 /* 用于自旋变速策略的时间变量 */
@@ -215,21 +215,17 @@ static void SuperLimitOutput()
  */
 uint8_t Super_Voltage_Allow_Flag;
 static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
-float voltage;
 void Super_Cap_control()
 {
-    // 电容电压
-    voltage = cap->cap_msg_s.CapVot;
-
     // 状态机逻辑,滞回
     switch (SuperCap_state) {
         case SUPER_STATE_LOW:
-            if (voltage > SUPER_VOLTAGE_THRESHOLD_HIGH) {
+            if (cap->cap_msg_s.CapVot > SUPER_VOLTAGE_THRESHOLD_HIGH) {
                 SuperCap_state = SUPER_STATE_HIGH;
             }
             break;
         case SUPER_STATE_HIGH:
-            if (voltage < SUPER_VOLTAGE_THRESHOLD_LOW) {
+            if (cap->cap_msg_s.CapVot < SUPER_VOLTAGE_THRESHOLD_LOW) {
                 SuperCap_state = SUPER_STATE_LOW;
             }
             break;
@@ -267,13 +263,6 @@ void Super_Cap_control()
 static void Power_get()
 {
     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 40 + 40 * cap->cap_msg_s.CapVot - 17.0f / (6.0f);
-    // if (cap->cap_msg_s.CapVot >= 21) {
-    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 20;
-    // } else if (17 <= cap->cap_msg_s.CapVot) {
-    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 40;
-    // } else if (cap->cap_msg_s.CapVot < 17) {
-    //     cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 60;
-    // }
 }
 
 float offset_angle_watch;
@@ -304,6 +293,9 @@ void ChassisTask()
     static float sin_theta, cos_theta;
     static float current_speed_vw, vw_set;
     static ramp_t rotate_ramp;
+
+    offset_angle       = chassis_cmd_recv.offset_angle + chassis_cmd_recv.gimbal_error_angle;
+    offset_angle_watch = offset_angle;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
@@ -316,13 +308,11 @@ void ChassisTask()
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
 
-            if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
-                offset_angle = chassis_cmd_recv.offset_angle;
-            else {
-                offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
-            }
-            offset_angle       = chassis_cmd_recv.offset_angle + chassis_cmd_recv.gimbal_error_angle;
-            offset_angle_watch = offset_angle;
+            // if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
+            //     offset_angle = chassis_cmd_recv.offset_angle;
+            // else {
+            //     offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
+            // }
 
             chassis_cmd_recv.wz = PIDCalculate(&Chassis_Follow_PID, offset_angle, 0);
 

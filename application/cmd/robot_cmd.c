@@ -19,6 +19,8 @@
 #include "bsp_dwt.h"
 #include "bsp_log.h"
 
+#define RC_LOST (rc_data[TEMP].rc.switch_left == 0 && rc_data[TEMP].rc.switch_right == 0)
+
 // 私有宏,自动将编码器转换成角度值
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
 #if PITCH_FEED_TYPE                                                  // Pitch电机反馈数据源为陀螺仪
@@ -228,13 +230,25 @@ static void YawControlProcess()
     }
 }
 
+static float heat_coef;
+
 static void HeatControl()
 {
     if (shoot_cmd_send.friction_mode == FRICTION_OFF) {
         shoot_cmd_send.load_mode = LOAD_STOP;
     }
+    static float rate_coef;
+    if (heat_coef == 1)
+        rate_coef = 1;
+    else if (heat_coef >= 0.8 && heat_coef < 1)
+        rate_coef = 0.8;
+    else if (heat_coef >= 0.6 && heat_coef < 0.8)
+        rate_coef = 0.6;
+    else if (heat_coef < 0.6)
+        rate_coef = 0.4;
+    heat_coef = ((referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - referee_data->PowerHeatData.shooter_17mm_heat0 + rate_coef * referee_data->GameRobotState.shooter_id1_17mm_cooling_rate) * 1.0f) / (1.0f * referee_data->GameRobotState.shooter_id1_17mm_cooling_limit);
     // 新热量管理
-    if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
+    if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - 40 + 30 * heat_coef - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
         shoot_cmd_send.load_mode = LOAD_STOP;
     }
 }
@@ -582,7 +596,7 @@ void RobotCMDTask()
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
     if (switch_is_up(rc_data[TEMP].rc.switch_left) && (switch_is_down(rc_data[TEMP].rc.switch_right))) // 遥控器拨杆右[上]左[下],键鼠控制
         MouseKeySet();
-    else if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right)) {
+    else if (RC_LOST || (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right))) {
         EmergencyHandler(); // 调试/疯车时急停
     } else {
         RemoteControlSet();
@@ -607,6 +621,7 @@ void RobotCMDTask()
     memcpy(&shoot_cmd_send.bullet_speed, &referee_data->ShootData.bullet_speed, sizeof(float));
 
     // UI
+    // memcpy(referee_data_for_ui, referee_data, sizeof(referee_info_t));
     referee_data_for_ui = referee_data;
     memcpy(&ui_cmd_send.ui_send_flag, &UI_SendFlag, sizeof(uint8_t));
     memcpy(&ui_cmd_send.chassis_mode, &chassis_cmd_send.chassis_mode, sizeof(chassis_mode_e));
@@ -619,7 +634,7 @@ void RobotCMDTask()
     memcpy(&ui_cmd_send.Cap_absorb_power_limit, &chassis_fetch_data.capget_power_limit, sizeof(uint16_t));
     memcpy(&ui_cmd_send.Chassis_power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
     memcpy(&ui_cmd_send.Shooter_heat, &shoot_fetch_data.shooter_local_heat, sizeof(float));
-    memcpy(&ui_cmd_send.Heat_Limit,&referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
+    memcpy(&ui_cmd_send.Heat_Limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
 
 #ifdef ONE_BOARD
     PubPushMessage(chassis_cmd_pub, (void *)&chassis_cmd_send);

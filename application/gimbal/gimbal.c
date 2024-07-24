@@ -92,7 +92,7 @@ void GimbalInit()
     // PITCH
     Motor_Init_Config_s pitch_config = {
         .can_init_config = {
-            .can_handle = &hcan1,
+            .can_handle = &hcan2,
             .tx_id      = 2,
         },
         .controller_param_init_config = {
@@ -105,7 +105,7 @@ void GimbalInit()
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 8000, // 10500, // 13000,//10500,  // 10500
+                .Kp            = 6000, // 10500, // 13000,//10500,  // 10500
                 .Ki            = 0,    // 12000, // 10000, // 10000
                 .Kd            = 0,    // 0
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,

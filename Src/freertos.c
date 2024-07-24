@@ -93,7 +93,7 @@ const osThreadAttr_t Shoot_attributes = {
 osThreadId_t motorControlHandle;
 const osThreadAttr_t motorControl_attributes = {
   .name = "motorControl",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for UIDraw */

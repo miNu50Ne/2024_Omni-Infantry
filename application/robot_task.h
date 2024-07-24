@@ -41,15 +41,23 @@ __attribute__((noreturn)) void StartINSTASK(void *argument)
     }
 }
 
-int task_time;
 __attribute__((noreturn)) void _RobotCMDTask(void *argument)
 {
+    // static uint32_t robot_time;
+    // static float robot_dt;
+    // LOGINFO("[freeRTOS] Robot Task Start");
+    // for (;;) {
+    //     RobotCMDTask();
+    //     robot_dt = 1000 * DWT_GetDeltaT(&robot_time);
+    //     if (robot_dt > 1.2f)
+    //         LOGERROR("[freeRTOS] Robot Task is being DELAY! dt = [%f]ms", &robot_dt);
+    //     osDelay(1);
+    // }
     static uint32_t cmd_time;
     static float cmd_dt;
-    LOGINFO("[freeRTOS] Robot Task Start");
+    LOGINFO("[freeRTOS] RobotCMD Task Start");
     for (;;) {
         RobotCMDTask();
-        task_time++;
         cmd_dt = 1000 * DWT_GetDeltaT(&cmd_time);
         if (cmd_dt > 1.2f)
             LOGERROR("[freeRTOS] Robot Task is being DELAY! dt = [%f]ms", &cmd_dt);
@@ -91,14 +99,14 @@ __attribute__((noreturn)) void _UITask(void *argument)
     UI_Init();
     for (;;) {
         UIDynamicRefresh();
-        osDelay(20);
+        osDelay(50);
     }
 }
 
-// __attribute__((noreturn)) void _DaemonTask(void *argument)
-// {
-//     for (;;) {
-//         DaemonTask();
-//         osDelay(1);
-//     }
-// }
+__attribute__((noreturn)) void _DaemonTask(void *argument)
+{
+    for (;;) {
+        DaemonTask();
+        osDelay(1);
+    }
+}
