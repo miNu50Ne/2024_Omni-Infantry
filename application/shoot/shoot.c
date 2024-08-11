@@ -215,6 +215,8 @@ void ShootTask()
     {
         DJIMotorEnable(friction_l);
         DJIMotorEnable(friction_r);
+        // DJIMotorStop(friction_r);
+
         DJIMotorEnable(loader);
     }
 
@@ -263,17 +265,10 @@ void ShootTask()
             while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
     }
 
-    static float setfricspeed;
-
-    if (shoot_cmd_recv.bullet_speed > 29.5) {
-        setfricspeed = 41000;
-    } else if (shoot_cmd_recv.bullet_speed < 27) {
-        setfricspeed = 43000;
-    }
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        fric_speed = (shoot_speed + (setfricspeed - shoot_speed) * ramp_calc(&fric_on_ramp));
+        fric_speed = (shoot_speed + (42500 - shoot_speed) * ramp_calc(&fric_on_ramp));
         ramp_init(&fric_off_ramp, 300);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
         fric_speed = (shoot_speed + (0 - shoot_speed) * ramp_calc(&fric_off_ramp));

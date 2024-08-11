@@ -59,7 +59,7 @@ SuperCapInstance *SuperCapInit(SuperCap_Init_Config_s *supercap_config)
 
 void SuperCapSend(SuperCapInstance *instance, uint8_t *data)
 {
-    memcpy((uint8_t *)instance->can_ins->tx_buff, data, 8);
+    memcpy(instance->can_ins->tx_buff, data, 8);
     CANTransmit(instance->can_ins, 1);
 }
 

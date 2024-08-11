@@ -51,8 +51,8 @@
 
 #ifdef NEWNEW
 
-#define YAW_CHASSIS_ALIGN_ECD     2373 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-#define YAW_ECD_GREATER_THAN_4096 0    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
+#define YAW_CHASSIS_ALIGN_ECD     5793 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         6812 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_UP_LIMIT_ECD    6348 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  7380 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改

@@ -60,13 +60,14 @@ static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转�
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 60.0,
-    .Ki            = 5.0,
-    .Kd            = 0.0,
-    .DeadBand      = 4.0, // 跟随模式设置了死区，防止抖动
+    .Kp            = 105,   // 25,//25, // 50,//70, // 4.5
+    .Ki            = 0,    // 0
+    .Kd            = 0.85, // 0.0,  // 0.07,  // 0
+    .DeadBand      = 4.0,  // 0.75,  //跟随模式设置了死区，防止抖动
     .IntegralLimit = 3000,
     .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    .MaxOut        = 40000,
+    .MaxOut        = 30000,
+
 };
 
 /* 用于自旋变速策略的时间变量 */
@@ -75,8 +76,6 @@ static PIDInstance Chassis_Follow_PID = {
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
 static float chassis_vx, chassis_vy, chassis_vw; // 将云台系的速度投影到底盘
 static float vt_lf, vt_rf, vt_lb, vt_rb;         // 底盘速度解算后的临时输出,待进行限幅
-
-float aim_power = 0;
 
 void ChassisInit()
 {
@@ -192,7 +191,7 @@ static void LimitChassisOutput()
     else if (chassis_cmd_recv.power_buffer == 60)
         Plimit = 1;
 
-    Power_Output = chassis_cmd_recv.power_limit - 15 + 20 * Plimit;
+    Power_Output = chassis_cmd_recv.power_limit - 10 + 20 * Plimit;
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     ramp_init(&super_ramp, 300);
@@ -202,7 +201,8 @@ static void LimitChassisOutput()
 static void SuperLimitOutput()
 {
     static float power_output;
-    Power_Output = (power_output + (250 - 20 + 40 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
+    Power_Output = (power_output + (250 - power_output) * ramp_calc(&super_ramp));
+    // Power_Output = (power_output + (250 - 20 + 40 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
@@ -244,7 +244,7 @@ void Super_Cap_control()
     }
 
     // User允许开启电容 且 电压充足
-    if (chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN && Super_Voltage_Allow_Flag == SUPER_VOLTAGE_OPEN) {
+    if (chassis_cmd_recv.SuperCap_flag_from_user == SUPER_USER_OPEN) {
         cap->cap_msg_g.enabled = SUPER_CMD_OPEN;
         SuperLimitOutput();
     } else {
@@ -262,7 +262,7 @@ void Super_Cap_control()
 // 获取功率裆位
 static void Power_get()
 {
-    cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 40 + 40 * cap->cap_msg_s.CapVot - 17.0f / (6.0f);
+    cap->cap_msg_g.power_limit = chassis_cmd_recv.power_limit - 30 + 30 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f;
 }
 
 float offset_angle_watch;
@@ -336,8 +336,9 @@ void ChassisTask()
             chassis_cmd_recv.vx *= 0.6;
             chassis_cmd_recv.vy *= 0.6;
             break;
+            
         case CHASSIS_REVERSE_ROTATE:
-            chassis_cmd_recv.wz = -4000;
+            chassis_cmd_recv.wz = -5000;
             cos_theta           = arm_cos_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
             sin_theta           = arm_sin_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD);
         default:

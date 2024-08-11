@@ -26,14 +26,10 @@ uint8_t UI_rune; // 自瞄打符标志位
 uint8_t UI_Seq;                      // 包序号，供整个referee文件使用
 static Graph_Data_t shoot_line[7];   // 射击准线
 static Graph_Data_t state_circle[4]; // 圆形
-static String_Data_t Char_State[10]; // 字符串
+static String_Data_t Char_State[6];  // 字符串
 
-static Graph_Data_t Cap_voltage;         // 电容电压
-static Graph_Data_t Chassis_Ctrl_Power;  // 底盘控制功率（目标功率）
-static Graph_Data_t Cap_Absorb_Power;    // 电容吸收功率
-static Graph_Data_t Chassis_Power_Limit; // 底盘功率上限
-static Graph_Data_t Shoot_Local_Heat;    // 射击本地热量
-static Graph_Data_t Heat_Limit;          // 热量上限
+static Graph_Data_t Cap_voltage;      // 电容电压
+static Graph_Data_t Shoot_Local_Heat; // 射击本地热量
 
 static void UI_StaticInit()
 {
@@ -41,10 +37,15 @@ static void UI_StaticInit()
     UIDelete(&referee_data_for_ui->referee_id, UI_Data_Del_ALL, 0);
 
     // 射击准心
-    UILineDraw(&shoot_line[0], "ol0", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2 - 20, SCREEN_WIDTH / 2 + 5, SCREEN_LENGTH / 2 - 20, SCREEN_WIDTH / 2 - 45);
-    UILineDraw(&shoot_line[1], "ol1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 70, SCREEN_WIDTH / 2 - 50, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 50);
-    UILineDraw(&shoot_line[2], "ol2", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2 - 20, SCREEN_WIDTH / 2 - 55, SCREEN_LENGTH / 2 - 20, SCREEN_WIDTH / 2 - 500);
-    UILineDraw(&shoot_line[3], "ol3", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 15, SCREEN_WIDTH / 2 - 50, SCREEN_LENGTH / 2 + 30, SCREEN_WIDTH / 2 - 50);
+    UILineDraw(&shoot_line[0], "ol0", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 + 5, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 44);
+    UILineDraw(&shoot_line[1], "ol1", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 75, SCREEN_WIDTH / 2 - 50, SCREEN_LENGTH / 2 - 30, SCREEN_WIDTH / 2 - 50);
+    UILineDraw(&shoot_line[2], "ol2", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 56, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 105);
+    UILineDraw(&shoot_line[3], "ol3", UI_Graph_ADD, 9, UI_Color_Yellow, 1, SCREEN_LENGTH / 2 - 20, SCREEN_WIDTH / 2 - 50, SCREEN_LENGTH / 2 + 25, SCREEN_WIDTH / 2 - 50);
+
+    UILineDraw(&shoot_line[4], "ol4", UI_Graph_ADD, 9, UI_Color_Green, 1, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 49, SCREEN_LENGTH / 2 - 25, SCREEN_WIDTH / 2 - 51);
+
+    UILineDraw(&shoot_line[5], "ol5", UI_Graph_ADD, 9, UI_Color_White, 2, 540, 150, 700, 300);
+    UILineDraw(&shoot_line[6], "ol6", UI_Graph_ADD, 9, UI_Color_White, 2, 1380, 150, 1220, 300);
 
     // 小陀螺
     sprintf(Char_State[0].show_Data, "Rotate");
@@ -66,7 +67,7 @@ static void UI_StaticInit()
     UICircleDraw(&state_circle[2], "oc2", UI_Graph_ADD, 9, UI_Color_White, 10, 1100, 160, 10);
     // 电容
     sprintf(Char_State[3].show_Data, "Cap");
-    UICharDraw(&Char_State[3], "sc3", UI_Graph_ADD, 7, UI_Color_Orange, 23, 4, 1250, 125, "Cap");
+    UICharDraw(&Char_State[3], "sc3", UI_Graph_ADD, 7, UI_Color_Orange, 23, 4, 1270, 125, "Cap");
     UICharRefresh(&referee_data_for_ui->referee_id, Char_State[3]);
 
     UICircleDraw(&state_circle[3], "oc3", UI_Graph_ADD, 9, UI_Color_White, 10, 1300, 160, 10);
@@ -78,44 +79,16 @@ static void UI_StaticInit()
 
     UIFloatDraw(&Cap_voltage, "of0", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 180, 820, (ui_cmd_recv.SuperCap_voltage) * 1000);
 
-    // 底盘控制功率
-    sprintf(Char_State[5].show_Data, "Chassis_Ctrl_Power");
-    UICharDraw(&Char_State[5], "sc5", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 780, "Chassis_Ctrl_Power");
+    // 枪口热量
+    sprintf(Char_State[5].show_Data, "Shoot_Heat");
+    UICharDraw(&Char_State[5], "sc5", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 780, "Shoot_Heat");
     UICharRefresh(&referee_data_for_ui->referee_id, Char_State[5]);
 
-    UIFloatDraw(&Chassis_Ctrl_Power, "of1", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 400, 780, (ui_cmd_recv.Chassis_Ctrl_power) * 1000);
-
-    // 电容吸收功率
-    sprintf(Char_State[6].show_Data, "Power_Absorb_Limit");
-    UICharDraw(&Char_State[6], "sc6", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 740, "Cap_Absorb_Power");
-    UICharRefresh(&referee_data_for_ui->referee_id, Char_State[6]);
-
-    UIFloatDraw(&Cap_Absorb_Power, "of2", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 400, 740, (ui_cmd_recv.Cap_absorb_power_limit) * 1000);
-
-    // 底盘功率上限
-    sprintf(Char_State[7].show_Data, "Chassis_Power_Limit");
-    UICharDraw(&Char_State[7], "sc7", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 700, "Chassis_Power_Limit");
-    UICharRefresh(&referee_data_for_ui->referee_id, Char_State[7]);
-
-    UIFloatDraw(&Chassis_Power_Limit, "of3", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 400, 700, (ui_cmd_recv.Chassis_power_limit) * 1000);
-
-    // 枪口热量
-    sprintf(Char_State[8].show_Data, "Shoot_Heat");
-    UICharDraw(&Char_State[8], "sc8", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 660, "Local_Heat");
-    UICharRefresh(&referee_data_for_ui->referee_id, Char_State[8]);
-
-    UIFloatDraw(&Shoot_Local_Heat, "of4", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 250, 660, (ui_cmd_recv.Shooter_heat) * 1000);
-
-    // 热量上限
-    sprintf(Char_State[9].show_Data, "Heat_Limit");
-    UICharDraw(&Char_State[9], "sc9", UI_Graph_ADD, 7, UI_Color_Orange, 20, 3, 25, 620, "Heat_Limit");
-    UICharRefresh(&referee_data_for_ui->referee_id, Char_State[9]);
-
-    UIFloatDraw(&Heat_Limit, "of5", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 250, 620, (ui_cmd_recv.Heat_Limit) * 1000);
+    UIFloatDraw(&Shoot_Local_Heat, "of1", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 400, 780, (ui_cmd_recv.Shooter_heat) * 1000);
 
     // 发送
-    UIGraphRefresh(&referee_data_for_ui->referee_id, 7, shoot_line[0], shoot_line[1], shoot_line[2], shoot_line[3], Chassis_Power_Limit, Heat_Limit, Shoot_Local_Heat);
-    UIGraphRefresh(&referee_data_for_ui->referee_id, 7, state_circle[0], state_circle[1], state_circle[2], state_circle[3], Cap_voltage, Chassis_Ctrl_Power, Cap_Absorb_Power);
+    UIGraphRefresh(&referee_data_for_ui->referee_id, 7, shoot_line[0], shoot_line[1], shoot_line[2], shoot_line[3], shoot_line[4], shoot_line[5], shoot_line[6]);
+    UIGraphRefresh(&referee_data_for_ui->referee_id, 7, state_circle[0], state_circle[1], state_circle[2], state_circle[3], Cap_voltage, Shoot_Local_Heat);
 }
 
 void UI_Init()
@@ -157,30 +130,19 @@ void UIDynamicRefresh()
         UIFloatDraw(&Cap_voltage, "of0", UI_Graph_Change, 9, UI_Color_Orange, 20, 3, 3, 180, 820, (ui_cmd_recv.SuperCap_voltage) * 1000);
     } else {
         UICircleDraw(&state_circle[3], "oc3", UI_Graph_Change, 9, UI_Color_White, 10, 1300, 160, 10);
-        UIFloatDraw(&Cap_voltage, "of0", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 180, 820, (ui_cmd_recv.SuperCap_voltage) * 1000);
+        UIFloatDraw(&Cap_voltage, "of0", UI_Graph_Change, 9, UI_Color_Purplish_red, 20, 3, 3, 180, 820, (ui_cmd_recv.SuperCap_voltage) * 1000);
     }
-    // 底盘功率
-    UIFloatDraw(&Chassis_Ctrl_Power, "of1", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 400, 780, (ui_cmd_recv.Chassis_Ctrl_power) * 1000);
-
-    // 电容吸收功率
-    UIFloatDraw(&Cap_Absorb_Power, "of2", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 400, 740, (ui_cmd_recv.Cap_absorb_power_limit) * 1000);
-
-    // 底盘功率上限
-    UIFloatDraw(&Chassis_Power_Limit, "of3", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 400, 700, (ui_cmd_recv.Chassis_power_limit) * 1000);
 
     if (ui_cmd_recv.Heat_Limit - ui_cmd_recv.Shooter_heat > 20) {
-        // 热量上限
-        UIFloatDraw(&Heat_Limit, "of5", UI_Graph_Change, 9, UI_Color_Purplish_red, 20, 3, 3, 250, 620, (ui_cmd_recv.Heat_Limit) * 1000);
         // 本地热量
-        UIFloatDraw(&Shoot_Local_Heat, "of4", UI_Graph_Change, 9, UI_Color_Purplish_red, 20, 3, 3, 250, 660, (ui_cmd_recv.Shooter_heat) * 1000);
+        UIFloatDraw(&Shoot_Local_Heat, "of1", UI_Graph_ADD, 9, UI_Color_Green, 20, 3, 3, 400, 780, (ui_cmd_recv.Shooter_heat) * 1000);
     } else {
-        UIFloatDraw(&Heat_Limit, "of5", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 250, 620, (ui_cmd_recv.Heat_Limit) * 1000);
-        UIFloatDraw(&Shoot_Local_Heat, "of4", UI_Graph_Change, 9, UI_Color_Green, 20, 3, 3, 250, 660, (ui_cmd_recv.Shooter_heat) * 1000);
+        UIFloatDraw(&Shoot_Local_Heat, "of1", UI_Graph_ADD, 9, UI_Color_Purplish_red, 20, 3, 3, 400, 780, (ui_cmd_recv.Shooter_heat) * 1000);
     }
 
     // 动态UI发送
     UIGraphRefresh(&referee_data_for_ui->referee_id, 5, state_circle[0], state_circle[1], state_circle[2], state_circle[3], Cap_voltage);
-    UIGraphRefresh(&referee_data_for_ui->referee_id, 5, Chassis_Ctrl_Power, Chassis_Power_Limit, Shoot_Local_Heat, Heat_Limit, Cap_Absorb_Power);
+    UIGraphRefresh(&referee_data_for_ui->referee_id, 1, Shoot_Local_Heat);
 
     PubPushMessage(ui_pub, (void *)&ui_feedback_data);
 }

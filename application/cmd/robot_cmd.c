@@ -306,6 +306,7 @@ static void RemoteControlSet()
             if (rc_mode[CHASSIS_FREE] == 1) {
                 chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             }
+            
             if (rc_data[TEMP].rc.switch_left == RC_SW_MID && chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW) {
                 rc_mode[CHASSIS_ROTATION] = 1;
                 rc_mode[CHASSIS_FOLLOW]   = 1;
@@ -322,7 +323,11 @@ static void RemoteControlSet()
         case RC_SW_DOWN:
             rc_mode[CHASSIS_FREE] = 0;
             if (rc_mode[CHASSIS_ROTATE] == 1) {
-                chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+                if (rc_data[TEMP].rc.dial < -400) {
+                    chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE;
+                } else {
+                    chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+                }
             } else {
                 chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             }
