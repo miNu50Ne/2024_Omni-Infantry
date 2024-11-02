@@ -91,52 +91,102 @@ void ShootInit()
     DJIMotorStop(loader);
 }
 
-float Block_Time;        // 堵转时间
-float Reverse_Time;      // 反转时间
-float current_record[6]; // 第五个为最近的射速 第六个为平均射速
-float Block_Status;      // 拨弹盘状态
+float loader_velocity;         // 当前电机转速
+float loader_current;          // 电机电流值
+loader_status_e loader_status; // 拨弹盘状态
 /**
  * @brief 堵转，弹速检测
+ * @details 获取拨弹盘转速。
+ * 根据转速判断拨弹盘工作状态：静止，正常工作，转动时突然卡弹，卡弹根本转不动。
+ * 判断方式：电机转速与目标值对比
+ * 拨弹盘回退：1-2颗弹丸
+ */
+static void loader_status_update()
+{
+    static uint8_t loader_normal_count;   // 正常工作计时
+    static uint8_t loader_jam_count = 50; // 卡弹计时
+    static uint8_t loader_reverse_count;  // 反转计时
+    static uint8_t loader_weakjam_count;  // 轻微卡弹计时
+    // 获取拨弹盘转速
+    loader_velocity = shoot_cmd_recv.shoot_rate;
+
+    switch (loader_status) {
+        case LOADER_IDLE:
+            loader_normal_count  = 0;
+            loader_weakjam_count = 0;
+            loader_jam_count     = 0;
+            loader_reverse_count = 0;
+
+            if (loader_velocity > 25) {
+                loader_status = LOADER_NORMAL;
+            }
+            break;
+        case LOADER_NORMAL:
+            loader_normal_count++;
+            if (loader_normal_count > 40) { //
+                if (loader_current < -2000) {
+                    loader_status = LOADER_JAM;
+                } else if (abs(loader_current) < 200) {
+                    loader_status = LOADER_IDLE;
+                }
+            }
+            break;
+        case LOADER_JAM:
+            shoot_cmd_recv.load_mode = LOAD_JAM;
+
+            if (loader_current > -400) {
+                loader_weakjam_count++;
+                if (loader_weakjam_count > 100)
+                    loader_status = LOADER_IDLE;
+            } else {
+                loader_jam_count--;
+            }
+            if (loader_jam_count == 0) {
+                loader_status = LOADER_ROLLBACK;
+            }
+            break;
+        case LOADER_ROLLBACK:
+            shoot_cmd_recv.load_mode = LOAD_REVERSE;
+            loader_reverse_count++;
+            // 反转时间
+            if (loader_reverse_count > 100) {
+                loader_status = LOADER_IDLE;
+            }
+            break;
+        default:
+            loader_status = LOADER_IDLE;
+            break;
+    }
+}
+/**
+ * @brief 拨弹盘电流均值滤波
+ *
  *
  */
-static void Load_Reverse()
+static float loader_cunrrent_mean_filter(void)
 {
-    // 获取拨弹盘转速
-    current_record[0] = current_record[1];
-    current_record[1] = current_record[2];
-    current_record[2] = current_record[3];
-    current_record[3] = current_record[4];
-    current_record[4] = loader->measure.real_current; // 第五个为最近的拨弹盘電流
-    current_record[5] = (current_record[0] + current_record[1] + current_record[2] + current_record[3] + current_record[4]) / 5.0;
+    static float current_data[MAX_HISTROY] = {0};           // 初始化为0
+    static uint8_t head = 0, rear = 0;                      // 队列下标
+    static float window_sum = 0;                            // 窗口中所有元素的和
+    uint8_t data_count      = 0;                            // 数据量
+    float motor_current     = loader->measure.real_current; // 获取拨弹盘电流
+    float filter_current    = 0;                            // 滤波后的电流
 
-    if (current_record[5] > 9900) {
-        Block_Time++;
-    }
-
-    // 反转
-    if (Reverse_Time >= 1) {
-        shoot_cmd_recv.load_mode = LOAD_REVERSE;
-        Reverse_Time++;
-
-        // 反转时间
-        if (Reverse_Time >= 200) {
-            Reverse_Time = 0;
-            Block_Time   = 0;
+    current_data[head] = motor_current;
+    head               = (head + 1) % MAX_HISTROY;
+    data_count         = (head - rear) % MAX_HISTROY;
+    if (data_count >= Fliter_windowSize) {
+        window_sum = 0;
+        for (uint8_t i = rear, index = 0; index < Fliter_windowSize; i++, index++) {
+            i %= MAX_HISTROY;
+            window_sum += current_data[i];
         }
+        filter_current = window_sum / Fliter_windowSize;
+        rear++;
+        rear %= MAX_HISTROY;
     }
 
-    // 电流较大恢复正转
-    if (loader->measure.real_current < -2000) {
-        Reverse_Time = 0;
-        Block_Time   = 0;
-    }
-
-    else {
-        // 堵转时间5*发射任务周期（5ms）= 25ms
-        if (Block_Time > 200) {
-            Reverse_Time = 1;
-        }
-    }
+    return filter_current;
 }
 
 int heat_control    = 25; // 热量控制
@@ -215,8 +265,6 @@ void ShootTask()
     {
         DJIMotorEnable(friction_l);
         DJIMotorEnable(friction_r);
-        // DJIMotorStop(friction_r);
-
         DJIMotorEnable(loader);
     }
 
@@ -224,8 +272,8 @@ void ShootTask()
     // 单发模式主要提供给能量机关激活使用(以及英雄的射击大部分处于单发)
     if (hibernate_time + dead_time > DWT_GetTimeline_ms())
         return;
-
-    Load_Reverse();
+    shoot_cmd_recv.shoot_rate = 30;
+    loader_status_update();
     // 若不在休眠状态,根据robotCMD传来的控制模式进行拨盘电机参考值设定和模式切换
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
@@ -254,8 +302,10 @@ void ShootTask()
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
-            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / 8);
+            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE);
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
+            break;
+        case LOAD_JAM:
             break;
         case LOAD_REVERSE:
             DJIMotorSetRef(loader, -40000);
@@ -268,7 +318,7 @@ void ShootTask()
     // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
     if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
         // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        fric_speed = (shoot_speed + (42500 - shoot_speed) * ramp_calc(&fric_on_ramp));
+        fric_speed = (shoot_speed + (35500 - shoot_speed) * ramp_calc(&fric_on_ramp));
         ramp_init(&fric_off_ramp, 300);
     } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
         fric_speed = (shoot_speed + (0 - shoot_speed) * ramp_calc(&fric_off_ramp));
@@ -314,6 +364,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             local_heat = shoot_cmd_recv.shooter_referee_heat;
         }
         Shoot_Fric_data_process();
+        loader_current = loader_cunrrent_mean_filter();
     }
     /* USER CODE END Callback 1 */
 }

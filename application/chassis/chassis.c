@@ -60,7 +60,7 @@ static uint8_t center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转�
 // 跟随模式底盘的pid
 // 目前没有设置单位，有些不规范，之后有需要再改
 static PIDInstance Chassis_Follow_PID = {
-    .Kp            = 105,   // 25,//25, // 50,//70, // 4.5
+    .Kp            = 105,  // 25,//25, // 50,//70, // 4.5
     .Ki            = 0,    // 0
     .Kd            = 0.85, // 0.0,  // 0.07,  // 0
     .DeadBand      = 4.0,  // 0.75,  //跟随模式设置了死区，防止抖动
@@ -201,8 +201,7 @@ static void LimitChassisOutput()
 static void SuperLimitOutput()
 {
     static float power_output;
-    Power_Output = (power_output + (250 - power_output) * ramp_calc(&super_ramp));
-    // Power_Output = (power_output + (250 - 20 + 40 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
+    Power_Output = (power_output + (250 - 20 + 40 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;
@@ -336,7 +335,7 @@ void ChassisTask()
             chassis_cmd_recv.vx *= 0.6;
             chassis_cmd_recv.vy *= 0.6;
             break;
-            
+
         case CHASSIS_REVERSE_ROTATE:
             chassis_cmd_recv.wz = -5000;
             cos_theta           = arm_cos_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
