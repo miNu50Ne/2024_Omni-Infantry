@@ -8,6 +8,13 @@
 #include "stdint.h"
 
 #define IMU_READY_FLAG (1 << 0)
+// 陀螺仪默认环境温度
+#define BMI088_AMBIENT_TEMPERATURE 25.0f
+
+// 陀螺仪校准数据，开启陀螺仪校准后可从INS中获取
+#define BMI088_PRE_CALI_GYRO_X_OFFSET -0.000909539289f
+#define BMI088_PRE_CALI_GYRO_Y_OFFSET 0.00354450056f
+#define BMI088_PRE_CALI_GYRO_Z_OFFSET 0.000225723968f
 
 // bmi088工作模式枚举
 typedef enum {                      //@note 阻塞是指解算是阻塞的，F4系列没有硬件DSP

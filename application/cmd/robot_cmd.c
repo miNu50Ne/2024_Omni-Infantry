@@ -254,7 +254,7 @@ static void HeatControl()
 }
 
 // 底盘模式
-static uint8_t rc_mode[5];
+uint8_t rc_mode[5];
 #define CHASSIS_FREE     0
 #define CHASSIS_ROTATION 1
 #define CHASSIS_FOLLOW   2
@@ -262,7 +262,7 @@ static uint8_t rc_mode[5];
 #define SHOOT_LOAD       4
 
 /**
- * @brief  紧急停止,包括遥控器左上侧拨轮打满/重要模块离线/双板通信失效等
+ * @brief  紧急停止,双下
  *
  *
  * @todo   后续修改为遥控器离线则电机停止(关闭遥控器急停),通过给遥控器模块添加daemon实现
@@ -306,7 +306,7 @@ static void RemoteControlSet()
             if (rc_mode[CHASSIS_FREE] == 1) {
                 chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
             }
-            
+
             if (rc_data[TEMP].rc.switch_left == RC_SW_MID && chassis_cmd_send.chassis_mode == CHASSIS_NO_FOLLOW) {
                 rc_mode[CHASSIS_ROTATION] = 1;
                 rc_mode[CHASSIS_FOLLOW]   = 1;
@@ -385,9 +385,6 @@ static void RemoteControlSet()
     YawControlProcess();
     gimbal_cmd_send.yaw   = yaw_control;
     gimbal_cmd_send.pitch = pitch_control;
-
-    // 云台软件限位
-    PitchAngleLimit(); // PITCH限位
 }
 
 ramp_t fb_ramp;
@@ -575,7 +572,6 @@ static void MouseKeySet()
     GimbalSet();
     ShootSet();
     KeyGetMode();
-    PitchAngleLimit();
     RobotReset(); // 机器人复位处理
 }
 
@@ -607,8 +603,8 @@ void RobotCMDTask()
         RemoteControlSet();
     }
 
-    // 设置视觉发送数据,还需增加加速度和角速度数据
-
+    // 云台软件限位
+    PitchAngleLimit(); // PITCH限位
     // 推送消息,双板通信,视觉通信等
     // 其他应用所需的控制数据在remotecontrolsetmode和mousekeysetmode中完成设置
     // chassis

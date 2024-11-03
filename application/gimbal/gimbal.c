@@ -97,7 +97,7 @@ void GimbalInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 40, // 35, // 40, // 10
+                .Kp            = 40,
                 .Ki            = 0,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
@@ -105,9 +105,9 @@ void GimbalInit()
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 6000, // 10500, // 13000,//10500,  // 10500
-                .Ki            = 0,    // 12000, // 10000, // 10000
-                .Kd            = 0,    // 0
+                .Kp            = 6000,
+                .Ki            = 0,
+                .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 3000,
                 .MaxOut        = 20000,
@@ -151,14 +151,11 @@ void GimbalTask()
         // 使用陀螺仪的反馈,底盘根据yaw电机的offset跟随云台或视觉模式采用
         case GIMBAL_GYRO_MODE: // 后续只保留此模式
             DJIMotorEnable(yaw_motor);
-            // DJIMotorStop(yaw_motor);
             DJIMotorEnable(pitch_motor);
-            // DJIMotorStop(pitch_motor);
             DJIMotorChangeFeed(yaw_motor, ANGLE_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(yaw_motor, SPEED_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(pitch_motor, ANGLE_LOOP, OTHER_FEED);
             DJIMotorChangeFeed(pitch_motor, SPEED_LOOP, OTHER_FEED);
-            // DJIMotorOuterLoop(yaw_motor, SPEED_LOOP);
             DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
             DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
             break;

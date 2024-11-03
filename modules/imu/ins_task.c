@@ -68,7 +68,8 @@ INS_Instance *INS_Init(BMI088Instance *bmi088)
     return INSinstance;
 }
 
-void INS_Task(){
+void INS_Task()
+{
     BMI088_Data_t raw_data;
     BMI088Acquire(INS->BMI088, &raw_data);
 
@@ -99,7 +100,7 @@ void INS_Task(){
 
     INS->timing_time = DWT_GetDeltaT(&INS->BMI088->bias_dwt_cnt);
     AHRS_update(INS->INS_data.INS_quat, INS->timing_time, INS->INS_data.INS_gyro, accel_fliter_3, INS->INS_data.INS_mag);
-        get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
+    get_angle(INS->INS_data.INS_quat, INS->output.INS_angle + INS_YAW_ADDRESS_OFFSET, INS->output.INS_angle + INS_PITCH_ADDRESS_OFFSET, INS->output.INS_angle + INS_ROLL_ADDRESS_OFFSET);
 
     // get Yaw total, yaw数据可能会超过360,处理一下方便其他功能使用(如小陀螺)
     static float last_yaw_angle    = 0; // 上一次的yaw角度

@@ -29,27 +29,6 @@
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
-#if OLD
-
-#define YAW_CHASSIS_ALIGN_ECD     6814 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
-#define PITCH_HORIZON_ECD         6783 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
-#define PITCH_POS_UP_LIMIT_ECD    6317 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
-#define PITCH_POS_DOWN_LIMIT_ECD  7343 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
-
-#endif
-
-#if NEW
-
-#define YAW_CHASSIS_ALIGN_ECD     7141 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
-#define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
-#define PITCH_HORIZON_ECD         1355 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
-#define PITCH_POS_UP_LIMIT_ECD    868  // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
-#define PITCH_POS_DOWN_LIMIT_ECD  1940 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
-
-#endif // 0
-
-#ifdef NEWNEW
 
 #define YAW_CHASSIS_ALIGN_ECD     5793 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
@@ -57,19 +36,17 @@
 #define PITCH_POS_UP_LIMIT_ECD    6348 // 云台竖直方向高处限位编码器值,若对云台有机械改动需要修改
 #define PITCH_POS_DOWN_LIMIT_ECD  7380 // 云台竖直方向低处限位编码器值,若对云台有机械改动需要修改
 
-#endif // 0
-
-#define PITCH_FEED_TYPE     1 // 云台PITCH轴反馈值来源:编码器为0,陀螺仪为1
-#define PITCH_INS_FEED_TYPE 1 // 云台PITCH轴陀螺仪反馈:角度值为0,弧度制为1
-#define PITCH_ECD_UP_ADD    0 // 云台抬升时编码器变化趋势,增为1,减为0 (陀螺仪变化方向应相同)
+#define PITCH_FEED_TYPE           1 // 云台PITCH轴反馈值来源:编码器为0,陀螺仪为1
+#define PITCH_INS_FEED_TYPE       1 // 云台PITCH轴陀螺仪反馈:角度值为0,弧度制为1
+#define PITCH_ECD_UP_ADD          0 // 云台抬升时编码器变化趋势,增为1,减为0 (陀螺仪变化方向应相同)
 
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 45    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 拨盘电机的减速比,英雄需要修改为3508的19.0f
 #define NUM_PER_CIRCLE         8     // 拨盘一圈的装载量
 // 机器人底盘修改的参数,单位为mm(毫米)
-#define WHEEL_BASE             350   // 320.5   // 纵向轴距(前进后退方向)
-#define TRACK_WIDTH            350   // 320.5   // 横向轮距(左右平移方向)
+#define WHEEL_BASE             350   // 纵向轴距(前进后退方向)
+#define TRACK_WIDTH            350   // 横向轮距(左右平移方向)
 #define CENTER_GIMBAL_OFFSET_X 0     // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 #define CENTER_GIMBAL_OFFSET_Y 0     // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
 #define RADIUS_WHEEL           153   // 轮子半径
@@ -81,7 +58,7 @@
 
 // 模拟小电脑负重 652.2
 // 其他参数(尽量所有参数集中到此文件)
-#define BUZZER_SILENCE 1 // 蜂鸣器静音,1为静音,0为正常
+#define BUZZER_SILENCE 0 // 蜂鸣器静音,1为静音,0为正常
 
 #define IMU_DEF_PARAM_WARNING
 // 编译warning,提醒开发者修改传感器参数
@@ -89,20 +66,6 @@
 #define IMU_DEF_PARAM_WARNING
 #pragma message "check if you have configured the parameters in robot_def.h, IF NOT, please refer to the comments AND DO IT, otherwise the robot will have FATAL ERRORS!!!"
 #endif // !IMU_DEF_PARAM_WARNING
-
-// 陀螺仪校准数据，开启陀螺仪校准后可从INS中获取
-#define BMI088_PRE_CALI_GYRO_X_OFFSET -0.000909539289f
-#define BMI088_PRE_CALI_GYRO_Y_OFFSET 0.00354450056f
-#define BMI088_PRE_CALI_GYRO_Z_OFFSET 0.000225723968f
-// 陀螺仪默认环境温度
-#define BMI088_AMBIENT_TEMPERATURE 25.0f
-// 设置陀螺仪数据相较于云台的yaw,pitch,roll的方向
-#define BMI088_BOARD_INSTALL_SPIN_MATRIX \
-    {0.0f, -1.0f, 0.0f},                 \
-        {1.0f, 0.0f, 0.0f},              \
-    {                                    \
-        0.0f, 0.0f, 1.0f                 \
-    }
 
 #define INS_YAW_ADDRESS_OFFSET   2 // 陀螺仪数据相较于云台的yaw的方向
 #define INS_PITCH_ADDRESS_OFFSET 1 // 陀螺仪数据相较于云台的pitch的方向
@@ -164,11 +127,19 @@ typedef enum {
 } friction_mode_e;
 
 typedef enum {
-    LOAD_STOP = 0,  // 停止发射
-    LOAD_REVERSE,   // 反转
-    LOAD_1_BULLET,  // 单发
+    LOAD_STOP = 0, // 停止发射
+    LOAD_REVERSE,  // 反转
+    LOAD_1_BULLET, // 单发
+    LOAD_JAM,
     LOAD_BURSTFIRE, // 连发
 } loader_mode_e;
+
+typedef enum {
+    LOADER_IDLE = 0,
+    LOADER_NORMAL,
+    LOADER_JAM,
+    LOADER_ROLLBACK,
+} loader_status_e;
 
 /* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot/UI订阅---------------- */
 /**
