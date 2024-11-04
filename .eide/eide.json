@@ -110,7 +110,7 @@
           "application/UI",
           "application",
           "application/test",
-          "modules/tool",
+          "modules/ramp",
           "modules/power_control"
         ],
         "libList": [

@@ -52,9 +52,13 @@
 #define RADIUS_WHEEL           153   // 轮子半径
 #define REDUCTION_RATIO_WHEEL  13.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
-#define CHASSIS_SPEED          40000 // 键盘控制不限功率时底盘最大移动速度
-#define YAW_K                  0.00025f
-#define PITCH_K                0.000004f
+#define HALF_WHEEL_BASE        (WHEEL_BASE / 2.0f)     // 半轴距
+#define HALF_TRACK_WIDTH       (TRACK_WIDTH / 2.0f)    // 半轮距
+#define PERIMETER_WHEEL        (RADIUS_WHEEL * 2 * PI) // 轮子周长
+
+// #define CHASSIS_CMD_VELOCITY_VECTER 40000 // 底盘速度矢量控制值，单位m/s
+#define YAW_K   0.00025f
+#define PITCH_K 0.000004f
 
 // 模拟小电脑负重 652.2
 // 其他参数(尽量所有参数集中到此文件)
@@ -150,16 +154,17 @@ typedef enum {
 typedef struct
 {
     // 控制部分
-    uint16_t power_buffer;           // 60焦耳缓冲能量
-    float chassis_power;             // 底盘瞬时功率
-    uint8_t level;                   // 机器人等级
-    uint16_t power_limit;            // 底盘功率限制
-    uint8_t SuperCap_flag_from_user; // 超电的标志位
-    float vx;                        // 前进方向速度
-    float vy;                        // 横移方向速度
-    float wz;                        // 旋转速度
-    float offset_angle;              // 底盘和归中位置的夹角
-    float gimbal_error_angle;        // 云台当前位置与目标（归中）位置的夹角
+    uint16_t power_buffer;             // 60焦耳缓冲能量
+    float chassis_power;               // 底盘瞬时功率
+    uint8_t level;                     // 机器人等级
+    uint16_t power_limit;              // 底盘功率限制
+    uint8_t SuperCap_flag_from_user;   // 超电的标志位
+    float vx;                          // 前进方向控制量
+    float vy;                          // 横移方向控制量
+    float chassis_cmd_velocity_vector; // 底盘速度控制矢量 单位:m/s
+    float wz;                          // 旋转速度
+    float offset_angle;                // 底盘和归中位置的夹角
+    float gimbal_error_angle;          // 云台当前位置与目标（归中）位置的夹角
     chassis_mode_e chassis_mode;
     // UI部分
     //  ...
@@ -199,7 +204,6 @@ typedef struct
     uint8_t rune_mode;
     uint8_t SuperCap_mode;           // 开关指示 未开启为1
     float SuperCap_voltage;          // 超电电压
-    float Chassis_Ctrl_power;        // 底盘控制功率
     uint16_t Cap_absorb_power_limit; // 超电吸收功率
     float Chassis_voltage;           // 底盘电压
     uint16_t Chassis_power_limit;    // 底盘功率
@@ -219,15 +223,13 @@ typedef struct
     // attitude_t chassis_imu_data;
 #endif
     // 后续增加底盘的真实速度
-    // float real_vx;
-    // float real_vy;
-    // float real_wz;
+    float real_vx;
+    float real_vy;
+    float real_wz;
 
     uint8_t CapFlag_open_from_real;
     float cap_voltage;
-    uint16_t capget_power_limit;
-    float chassis_power_output;
-    float chassis_voltage;
+    uint16_t cap_get_power_limit;
 
 } Chassis_Upload_Data_s;
 

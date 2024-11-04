@@ -11,9 +11,8 @@
 #include "bsp_init.h"
 #include "robot.h"
 #include "robot_def.h"
-#include "robot_task.h"
 #include "buzzer.h"
-#include "referee_UI.h"
+
 
 #define ROBOT_DEF_PARAM_WARNING
 // 编译warning,提醒开发者修改机器人参数

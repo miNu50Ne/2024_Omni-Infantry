@@ -4,9 +4,8 @@
 #include "dji_motor.h"
 #include "message_center.h"
 #include "bsp_dwt.h"
-#include "general_def.h"
-#include "tool.h"
-#include "referee_UI.h"
+#include "ramp.h"
+#include <stdint.h>
 
 /* 对于双发射机构的机器人,将下面的数据封装成结构体即可,生成两份shoot应用实例 */
 static DJIMotorInstance *friction_l, *friction_r, *loader; // 拨盘电机
@@ -192,7 +191,7 @@ static float loader_cunrrent_mean_filter(void)
 int heat_control    = 25; // 热量控制
 float local_heat    = 0;  // 本地热量
 int One_bullet_heat = 10; // 打一发消耗热量
-int32_t shoot_count;      // 已发弹量
+uint32_t shoot_count;     // 已发弹量
 // 热量控制算法
 static void Shoot_Fric_data_process(void)
 {
@@ -243,16 +242,14 @@ static void Shoot_Fric_data_process(void)
     }
 }
 
-static int one_bullet;
-static ramp_t fric_on_ramp;
-static ramp_t fric_off_ramp;
-float fric_speed = 0; // 摩擦轮转速参考值
-uint32_t shoot_heat_count[2];
-
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
-    static float shoot_speed;
+    uint8_t one_bullet = 0;
+    ramp_t fric_on_ramp, fric_off_ramp;
+    float fric_speed = 0; // 摩擦轮转速参考值
+    uint32_t shoot_heat_count[2];
+    float shoot_speed = 0;
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 
@@ -306,6 +303,7 @@ void ShootTask()
             // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
             break;
         case LOAD_JAM:
+            DJIMotorSetRef(loader, -shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE);
             break;
         case LOAD_REVERSE:
             DJIMotorSetRef(loader, -40000);

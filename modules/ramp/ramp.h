@@ -1,7 +1,6 @@
 #pragma once
 
-#include "main.h"
-#include "rm_referee.h"
+#include <stdint.h>
 
 #define bool      _Bool
 #define true      1

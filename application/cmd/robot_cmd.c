@@ -1,7 +1,6 @@
 // app
 #include "robot_def.h"
 #include "robot_cmd.h"
-#include "omni_UI.h"
 // module
 #include "remote_control.h"
 #include "ins_task.h"
@@ -9,15 +8,13 @@
 #include "message_center.h"
 #include "general_def.h"
 #include "dji_motor.h"
-#include "referee_UI.h"
 #include "referee_init.h"
 
-#include "tool.h"
+#include "ramp.h"
 #include "super_cap.h"
-#include "AHRS_MiddleWare.h"
 // bsp
-#include "bsp_dwt.h"
 #include "bsp_log.h"
+#include <math.h>
 
 #define RC_LOST (rc_data[TEMP].rc.switch_left == 0 && rc_data[TEMP].rc.switch_right == 0)
 
@@ -37,6 +34,13 @@
 #define PITCH_LIMIT_ANGLE_UP   (PITCH_POS_MAX_ECD * ECD_ANGLE_COEF_DJI) // 云台竖直方向最大角度 0-360
 #define PITCH_LIMIT_ANGLE_DOWN (PITCH_POS_MIN_ECD * ECD_ANGLE_COEF_DJI) // 云台竖直方向最小角度 0-360
 #endif
+
+// 底盘模式
+#define CHASSIS_FREE     0
+#define CHASSIS_ROTATION 1
+#define CHASSIS_FOLLOW   2
+#define SHOOT_FRICTION   3
+#define SHOOT_LOAD       4
 
 /* cmd应用包含的模块实例指针和交互信息存储*/
 #ifdef GIMBAL_BOARD // 对双板的兼容,条件编译
@@ -73,18 +77,15 @@ static Publisher_t *ui_cmd_pub;        // UI控制消息发布者
 static Subscriber_t *ui_feed_sub;      // UI反馈信息订阅者
 static UI_Cmd_s ui_cmd_send;           // 传递给UI的控制信息
 static UI_Upload_Data_s ui_fetch_data; // 从UI获取的反馈信息
+static Robot_Status_e robot_state;     // 机器人整体工作状态
+static referee_info_t *referee_data;   // 用于获取裁判系统的数据
 
-static Robot_Status_e robot_state; // 机器人整体工作状态
-
-static referee_info_t *referee_data; // 用于获取裁判系统的数据
-
-uint8_t UI_SendFlag = 1; // UI发送标志位
-
-uint8_t auto_rune; // 自瞄打符标志位
-
-float rec_yaw, rec_pitch;
-
-uint8_t SuperCap_flag_from_user = 0; // 超电标志位
+/*控制值*/
+static uint8_t UI_SendFlag = 1; // UI发送标志位
+static uint8_t auto_rune;       // 自瞄打符标志位
+static uint8_t rc_mode[5];
+static float rec_yaw, rec_pitch;
+static uint8_t SuperCap_flag_from_user = 0; // 超电标志位
 
 void HOST_RECV_CALLBACK()
 {
@@ -213,8 +214,6 @@ static void PitchAngleLimit()
     if (pitch_control > limit_min)
         pitch_control = limit_min;
 #endif
-
-    // gimbal_cmd_send.pitch = pitch_control;
 }
 
 /**
@@ -252,14 +251,6 @@ static void HeatControl()
         shoot_cmd_send.load_mode = LOAD_STOP;
     }
 }
-
-// 底盘模式
-uint8_t rc_mode[5];
-#define CHASSIS_FREE     0
-#define CHASSIS_ROTATION 1
-#define CHASSIS_FOLLOW   2
-#define SHOOT_FRICTION   3
-#define SHOOT_LOAD       4
 
 /**
  * @brief  紧急停止,双下
@@ -405,10 +396,10 @@ static void ChassisSet()
     // 前后移动
     // 防止逃跑时关小陀螺按Ctrl进入慢速模式
     if (rc_data[TEMP].key[KEY_PRESS].w) {
-        chassis_cmd_send.vy = (current_speed_y + (CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp)); // vx方向待测
-        ramp_init(&slow_ramp, RAMP_TIME);                                                                  // 2000
+        chassis_cmd_send.vy = (current_speed_y + (40000 - current_speed_y) * ramp_calc(&fb_ramp)); // vx方向待测
+        ramp_init(&slow_ramp, RAMP_TIME);                                                          // 2000
     } else if (rc_data[TEMP].key[KEY_PRESS].s) {
-        chassis_cmd_send.vy = (current_speed_y + (-CHASSIS_SPEED - current_speed_y) * ramp_calc(&fb_ramp));
+        chassis_cmd_send.vy = (current_speed_y + (-40000 - current_speed_y) * ramp_calc(&fb_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].w) { // 防止逃跑关小陀螺进入慢速移动
         chassis_cmd_send.vy = (current_speed_y + (4000 - current_speed_y) * ramp_calc(&slow_ramp));
@@ -423,10 +414,10 @@ static void ChassisSet()
 
     // 左右移动
     if (rc_data[TEMP].key[KEY_PRESS].a) {
-        chassis_cmd_send.vx = (current_speed_x + (CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (40000 - current_speed_x) * ramp_calc(&lr_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if (rc_data[TEMP].key[KEY_PRESS].d) {
-        chassis_cmd_send.vx = (current_speed_x + (-CHASSIS_SPEED - current_speed_x) * ramp_calc(&lr_ramp));
+        chassis_cmd_send.vx = (current_speed_x + (-40000 - current_speed_x) * ramp_calc(&lr_ramp));
         ramp_init(&slow_ramp, RAMP_TIME);
     } else if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].a) {
         chassis_cmd_send.vx = (current_speed_x + (+4000 - current_speed_x) * ramp_calc(&fb_ramp));
@@ -603,6 +594,8 @@ void RobotCMDTask()
         RemoteControlSet();
     }
 
+    chassis_cmd_send.chassis_cmd_velocity_vector = sqrtf(powf(chassis_cmd_send.vx * DEGREE_2_RAD * RADIUS_WHEEL * 10e3, 2) + powf(chassis_cmd_send.vy * DEGREE_2_RAD * RADIUS_WHEEL * 10e3, 2));
+
     // 云台软件限位
     PitchAngleLimit(); // PITCH限位
     // 推送消息,双板通信,视觉通信等
@@ -631,8 +624,7 @@ void RobotCMDTask()
     memcpy(&ui_cmd_send.rune_mode, &auto_rune, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_mode, &chassis_fetch_data.CapFlag_open_from_real, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_voltage, &chassis_fetch_data.cap_voltage, sizeof(float));
-    memcpy(&ui_cmd_send.Chassis_Ctrl_power, &chassis_fetch_data.chassis_power_output, sizeof(float));
-    memcpy(&ui_cmd_send.Cap_absorb_power_limit, &chassis_fetch_data.capget_power_limit, sizeof(uint16_t));
+    memcpy(&ui_cmd_send.Cap_absorb_power_limit, &chassis_fetch_data.cap_get_power_limit, sizeof(uint16_t));
     memcpy(&ui_cmd_send.Chassis_power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
     memcpy(&ui_cmd_send.Shooter_heat, &shoot_fetch_data.shooter_local_heat, sizeof(float));
     memcpy(&ui_cmd_send.Heat_Limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));

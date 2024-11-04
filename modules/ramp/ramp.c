@@ -1,4 +1,4 @@
-#include "tool.h"
+#include "ramp.h"
 
 void ramp_init(ramp_t *ramp, int32_t scale)
 {
