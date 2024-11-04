@@ -18,7 +18,6 @@ static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信�
 // dwt定时,计算冷却用
 static float hibernate_time = 0, dead_time = 0;
 
-float d_watch;
 void ShootInit()
 {
     // 左摩擦轮
@@ -100,7 +99,7 @@ loader_status_e loader_status; // 拨弹盘状态
  * 判断方式：电机转速与目标值对比
  * 拨弹盘回退：1-2颗弹丸
  */
-static void loader_status_update()
+void loader_status_update(void)
 {
     static uint8_t loader_normal_count;   // 正常工作计时
     static uint8_t loader_jam_count = 50; // 卡弹计时
@@ -157,6 +156,7 @@ static void loader_status_update()
             break;
     }
 }
+
 /**
  * @brief 拨弹盘电流均值滤波
  *
@@ -193,7 +193,7 @@ float local_heat    = 0;  // 本地热量
 int One_bullet_heat = 10; // 打一发消耗热量
 uint32_t shoot_count;     // 已发弹量
 // 热量控制算法
-static void Shoot_Fric_data_process(void)
+static void shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
     static bool bullet_waiting_confirm = false;                         // 等待比较器确认
@@ -226,7 +226,6 @@ static void Shoot_Fric_data_process(void)
         moving_average[1] /= Fliter_windowSize;
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
-        d_watch    = derivative;
         /*导数比较*/
         if (derivative < -300) {
             bullet_waiting_confirm = true;
@@ -241,7 +240,6 @@ static void Shoot_Fric_data_process(void)
         rear %= MAX_HISTROY;
     }
 }
-
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
@@ -361,7 +359,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         {
             local_heat = shoot_cmd_recv.shooter_referee_heat;
         }
-        Shoot_Fric_data_process();
+        shoot_Fric_data_process();
         loader_current = loader_cunrrent_mean_filter();
     }
     /* USER CODE END Callback 1 */

@@ -156,8 +156,8 @@ static void OmniCalculate()
 {
     vt_lf = chassis_vx + chassis_vy + chassis_cmd_recv.wz * LF_CENTER;
     vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
-    vt_lb = -chassis_vx + chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
+    vt_lb = -chassis_vx + chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
 
     // 设定速度参考值
     DJIMotorSetRef(motor_lf, vt_lf);
@@ -165,8 +165,6 @@ static void OmniCalculate()
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
 }
-
-float offset_angle_watch;
 
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
@@ -190,13 +188,12 @@ void ChassisTask()
         DJIMotorEnable(motor_lb);
         DJIMotorEnable(motor_rb);
     }
-    static float offset_angle;
-    static float sin_theta, cos_theta;
-    static float current_speed_vw, vw_set;
-    static ramp_t rotate_ramp;
+    float offset_angle;
+    float sin_theta, cos_theta;
+    float current_speed_vw = 0, vw_set;
+    ramp_t rotate_ramp;
 
-    offset_angle       = chassis_cmd_recv.offset_angle + chassis_cmd_recv.gimbal_error_angle;
-    offset_angle_watch = offset_angle;
+    offset_angle = chassis_cmd_recv.offset_angle + chassis_cmd_recv.gimbal_error_angle;
     // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
@@ -223,11 +220,7 @@ void ChassisTask()
             ramp_init(&rotate_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            if (cap->cap_msg_s.SuperCap_open_flag_from_real == SUPERCAP_PMOS_OPEN) {
-                vw_set = 7000;
-            } else {
-                vw_set = 5000;
-            }
+            vw_set           = 5000;
             chassis_vw       = (current_speed_vw + (vw_set - current_speed_vw) * ramp_calc(&rotate_ramp));
             current_speed_vw = chassis_vw;
 

@@ -2,7 +2,6 @@
 #define _REFEREE_INIT_H_
 
 #include "rm_referee.h"
-#include "robot_def.h"
 #include "referee_UI.h"
 typedef void (*MyUIInit_Ptr)(void);
 
