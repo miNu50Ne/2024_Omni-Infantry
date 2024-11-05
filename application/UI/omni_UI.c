@@ -1,3 +1,14 @@
+/**
+ * @file omni_UI.c
+ * @author MiNu50Ne (minu50ne@qq.com)
+ * @brief
+ * @version 0.1
+ * @date 2024-7-15
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
 // app
 #include "robot_def.h"
 #include "omni_UI.h"
@@ -5,14 +16,12 @@
 #include "rm_referee.h"
 #include "referee_protocol.h"
 #include "referee_UI.h"
-#include "string.h"
-#include "crc_ref.h"
-#include "stdio.h"
+
+#include <stdio.h>
 #include "rm_referee.h"
 #include "message_center.h"
-#include "dji_motor.h"
+
 #include "super_cap.h"
-#include "UI_interface.h"
 
 static Publisher_t *ui_pub;
 static Subscriber_t *ui_sub;

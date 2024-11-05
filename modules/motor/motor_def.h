@@ -88,8 +88,6 @@ typedef struct
     PIDInstance current_PID;
     PIDInstance speed_PID;
     PIDInstance angle_PID;
-    PIDInstance follow_speed_PID;
-    PIDInstance follow_angle_PID;
 
     float pid_ref; // 将会作为每个环的输入和输出顺次通过串级闭环
 } Motor_Controller_s;
@@ -123,8 +121,6 @@ typedef struct
     PID_Init_Config_s current_PID;
     PID_Init_Config_s speed_PID;
     PID_Init_Config_s angle_PID;
-    PIDInstance follow_speed_PID;
-    PIDInstance follow_angle_PID;
 } Motor_Controller_Init_s;
 
 /* 用于初始化CAN电机的结构体,各类电机通用 */

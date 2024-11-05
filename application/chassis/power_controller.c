@@ -57,9 +57,10 @@ static void SuperLimitOutput(float cap_voltage)
  *
  */
 uint8_t Super_Voltage_Allow_Flag;
-static SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
-void SuperCapTask(SuperCapInstance *cap, Chassis_Ctrl_Cmd_s chassis_recv_msg)
+
+void PowerController(SuperCapInstance *cap, uint16_t power_buffer, uint16_t power_limit, uint8_t switch_from_user)
 {
+    SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
     // 状态机逻辑,滞回
     switch (SuperCap_state) {
         case SUPER_STATE_LOW:
@@ -87,14 +88,14 @@ void SuperCapTask(SuperCapInstance *cap, Chassis_Ctrl_Cmd_s chassis_recv_msg)
     }
 
     // User允许开启电容 且 电压充足
-    if (chassis_recv_msg.SuperCap_flag_from_user == SUPER_USER_OPEN) {
+    if (switch_from_user == SUPER_USER_OPEN) {
         cap->cap_msg_g.enabled = SUPER_CMD_OPEN;
         SuperLimitOutput(cap->cap_msg_s.CapVot);
     } else {
         cap->cap_msg_g.enabled = SUPER_CMD_CLOSE;
-        LimitChassisOutput(chassis_recv_msg.power_buffer, chassis_recv_msg.power_limit);
+        LimitChassisOutput(power_buffer, power_limit);
     }
 
     // 获得功率挡位
-    cap->cap_msg_g.power_limit = chassis_recv_msg.power_limit - 30 + 30 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f;
+    cap->cap_msg_g.power_limit = power_limit - 30 + 30 * (cap->cap_msg_s.CapVot - 17.0f) / 6.0f;
 }

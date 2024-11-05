@@ -165,13 +165,12 @@ float pitch_control; // 遥控器PITCH自由度输入值
  */
 static void CalcOffsetAngle()
 {
-    // 别名angle提高可读性,不然太长了不好看,虽然基本不会动这个函数
-    static float angle;
-    static float gimbal_yaw_current_angle;                                                // 云台yaw轴当前角度
-    static float gimbal_yaw_set_angle;                                                    // 云台yaw轴目标角度
-    angle                               = gimbal_fetch_data.yaw_motor_single_round_angle; // 从云台获取的当前yaw电机单圈角度
-    gimbal_yaw_current_angle            = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET];
-    gimbal_yaw_set_angle                = yaw_control;
+    // 从云台获取的当前yaw电机单圈角度
+    float angle = gimbal_fetch_data.yaw_motor_single_round_angle;
+    // 云台yaw轴当前角度
+    float gimbal_yaw_current_angle = gimbal_fetch_data.gimbal_imu_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET];
+    // 云台yaw轴目标角度
+    float gimbal_yaw_set_angle          = yaw_control;
     chassis_cmd_send.gimbal_error_angle = gimbal_yaw_set_angle - gimbal_yaw_current_angle; // 云台误差角
 
 #if YAW_ECD_GREATER_THAN_4096 // 如果大于180度
@@ -186,6 +185,7 @@ static void CalcOffsetAngle()
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE - 360.0f;
     }
 #endif
+    chassis_cmd_send.offset_angle = chassis_cmd_send.offset_angle + chassis_cmd_send.gimbal_error_angle;
 }
 
 /**
@@ -488,7 +488,7 @@ static void ShootSet()
  *
  */
 
-static void KeyGetMode()
+static void keymodeset()
 {
     switch (rc_data[TEMP].key_count[KEY_PRESS][Key_C] % 2) {
         case 1:
@@ -562,7 +562,7 @@ static void MouseKeySet()
     ChassisSet();
     GimbalSet();
     ShootSet();
-    KeyGetMode();
+    keymodeset();
     RobotReset(); // 机器人复位处理
 }
 
@@ -573,12 +573,9 @@ void RobotCMDTask()
 {
     DeterminRobotID();
     // 从其他应用获取回传数据
-#ifdef ONE_BOARD
+
     SubGetMessage(chassis_feed_sub, (void *)&chassis_fetch_data);
-#endif // ONE_BOARD
-#ifdef GIMBAL_BOARD
-    chassis_fetch_data = *(Chassis_Upload_Data_s *)CANCommGet(cmd_can_comm);
-#endif // GIMBAL_BOARD
+
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
     SubGetMessage(ui_feed_sub, &ui_fetch_data);
@@ -629,12 +626,8 @@ void RobotCMDTask()
     memcpy(&ui_cmd_send.Shooter_heat, &shoot_fetch_data.shooter_local_heat, sizeof(float));
     memcpy(&ui_cmd_send.Heat_Limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
 
-#ifdef ONE_BOARD
     PubPushMessage(chassis_cmd_pub, (void *)&chassis_cmd_send);
-#endif // ONE_BOARD
-#ifdef GIMBAL_BOARD
-    CANCommSend(cmd_can_comm, (void *)&chassis_cmd_send);
-#endif // GIMBAL_BOARD
+
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
     PubPushMessage(ui_cmd_pub, (void *)&ui_cmd_send);

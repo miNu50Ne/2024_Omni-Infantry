@@ -1,12 +1,13 @@
 #pragma once
 
-#include "robot_def.h"
 #include "super_cap.h"
 
 /**
- * @brief supercap task,run in chassis task
- *
- * @param cap
- * @param chassis_recv_msg
+ * @brief power control task, run in chassis task
+ * 
+ * @param cap 
+ * @param power_buffer 
+ * @param power_limit 
+ * @param switch_from_user 
  */
-void PowerCtrlTask(SuperCapInstance *cap, Chassis_Ctrl_Cmd_s chassis_recv_msg);
+void PowerController(SuperCapInstance *cap, uint16_t power_buffer, uint16_t power_limit, uint8_t switch_from_user);
