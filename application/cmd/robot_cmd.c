@@ -7,7 +7,6 @@
 #include "master_process.h"
 #include "message_center.h"
 #include "general_def.h"
-#include "dji_motor.h"
 #include "referee_init.h"
 
 #include "ramp.h"
@@ -16,52 +15,10 @@
 #include "bsp_log.h"
 #include <math.h>
 
-#define RC_LOST (rc_data[TEMP].rc.switch_left == 0 && rc_data[TEMP].rc.switch_right == 0)
-
-// 私有宏,自动将编码器转换成角度值
-#define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
-#if PITCH_FEED_TYPE                                                  // Pitch电机反馈数据源为陀螺仪
-#define PTICH_HORIZON_ANGLE 0                                        // PITCH水平时电机的角度
-#if PITCH_ECD_UP_ADD
-#define PITCH_LIMIT_ANGLE_UP   (((PITCH_POS_UP_LIMIT_ECD > PITCH_HORIZON_ECD) ? (PITCH_POS_UP_LIMIT_ECD - PITCH_HORIZON_ECD) : (PITCH_POS_UP_LIMIT_ECD + 8192 - PITCH_HORIZON_ECD)) * ECD_ANGLE_COEF_DJI)       // 云台竖直方向最大角度 0-360
-#define PITCH_LIMIT_ANGLE_DOWN (((PITCH_POS_DOWN_LIMIT_ECD < PITCH_HORIZON_ECD) ? (PITCH_POS_DOWN_LIMIT_ECD - PITCH_HORIZON_ECD) : (PITCH_POS_DOWN_LIMIT_ECD - 8192 - PITCH_HORIZON_ECD)) * ECD_ANGLE_COEF_DJI) // 云台竖直方向最小角度 0-360
-#else
-#define PITCH_LIMIT_ANGLE_UP   (((PITCH_POS_UP_LIMIT_ECD < PITCH_HORIZON_ECD) ? (PITCH_POS_UP_LIMIT_ECD - PITCH_HORIZON_ECD) : (PITCH_POS_UP_LIMIT_ECD - 8192 - PITCH_HORIZON_ECD)) * ECD_ANGLE_COEF_DJI)       // 云台竖直方向最大角度 0-360
-#define PITCH_LIMIT_ANGLE_DOWN (((PITCH_POS_DOWN_LIMIT_ECD > PITCH_HORIZON_ECD) ? (PITCH_POS_DOWN_LIMIT_ECD - PITCH_HORIZON_ECD) : (PITCH_POS_DOWN_LIMIT_ECD + 8192 - PITCH_HORIZON_ECD)) * ECD_ANGLE_COEF_DJI) // 云台竖直方向最小角度 0-360
-#endif
-#else                                                                   // PITCH电机反馈数据源为编码器
-#define PTICH_HORIZON_ANGLE    (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // PITCH水平时电机的角度,0-360
-#define PITCH_LIMIT_ANGLE_UP   (PITCH_POS_MAX_ECD * ECD_ANGLE_COEF_DJI) // 云台竖直方向最大角度 0-360
-#define PITCH_LIMIT_ANGLE_DOWN (PITCH_POS_MIN_ECD * ECD_ANGLE_COEF_DJI) // 云台竖直方向最小角度 0-360
-#endif
-
-// 底盘模式
-#define CHASSIS_FREE     0
-#define CHASSIS_ROTATION 1
-#define CHASSIS_FOLLOW   2
-#define SHOOT_FRICTION   3
-#define SHOOT_LOAD       4
-
-/* cmd应用包含的模块实例指针和交互信息存储*/
-#ifdef GIMBAL_BOARD // 对双板的兼容,条件编译
-#include "can_comm.h"
-static CANCommInstance *cmd_can_comm; // 双板通信
-#endif
-#ifdef ONE_BOARD
-static Publisher_t *chassis_cmd_pub;   // 底盘控制消息发布者
-static Subscriber_t *chassis_feed_sub; // 底盘反馈信息订阅者
-#endif                                 // ONE_BOARD
-
+static Publisher_t *chassis_cmd_pub;             // 底盘控制消息发布者
+static Subscriber_t *chassis_feed_sub;           // 底盘反馈信息订阅者
 static Chassis_Ctrl_Cmd_s chassis_cmd_send;      // 发送给底盘应用的信息,包括控制信息和UI绘制相关
 static Chassis_Upload_Data_s chassis_fetch_data; // 从底盘应用接收的反馈信息信息,底盘功率枪口热量与底盘运动状态等
-
-static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
-
-HostInstance *host_instance; // 上位机接口
-
-// 这里的四元数以wxyz的顺序
-static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
-static uint8_t vision_send_data[23]; // 给视觉上位机发送的数据-四元数
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
@@ -77,8 +34,18 @@ static Publisher_t *ui_cmd_pub;        // UI控制消息发布者
 static Subscriber_t *ui_feed_sub;      // UI反馈信息订阅者
 static UI_Cmd_s ui_cmd_send;           // 传递给UI的控制信息
 static UI_Upload_Data_s ui_fetch_data; // 从UI获取的反馈信息
-static Robot_Status_e robot_state;     // 机器人整体工作状态
-static referee_info_t *referee_data;   // 用于获取裁判系统的数据
+
+static RC_ctrl_t *rc_data; // 遥控器数据,初始化时返回
+
+static HostInstance *host_instance; // 上位机接口
+
+static referee_info_t *referee_data; // 用于获取裁判系统的数据
+
+// 这里的四元数以wxyz的顺序
+static uint8_t vision_recv_data[9];  // 从视觉上位机接收的数据-绝对角度，第9个字节作为识别到目标的标志位
+static uint8_t vision_send_data[23]; // 给视觉上位机发送的数据-四元数
+
+static Robot_Status_e robot_state; // 机器人整体工作状态
 
 /*控制值*/
 static uint8_t UI_SendFlag = 1; // UI发送标志位
@@ -87,6 +54,12 @@ static uint8_t rc_mode[5];
 static float rec_yaw, rec_pitch;
 static uint8_t SuperCap_flag_from_user = 0; // 超电标志位
 
+float yaw_control;   // 遥控器YAW自由度输入值
+float pitch_control; // 遥控器PITCH自由度输入值
+static float heat_coef;
+ramp_t fb_ramp;
+ramp_t lr_ramp;
+ramp_t slow_ramp;
 void HOST_RECV_CALLBACK()
 {
     memcpy(vision_recv_data, host_instance->comm_instance, host_instance->RECV_SIZE);
@@ -113,22 +86,8 @@ void RobotCMDInit()
     ui_cmd_pub  = PubRegister("ui_cmd", sizeof(UI_Cmd_s));
     ui_feed_sub = SubRegister("ui_feed", sizeof(UI_Upload_Data_s));
 
-#ifdef ONE_BOARD // 双板兼容
     chassis_cmd_pub  = PubRegister("chassis_cmd", sizeof(Chassis_Ctrl_Cmd_s));
     chassis_feed_sub = SubRegister("chassis_feed", sizeof(Chassis_Upload_Data_s));
-#endif // ONE_BOARD
-#ifdef GIMBAL_BOARD
-    CANComm_Init_Config_s comm_conf = {
-        .can_config = {
-            .can_handle = &hcan1,
-            .tx_id      = 0x312,
-            .rx_id      = 0x311,
-        },
-        .recv_data_len = sizeof(Chassis_Upload_Data_s),
-        .send_data_len = sizeof(Chassis_Ctrl_Cmd_s),
-    };
-    cmd_can_comm = CANCommInit(&comm_conf);
-#endif // GIMBAL_BOARD
 
 #if PITCH_FEED_TYPE
     gimbal_cmd_send.pitch = 0;
@@ -153,9 +112,6 @@ static void DeterminRobotID()
     referee_data->referee_id.Robot_ID          = referee_data->GameRobotState.robot_id;          // 计算机器人ID
     referee_data->referee_id.Receiver_Robot_ID = 0;
 }
-
-float yaw_control;   // 遥控器YAW自由度输入值
-float pitch_control; // 遥控器PITCH自由度输入值
 
 /**
  * @brief 根据gimbal app传回的当前电机角度计算和零位的误差
@@ -228,8 +184,6 @@ static void YawControlProcess()
         yaw_control += 360;
     }
 }
-
-static float heat_coef;
 
 static void HeatControl()
 {
@@ -377,10 +331,6 @@ static void RemoteControlSet()
     gimbal_cmd_send.yaw   = yaw_control;
     gimbal_cmd_send.pitch = pitch_control;
 }
-
-ramp_t fb_ramp;
-ramp_t lr_ramp;
-ramp_t slow_ramp;
 
 /**
  * @brief 键盘设定速度

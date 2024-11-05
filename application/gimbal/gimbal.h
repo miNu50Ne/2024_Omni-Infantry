@@ -1,16 +1,13 @@
-#ifndef GIMBAL_H
-#define GIMBAL_H
+#pragma once
 
 /**
- * @brief 初始化云台,会被RobotInit()调用
- * 
+ * @brief 云台初始化
+ *
  */
 void GimbalInit();
 
 /**
  * @brief 云台任务
- * 
+ *
  */
 void GimbalTask();
-
-#endif // GIMBAL_H

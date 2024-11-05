@@ -1,5 +1,4 @@
-#ifndef CHASSIS_H
-#define CHASSIS_H
+#pragma once
 
 #include <stdint.h>
 // #include "motor_def.h"
@@ -27,9 +26,8 @@ typedef struct {
     /*模式参数 */
     float offset_angle;
     float sin_theta, cos_theta;
-    ramp_t rotate_ramp;
+    ramp_t *rotate_ramp;
     float current_speed_vw;
-    float vw_set;
 } ChassisInstance;
 
 /**
@@ -56,15 +54,13 @@ void ChassisMsgInit();
 void ChassisModeSet();
 
 /**
- * @brief 全向轮底盘解算
- *
+ * @brief 计算每个轮毂电机的输出,全向轮正运动学解算
+ *        用宏进行预替换减小开销,运动解算具体过程参考教程
  */
 void OmniCalculate();
 
 /**
- * @brief 底盘消息交互
+ * @brief 底盘消息收发
  *
  */
 void ChassisMsgComm();
-
-#endif // CHASSIS_H

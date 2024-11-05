@@ -4,8 +4,8 @@
  * @brief 底盘应用,负责接收robot_cmd的控制命令并根据命令进行运动学解算,得到输出
  *        注意底盘采取右手系,对于平面视图,底盘纵向运动的正前方为x正方向;横向运动的右侧为y正方向
  *
- * @version 0.1
- * @date 2022-12-04
+ * @version 2.0
+ * @date 2024-11-05
  *
  * @copyright Copyright (c) 2022
  *
@@ -93,16 +93,16 @@ void ChassisParamInit()
     // 为了方便调试加入的量
     chassis_media_param->center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
     chassis_media_param->center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
+
+    ramp_init(chassis_media_param->rotate_ramp, 200);
 }
+
 void ChassisMsgInit()
 {
     chassis_sub = SubRegister("chassis_cmd", sizeof(Chassis_Ctrl_Cmd_s));
     chassis_pub = PubRegister("chassis_feed", sizeof(Chassis_Upload_Data_s));
 }
-/**
- * @brief 计算每个轮毂电机的输出,正运动学解算
- *        用宏进行预替换减小开销,运动解算具体过程参考教程
- */
+
 void OmniCalculate()
 {
     // 根据云台和底盘的角度offset将控制量映射到底盘坐标系上
@@ -147,7 +147,7 @@ void ChassisModeSet()
 
             chassis_media_param->cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             chassis_media_param->sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-            ramp_init(&chassis_media_param->rotate_ramp, 250);
+            ramp_init(chassis_media_param->rotate_ramp, 250);
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
 
@@ -161,11 +161,10 @@ void ChassisModeSet()
             chassis_media_param->cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
             chassis_media_param->sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
 
-            ramp_init(&chassis_media_param->rotate_ramp, 250);
+            ramp_init(chassis_media_param->rotate_ramp, 250);
             break;
         case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            chassis_media_param->vw_set           = 5000;
-            chassis_media_param->chassis_vw       = (chassis_media_param->current_speed_vw + (chassis_media_param->vw_set - chassis_media_param->chassis_vw) * ramp_calc(&chassis_media_param->rotate_ramp));
+            chassis_media_param->chassis_vw       = (chassis_media_param->current_speed_vw + (5000 - chassis_media_param->current_speed_vw) * ramp_calc(chassis_media_param->rotate_ramp));
             chassis_media_param->current_speed_vw = chassis_media_param->chassis_vw;
 
             chassis_cmd_recv.wz            = chassis_media_param->chassis_vw;
@@ -184,7 +183,6 @@ void ChassisModeSet()
     }
 }
 
-/* 机器人底盘控制核心任务 */
 void ChassisMsgComm()
 {
     // 获取新的控制信息
