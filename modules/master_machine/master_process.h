@@ -1,12 +1,9 @@
-#ifndef MASTER_PROCESS_H
-#define MASTER_PROCESS_H
+#pragma once
 
 #include "bsp_usart.h"
 #include "bsp_usb.h"
 #include "daemon.h"
 #include "vision.h" // 可以在不修改代码的情况下更新model层
-
-#define Host_Instance_MX_CNT   1
 
 typedef enum {
     HOST_USART = 0, // 串口通信
@@ -17,7 +14,7 @@ typedef struct {
     void *comm_instance;      // 通信实例，会被转换为串口或USB通信实例
     host_comm_mode comm_mode; // 通信方式
     DaemonInstance *daemon;   // 守护进程
-    uint8_t RECV_SIZE;       // 接收缓冲大小
+    uint8_t RECV_SIZE;        // 接收缓冲大小
 } HostInstance;
 
 typedef struct {
@@ -38,5 +35,3 @@ HostInstance *HostInit(HostInstanceConf *host_conf);
  *
  */
 void HostSend(HostInstance *instance, uint8_t *send_buf, uint16_t tx_len);
-
-#endif // !MASTER_PROCESS_H

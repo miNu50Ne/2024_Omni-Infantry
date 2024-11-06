@@ -173,6 +173,14 @@ typedef struct
     uint16_t Heat_Limit;             // 热量上限
 } UI_Cmd_s;
 
+// cmd发布的master数据，由master订阅
+typedef struct {
+    uint8_t frame_head[4];
+    float ins_quat[4];
+    uint8_t robot_id;
+    uint8_t rune_mode;
+} Master_Cmd_s;
+
 /* ----------------gimbal/shoot/chassis/UI发布的反馈数据----------------*/
 /**
  * @brief 由cmd订阅,其他应用也可以根据需要获取.
@@ -209,6 +217,10 @@ typedef struct
 {
     // code to go here
 } UI_Upload_Data_s;
+
+typedef struct {
+    float rec_yaw, rec_pitch;
+} Master_Upload_Data_s;
 
 #pragma pack() // 开启字节对齐,结束前面的#pragma pack(1)
 

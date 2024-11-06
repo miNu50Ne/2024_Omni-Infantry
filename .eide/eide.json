@@ -108,6 +108,7 @@
           "application/gimbal",
           "application/shoot",
           "application/UI",
+          "application/master",
           "application",
           "application/test",
           "modules/ramp",
