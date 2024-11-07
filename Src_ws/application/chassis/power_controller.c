@@ -4,7 +4,7 @@
 #include "power_calc.h"
 #include <stdint.h>
 
-static ramp_t super_ramp;
+static ramp_t *super_ramp;
 static float Power_Output;
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
@@ -35,7 +35,7 @@ static void LimitChassisOutput(uint16_t power_buffer, uint16_t power_limit)
     Power_Output = power_limit - 10 + 20 * Plimit;
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
-    ramp_init(&super_ramp, 300);
+    ramp_init(super_ramp, 300);
 }
 
 /**
@@ -45,7 +45,7 @@ static void LimitChassisOutput(uint16_t power_buffer, uint16_t power_limit)
 static void SuperLimitOutput(float cap_voltage)
 {
     static float power_output;
-    Power_Output = (power_output + (250 - 20 + 40 * (cap_voltage - 17.0f) / 6.0f - power_output) * ramp_calc(&super_ramp));
+    Power_Output = (power_output + (250 - 20 + 40 * (cap_voltage - 17.0f) / 6.0f - power_output) * ramp_calc(super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
 
     power_output = Power_Output;

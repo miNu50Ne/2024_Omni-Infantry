@@ -64,17 +64,8 @@
  * @brief 这些枚举类型和结构体会作为CMD控制数据和各应用的反馈数据的一部分
  *
  */
-// 机器人状态
-typedef enum {
-    ROBOT_STOP = 0,
-    ROBOT_READY,
-} Robot_Status_e;
 
 // 底盘模式设置
-/**
- * @brief 后续考虑修改为云台跟随底盘,而不是让底盘去追云台,云台的惯量比底盘小.
- *
- */
 typedef enum {
     CHASSIS_ZERO_FORCE = 0,    // 电流零输入
     CHASSIS_ROTATE,            // 小陀螺模式
@@ -82,6 +73,11 @@ typedef enum {
     CHASSIS_FOLLOW_GIMBAL_YAW, // 跟随模式，底盘叠加角度环控制
     CHASSIS_REVERSE_ROTATE,    // 反方向小陀螺
 } chassis_mode_e;
+
+typedef enum {
+    SUPER_USER_CLOSE = 0, // 用户关闭超电
+    SUPER_USER_OPEN,
+} cap_mode_e;
 
 // 云台模式设置
 typedef enum {
@@ -220,6 +216,7 @@ typedef struct
 
 typedef struct {
     float rec_yaw, rec_pitch;
+    uint8_t rec_flag;
 } Master_Upload_Data_s;
 
 #pragma pack() // 开启字节对齐,结束前面的#pragma pack(1)

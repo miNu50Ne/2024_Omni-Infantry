@@ -60,6 +60,7 @@ void MasterMsgProcess()
 
     memcpy(&master_feedback_data.rec_yaw, master_send_data, sizeof(float));
     memcpy(&master_feedback_data.rec_pitch, master_send_data + 4, sizeof(float));
+    memcpy(&master_feedback_data.rec_flag, master_send_data + 8, sizeof(uint8_t));
 }
 
 void MasterMsgComm()
