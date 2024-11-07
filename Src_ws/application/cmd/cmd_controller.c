@@ -66,6 +66,7 @@ void CmdParamInit()
 #else
     gimbal_cmd_send.pitch = PTICH_HORIZON_ANGLE;
 #endif
+    shoot_cmd_send.shoot_mode = SHOOT_OFF; // 初始化后发射机构失能
 
     memset(&cmd_media_param, 0, sizeof(CmdInstance));
     ramp_init(cmd_media_param.fb_ramp, RAMP_TIME);

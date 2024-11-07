@@ -16,9 +16,7 @@
   */
 
 #include "AHRS_middleware.h"
-#include "AHRS.h"
 #include "arm_math.h"
-#include "main.h"
 /**
  * @brief          用于获取当前高度
  * @author         RM

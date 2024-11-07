@@ -103,9 +103,6 @@ void ShootMsgInit()
 
 void ShootParamInit()
 {
-
-    shoot_cmd_recv.shoot_mode = SHOOT_ON; // 初始化后摩擦轮进入准备模式,也可将右拨杆拨至上一次来手动开启
-
     memset(shoot_media_param, 0, sizeof(ShootInstance));
 
     shoot_media_param->heat_control    = 25; // 热量控制
