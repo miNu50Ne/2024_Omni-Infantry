@@ -27,7 +27,7 @@ set(CMAKE_BUILD_TYPE Debug) # Debug Release RelWithDebInfo MinSizeRel
 # board specific settings, arch/fpu/instruction
 set(MCU_FLAGS -mcpu=cortex-m4 -mthumb -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16)
 set(LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/STM32F407IGHx_FLASH.ld") # 指定链接脚本
-set(AHRS_LIB "${CMAKE_SOURCE_DIR}/modules/algorithm/AHRS.lib")
+set(AHRS_LIB "${CMAKE_SOURCE_DIR}/Src_ws/modules/algorithm/AHRS.lib")
 link_directories(${CMAKE_SOURCE_DIR}/Middlewares/ST/ARM/DSP/Lib)
 
 # Generic compiler settings for optimization and basic link lib
@@ -68,9 +68,9 @@ endfunction()
 
 include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Drivers)
 include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Middlewares)
-include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/bsp)
-include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/modules)
-include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/application)
+include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Src_ws/bsp)
+include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Src_ws/modules)
+include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Src_ws/application)
 include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Inc)
 
 # add source, only surfix .c
@@ -78,9 +78,9 @@ file(GLOB_RECURSE SOURCES
     "Drivers/*.c"
     "Src/*.c"
     "Middlewares/*.c"
-    "bsp/*.c"
-    "modules/*.c"
-    "application/*.c"
+    "Src_ws/bsp/*.c"
+    "Src_ws/modules/*.c"
+    "Src_ws/application/*.c"
 )
 
 # 汇编文件路径
@@ -108,6 +108,7 @@ else()
 endif()
 
 # build binary and hex file
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build) # 设置目标路径
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${ASM_SOURCES} ${LINKER_SCRIPT})
 target_link_libraries(${PROJECT_NAME}.elf CMSISDSP m ${AHRS_LIB}) # link DSP lib and math lib

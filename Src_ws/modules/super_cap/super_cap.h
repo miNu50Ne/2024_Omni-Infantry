@@ -22,9 +22,6 @@
 
 #pragma pack(1)
 
-#define SUPER_USER_OPEN     1
-#define SUPER_USER_CLOSE    0
-
 #define SUPER_VOLTAGE_OPEN  1
 #define SUPER_VOLTAGE_CLOSE 0
 

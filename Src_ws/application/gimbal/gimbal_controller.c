@@ -9,6 +9,7 @@
  *
  */
 
+#include "motor_def.h"
 #include "robot_def.h"
 #include "dji_motor.h"
 #include "ins_task.h"
@@ -73,8 +74,7 @@ void GimbalDeviceInit()
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
-
-                .MaxOut = 10,
+                .MaxOut        = 10,
             },
             .speed_PID = {
                 .Kp            = 7000, // 18000, // 10500,//1000,//10000,// 11000
@@ -93,7 +93,7 @@ void GimbalDeviceInit()
             .speed_feedback_source = OTHER_FEED,
             .outer_loop_type       = ANGLE_LOOP,
             .close_loop_type       = ANGLE_LOOP | SPEED_LOOP,
-            .motor_reverse_flag    = MOTOR_DIRECTION_NORMAL,
+            .motor_reverse_flag    = MOTOR_DIRECTION_REVERSE,
         },
         .motor_type = GM6020};
     // PITCH
@@ -128,7 +128,7 @@ void GimbalDeviceInit()
             .speed_feedback_source = OTHER_FEED,
             .outer_loop_type       = ANGLE_LOOP,
             .close_loop_type       = SPEED_LOOP | ANGLE_LOOP,
-            .motor_reverse_flag    = MOTOR_DIRECTION_NORMAL,
+            .motor_reverse_flag    = MOTOR_DIRECTION_REVERSE,
         },
         .motor_type = GM6020,
     };
@@ -144,8 +144,6 @@ void GimbalMsgInit()
 
 void GimbalModeSet()
 {
-    // @todo:现在已不再需要电机反馈,实际上可以始终使用IMU的姿态数据来作为云台的反馈,yaw电机的offset只是用来跟随底盘
-    // 根据控制模式进行电机反馈切换和过渡,视觉模式在robot_cmd模块就已经设置好,gimbal只看yaw_ref和pitch_ref
     switch (gimbal_cmd_recv.gimbal_mode) {
         // 停止
         case GIMBAL_ZERO_FORCE:
@@ -153,20 +151,16 @@ void GimbalModeSet()
             DJIMotorStop(pitch_motor);
             break;
         // 使用陀螺仪的反馈,底盘根据yaw电机的offset跟随云台或视觉模式采用
-        case GIMBAL_GYRO_MODE: // 后续只保留此模式
+        case GIMBAL_GYRO_MODE:
             DJIMotorEnable(yaw_motor);
             DJIMotorEnable(pitch_motor);
-            DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw); // yaw和pitch会在robot_cmd中处理好多圈和单圈
+            DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw);
             DJIMotorSetRef(pitch_motor, gimbal_cmd_recv.pitch);
             break;
         default:
             break;
     }
 }
-
-// 在合适的地方添加pitch重力补偿前馈力矩
-// 根据IMU姿态/pitch电机角度反馈计算出当前配重下的重力矩
-// ...
 
 void GimbalMsgComm()
 {
@@ -176,7 +170,6 @@ void GimbalMsgComm()
     // 设置反馈数据,主要是imu和yaw的ecd
     gimbal_feedback_data.gimbal_imu_data              = gimbal_IMU_data;
     gimbal_feedback_data.yaw_motor_single_round_angle = (uint16_t)yaw_motor->measure.angle_single_round; // 推送消息
-    gimbal_feedback_data.yaw_ecd                      = yaw_motor->measure.ecd;
 
     // 推送消息
     PubPushMessage(gimbal_pub, (void *)&gimbal_feedback_data);
