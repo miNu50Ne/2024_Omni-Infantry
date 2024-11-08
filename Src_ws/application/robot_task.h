@@ -2,23 +2,16 @@
 #pragma once
 
 #include "FreeRTOS.h"
+#include "cmsis_os2.h"
 #include "task.h"
-#include "main.h"
-#include "cmsis_os.h"
 
-#include "referee_init.h"
-#include "master_process.h"
 #include "daemon.h"
-#include "HT04.h"
-#include "user_lib.h"
 
 #include "bsp_log.h"
-#include "led.h"
-#include "buzzer.h"
 #include "ins_task.h"
-#include "referee_UI.h"
 
 #include "robot_cmd.h"
+#include "master.h"
 #include "gimbal.h"
 #include "chassis.h"
 #include "shoot.h"
@@ -54,6 +47,15 @@ __attribute__((noreturn)) void _RobotCMDTask(void *argument)
         osDelay(1);
     }
 }
+
+__attribute__((noreturn)) void _MasterTask(void *argument)
+{
+    for (;;) {
+        MasterTask();
+        osDelay(1);
+    }
+}
+
 __attribute__((noreturn)) void _ChassisTask(void *argument)
 {
     for (;;) {

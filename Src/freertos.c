@@ -93,7 +93,7 @@ const osThreadAttr_t Shoot_attributes = {
 osThreadId_t motorControlHandle;
 const osThreadAttr_t motorControl_attributes = {
   .name = "motorControl",
-  .stack_size = 512 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for UIDraw */
@@ -110,6 +110,13 @@ const osThreadAttr_t Daemon_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for Master */
+osThreadId_t MasterHandle;
+const osThreadAttr_t Master_attributes = {
+  .name = "Master",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime7,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -125,6 +132,7 @@ void _ShootTask(void *argument);
 void motorControlTask(void *argument);
 void _UITask(void *argument);
 void _DaemonTask(void *argument);
+void _MasterTask(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -182,6 +190,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Daemon */
   DaemonHandle = osThreadNew(_DaemonTask, NULL, &Daemon_attributes);
+
+  /* creation of Master */
+  MasterHandle = osThreadNew(_MasterTask, NULL, &Master_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -353,6 +364,24 @@ __weak void _DaemonTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END _DaemonTask */
+}
+
+/* USER CODE BEGIN Header__MasterTask */
+/**
+* @brief Function implementing the Master thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header__MasterTask */
+__weak void _MasterTask(void *argument)
+{
+  /* USER CODE BEGIN _MasterTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END _MasterTask */
 }
 
 /* Private application code --------------------------------------------------*/

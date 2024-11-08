@@ -13,6 +13,7 @@
 #include "string.h"
 #include "crc_ref.h"
 #include "bsp_usart.h"
+#include "FreeRTOS.h"
 #include "task.h"
 #include "daemon.h"
 #include "bsp_log.h"

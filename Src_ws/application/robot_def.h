@@ -13,13 +13,14 @@
 #define ROBOT_DEF_H
 
 #include "ins_task.h"
+#include "rm_referee.h"
 #include <stdint.h>
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
-// 云台参数
 
+// 云台参数
 #define YAW_CHASSIS_ALIGN_ECD     5793 // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 1    // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD         6812 // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
@@ -34,7 +35,8 @@
 #define ONE_BULLET_DELTA_ANGLE 45    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 拨盘电机的减速比,英雄需要修改为3508的19.0f
 #define NUM_PER_CIRCLE         8     // 拨盘一圈的装载量
-// 机器人底盘修改的参数,单位为mm(毫米)
+
+// 底盘参数,单位为mm(毫米)
 #define WHEEL_BASE             350   // 纵向轴距(前进后退方向)
 #define TRACK_WIDTH            350   // 横向轮距(左右平移方向)
 #define CENTER_GIMBAL_OFFSET_X 0     // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
@@ -50,7 +52,6 @@
 #define YAW_K   0.00025f
 #define PITCH_K 0.000004f
 
-// 模拟小电脑负重 652.2
 // 其他参数(尽量所有参数集中到此文件)
 #define BUZZER_SILENCE           0 // 蜂鸣器静音,1为静音,0为正常
 
@@ -155,6 +156,7 @@ typedef struct
 // cmd发布的UI数据,由UI订阅
 typedef struct
 {
+    referee_id_t robot_id_for_ui;
     uint8_t ui_send_flag; // UI发送标志位
     chassis_mode_e chassis_mode;
     uint16_t chassis_attitude_angle; // 底盘姿态角

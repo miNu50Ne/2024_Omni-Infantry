@@ -12,4 +12,3 @@ void UI_Init();
  */
 void UIDynamicRefresh();
 
-

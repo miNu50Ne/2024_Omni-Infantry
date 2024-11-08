@@ -1,0 +1,10 @@
+{
+    find_program = {
+        cmake = [[D:\Program Files\CMake\bin\cmake]],
+        zig = false,
+        vswhere = false,
+        nim = false,
+        ["vswhere.exe"] = false,
+        clang = false
+    }
+}

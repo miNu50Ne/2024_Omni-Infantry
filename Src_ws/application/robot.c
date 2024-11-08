@@ -9,15 +9,15 @@
  * Copyright (c) 2023 by Alliance-EC, All Rights Reserved.
  */
 #include "bsp_init.h"
-#include "robot.h"
 #include "buzzer.h"
 
-#include "chassis.h"
+#include "robot.h"
 
+#include "chassis.h"
 #include "gimbal.h"
 #include "shoot.h"
 #include "robot_cmd.h"
-
+#include "master.h"
 #include "omni_UI.h"
 
 void RobotInit()
@@ -38,13 +38,18 @@ void RobotInit()
 
     ChassisInit();
     buzzer_one_note(So_freq, 0.1f);
+
+    MasterInit();
+    buzzer_one_note(La_freq, 0.1f);
     UI_Init();
+    buzzer_one_note(Si_freq, 0.1f);
     // 初始化完成,开启中断
     __enable_irq();
 }
 
 void RobotTask()
 {
+    MasterTask();
     RobotCMDTask();
     GimbalTask();
     ShootTask();

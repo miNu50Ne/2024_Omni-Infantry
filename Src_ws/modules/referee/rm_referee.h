@@ -3,9 +3,7 @@
 
 #include "usart.h"
 #include "referee_protocol.h"
-#include "robot_def.h"
-#include "bsp_usart.h"
-#include "FreeRTOS.h"
+// #include "robot_def.h"
 
 // 屏幕宽度
 #define SCREEN_WIDTH 1080
@@ -71,22 +69,22 @@ typedef struct
 } Referee_Interactive_Flag_t;
 
 // 此结构体包含UI绘制与机器人车间通信的需要的其他非裁判系统数据
-typedef struct
-{
-    Referee_Interactive_Flag_t Referee_Interactive_Flag;
-    // 为UI绘制以及交互数据所用
-    chassis_mode_e chassis_mode;             // 底盘模式
-    shoot_mode_e shoot_mode;                 // 发射模式设置
-    friction_mode_e friction_mode;           // 摩擦轮关闭
-    uint8_t auto_rune;                       // 打符标志
+// typedef struct
+// {
+//     Referee_Interactive_Flag_t Referee_Interactive_Flag;
+//     // 为UI绘制以及交互数据所用
+//     chassis_mode_e chassis_mode;             // 底盘模式
+//     shoot_mode_e shoot_mode;                 // 发射模式设置
+//     friction_mode_e friction_mode;           // 摩擦轮关闭
+//     uint8_t auto_rune;                       // 打符标志
 
-    // 上一次的模式，用于flag判断
-    chassis_mode_e chassis_last_mode;
-    shoot_mode_e shoot_last_mode;
-    friction_mode_e friction_last_mode;
-    uint8_t last_rune;
+//     // 上一次的模式，用于flag判断
+//     chassis_mode_e chassis_last_mode;
+//     shoot_mode_e shoot_last_mode;
+//     friction_mode_e friction_last_mode;
+//     uint8_t last_rune;
 
-} Referee_Interactive_info_t;
+// } Referee_Interactive_info_t;
 
 #pragma pack()
 
