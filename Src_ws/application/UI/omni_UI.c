@@ -8,3 +8,17 @@
  * @copyright Copyright (c) 2024
  *
  */
+
+#include "UI_controller.h"
+
+void UIInit()
+{
+    while (UIDeviceInit());
+    UIMsgInit();
+}
+
+void UITask()
+{
+    UIRefresh();
+    UIMsgComm();
+}

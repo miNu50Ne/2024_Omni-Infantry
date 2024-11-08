@@ -1,14 +1,13 @@
 #pragma once
-/**
- * @brief UI初始化
- * 
- * 
- */
-void UI_Init();
 
 /**
- * @brief UI任务
- * 
+ * @brief
+ *
  */
-void UIDynamicRefresh();
+void UIInit();
 
+/**
+ * @brief UI交互任务
+ *
+ */
+void UITask();

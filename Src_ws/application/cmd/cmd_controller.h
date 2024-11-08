@@ -2,6 +2,7 @@
 
 #include "dji_motor.h"
 #include "ramp.h"
+#include <stdint.h>
 
 #define RC_LOST (rc_data[TEMP].rc.switch_left == 0 && rc_data[TEMP].rc.switch_right == 0)
 
@@ -22,6 +23,8 @@
 #define PITCH_LIMIT_ANGLE_DOWN (PITCH_POS_MIN_ECD * ECD_ANGLE_COEF_DJI) // 云台竖直方向最小角度 0-360
 #endif
 
+#define MOUSEKEYCONTROL switch_is_up(rc_data[TEMP].rc.switch_left) && (switch_is_down(rc_data[TEMP].rc.switch_right))
+#define ENTIREDISABLE   (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right))
 // 底盘模式
 #define CHASSIS_FREE     0
 #define CHASSIS_ROTATION 1
@@ -31,9 +34,12 @@
 
 typedef struct {
     /*控制值*/
-    uint8_t UI_SendFlag; // UI发送标志位
-    uint8_t auto_rune;   // 自瞄打符标志位
+    uint8_t ui_refresh_flag; // UI发送标志位
+
     uint8_t rc_mode[5];
+
+    uint8_t auto_aim;
+    uint8_t auto_rune; // 自瞄打符标志位
     float rec_yaw, rec_pitch;
 
     float yaw_control;   // 遥控器YAW自由度输入值
@@ -74,7 +80,7 @@ void DeterminRobotID();
  * @brief 自瞄手瞄切换
  *
  */
-void AutoControlSwitch();
+void GimbalModeSwitch();
 
 /**
  * @brief 根据gimbal app传回的当前电机角度计算和零位的误差

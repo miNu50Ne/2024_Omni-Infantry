@@ -89,12 +89,12 @@ typedef struct
 #pragma pack()
 
 /**
- * @brief 裁判系统通信初始化,该函数会初始化裁判系统串口,开启中断
+ * @brief 裁判系统硬件初始化
  *
- * @param referee_usart_handle 串口handle,C板一般用串口6
- * @return referee_info_t* 返回裁判系统反馈的数据,包括热量/血量/状态等
+ * @param referee_usart_handle
+ * @return referee_info_t*
  */
-referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle);
+referee_info_t *RefereeHardwareInit(UART_HandleTypeDef *referee_usart_handle);
 
 /**
  * @brief UI绘制和交互数的发送接口,由UI绘制任务和多机通信函数调用

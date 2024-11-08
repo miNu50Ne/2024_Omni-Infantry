@@ -156,19 +156,19 @@ typedef struct
 // cmd发布的UI数据,由UI订阅
 typedef struct
 {
-    referee_id_t robot_id_for_ui;
-    uint8_t ui_send_flag; // UI发送标志位
-    chassis_mode_e chassis_mode;
+    referee_id_t robot_id_for_ui; // 机器人id
+    uint8_t init_flag;            // 初始化完成标志位
+    uint8_t ui_refresh_flag;      // UI发送标志位
+
     uint16_t chassis_attitude_angle; // 底盘姿态角
-    friction_mode_e friction_mode;
-    uint8_t rune_mode;
-    uint8_t SuperCap_mode;           // 开关指示 未开启为1
-    float SuperCap_voltage;          // 超电电压
     uint16_t Cap_absorb_power_limit; // 超电吸收功率
-    float Chassis_voltage;           // 底盘电压
-    uint16_t Chassis_power_limit;    // 底盘功率
-    float Shooter_heat;              // 枪口热量
-    uint16_t Heat_Limit;             // 热量上限
+    chassis_mode_e chassis_mode;     // 底盘模式
+    uint8_t SuperCap_mode;           // 超电开关指示
+    float SuperCap_voltage;          // 超电电压
+
+    uint8_t rune_mode;
+
+    friction_mode_e friction_mode; // 摩擦轮模式
 } UI_Cmd_s;
 
 // cmd发布的master数据，由master订阅

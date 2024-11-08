@@ -41,7 +41,8 @@ void RobotInit()
 
     MasterInit();
     buzzer_one_note(La_freq, 0.1f);
-    UI_Init();
+
+    UIInit();
     buzzer_one_note(Si_freq, 0.1f);
     // 初始化完成,开启中断
     __enable_irq();
@@ -54,4 +55,5 @@ void RobotTask()
     GimbalTask();
     ShootTask();
     ChassisTask();
+    UITask();
 }

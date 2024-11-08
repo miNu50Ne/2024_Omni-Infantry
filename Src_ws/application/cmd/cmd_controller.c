@@ -16,12 +16,13 @@
 #include "ins_task.h"
 #include "message_center.h"
 #include "general_def.h"
-#include "referee_init.h"
+#include "rm_referee.h"
 
 #include "ramp.h"
 // bsp
 #include "bsp_log.h"
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
 
 static Publisher_t *chassis_cmd_pub;             // 底盘控制消息发布者
@@ -72,8 +73,10 @@ void CmdParamInit()
     ramp_init(cmd_media_param.fb_ramp, RAMP_TIME);
     ramp_init(cmd_media_param.lr_ramp, RAMP_TIME);
 
-    cmd_media_param.UI_SendFlag = 1;
-    cmd_media_param.auto_rune   = 0;
+    cmd_media_param.rc_mode[CHASSIS_FREE] = 1;
+
+    cmd_media_param.ui_refresh_flag = 1;
+    cmd_media_param.auto_rune       = 0;
 }
 
 void CmdMsgInit()
@@ -148,14 +151,23 @@ void PitchAngleLimit()
 #endif
 }
 
-void AutoControlSwitch()
+void GimbalModeSwitch()
 {
-    if (master_fetch_data->rec_pitch == 0 && master_fetch_data->rec_yaw == 0) {
-        cmd_media_param.yaw_control += YAW_K * (float)rc_data[TEMP].rc.rocker_l_;
-        cmd_media_param.pitch_control += PITCH_K * (float)rc_data[TEMP].rc.rocker_l1;
-    } else {
+
+    if (cmd_media_param.auto_aim || (cmd_media_param.rec_pitch != 0 && cmd_media_param.rec_yaw != 0)) {
         cmd_media_param.yaw_control   = master_fetch_data->rec_yaw;
         cmd_media_param.pitch_control = master_fetch_data->rec_pitch;
+    } else {
+        if (MOUSEKEYCONTROL) {
+            cmd_media_param.yaw_control += rc_data[TEMP].mouse.x / 350.0f;
+            cmd_media_param.pitch_control += -rc_data[TEMP].mouse.y / 15500.0f;
+        } else if (ENTIREDISABLE) {
+            cmd_media_param.pitch_control = cmd_media_param.pitch_control;
+            cmd_media_param.yaw_control   = cmd_media_param.yaw_control;
+        } else {
+            cmd_media_param.yaw_control += YAW_K * rc_data[TEMP].rc.rocker_l_;
+            cmd_media_param.pitch_control += PITCH_K * rc_data[TEMP].rc.rocker_l1;
+        }
     }
 }
 
@@ -300,8 +312,8 @@ static void remotecontrolset()
     // 底盘参数
     chassis_cmd_send.vx = 70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
     chassis_cmd_send.vy = 70.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
-    // 云台参数
 
+    // 云台参数
     gimbal_cmd_send.yaw   = cmd_media_param.yaw_control;
     gimbal_cmd_send.pitch = cmd_media_param.pitch_control;
 }
@@ -343,16 +355,14 @@ static void chassisset()
 }
 
 /**
- * @brief 鼠标移动云台
+ * @brief 云台参数
  *
  */
 static void gimbalset()
 {
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
 
-    // 按住鼠标右键且视觉识别到目标
-    cmd_media_param.yaw_control -= rc_data[TEMP].mouse.x / 350.0f;
-    cmd_media_param.pitch_control -= -rc_data[TEMP].mouse.y / 15500.0f;
+    // 云台参数
     gimbal_cmd_send.yaw   = cmd_media_param.yaw_control;
     gimbal_cmd_send.pitch = cmd_media_param.pitch_control;
 }
@@ -412,12 +422,12 @@ static void keymodeset()
     }
     switch (rc_data[TEMP].key[KEY_PRESS].r) {
         case 1:
-            if (cmd_media_param.UI_SendFlag == 1) {
-                cmd_media_param.UI_SendFlag = 0;
+            if (cmd_media_param.ui_refresh_flag == 1) {
+                cmd_media_param.ui_refresh_flag = 0;
             }
             break;
         case 0:
-            cmd_media_param.UI_SendFlag = 1;
+            cmd_media_param.ui_refresh_flag = 1;
             break;
     }
     switch (rc_data[TEMP].key[KEY_PRESS].ctrl) {
@@ -436,6 +446,14 @@ static void keymodeset()
             break;
         case 0:
             chassis_cmd_send.SuperCap_flag_from_user = SUPER_USER_CLOSE;
+            break;
+    }
+    switch (rc_data[TEMP].mouse.press_r) {
+        case 1:
+            cmd_media_param.auto_aim = 1;
+            break;
+        case 0:
+            cmd_media_param.auto_aim = 0;
             break;
     }
 }
@@ -472,9 +490,9 @@ extern referee_info_t *referee_data_for_ui;
 void CmdModeSet()
 {
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
-    if (switch_is_up(rc_data[TEMP].rc.switch_left) && (switch_is_down(rc_data[TEMP].rc.switch_right))) // 遥控器拨杆右[上]左[下],键鼠控制
+    if (MOUSEKEYCONTROL) // 遥控器拨杆右[上]左[下],键鼠控制
         mousekeyset();
-    else if (RC_LOST || (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_down(rc_data[TEMP].rc.switch_right))) {
+    else if (RC_LOST || ENTIREDISABLE) {
         emergencyhandler(); // 调试/疯车时急停
     } else {
         remotecontrolset();
@@ -497,7 +515,6 @@ void CmdMsgComm()
     memcpy(&chassis_cmd_send.power_buffer, &referee_data->PowerHeatData.chassis_power_buffer, sizeof(uint16_t));
     memcpy(&chassis_cmd_send.level, &referee_data->GameRobotState.robot_level, sizeof(uint8_t));
     memcpy(&chassis_cmd_send.power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
-    // memcpy
 
     // shoot
     memcpy(&shoot_cmd_send.shooter_heat_cooling_rate, &referee_data->GameRobotState.shooter_id1_17mm_cooling_rate, sizeof(uint16_t));
@@ -506,19 +523,17 @@ void CmdMsgComm()
     memcpy(&shoot_cmd_send.bullet_speed, &referee_data->ShootData.bullet_speed, sizeof(float));
 
     // UI
-    // memcpy(referee_data_for_ui, referee_data, sizeof(referee_info_t));
-    referee_data_for_ui = referee_data;
-    memcpy(&ui_cmd_send.ui_send_flag, &cmd_media_param.UI_SendFlag, sizeof(uint8_t));
+    memcpy(&ui_cmd_send.init_flag, &referee_data->init_flag, sizeof(uint8_t));
+    memcpy(&ui_cmd_send.robot_id_for_ui, &referee_data->referee_id, sizeof(referee_id_t));
+    memcpy(&ui_cmd_send.ui_refresh_flag, &cmd_media_param.ui_refresh_flag, sizeof(uint8_t));
     memcpy(&ui_cmd_send.chassis_mode, &chassis_cmd_send.chassis_mode, sizeof(chassis_mode_e));
     memcpy(&ui_cmd_send.chassis_attitude_angle, &gimbal_fetch_data.yaw_motor_single_round_angle, sizeof(uint16_t));
     memcpy(&ui_cmd_send.friction_mode, &shoot_cmd_send.friction_mode, sizeof(friction_mode_e));
     memcpy(&ui_cmd_send.rune_mode, &cmd_media_param.auto_rune, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_mode, &chassis_fetch_data.CapFlag_open_from_real, sizeof(uint8_t));
     memcpy(&ui_cmd_send.SuperCap_voltage, &chassis_fetch_data.cap_voltage, sizeof(float));
-    memcpy(&ui_cmd_send.Chassis_power_limit, &referee_data->GameRobotState.chassis_power_limit, sizeof(uint16_t));
-    memcpy(&ui_cmd_send.Shooter_heat, &shoot_fetch_data.shooter_local_heat, sizeof(float));
-    memcpy(&ui_cmd_send.Heat_Limit, &referee_data->GameRobotState.shooter_id1_17mm_cooling_limit, sizeof(uint16_t));
 
+    // master
     static uint8_t frame_head[] = {0xAF, 0x32, 0x00, 0x12};
     memcpy(master_cmd_send->frame_head, frame_head, 4);
     memcpy(master_cmd_send->ins_quat, gimbal_fetch_data.gimbal_imu_data->INS_data.INS_quat, sizeof(float) * 4);

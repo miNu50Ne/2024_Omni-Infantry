@@ -21,6 +21,8 @@
 
 #define RE_RX_BUFFER_SIZE 255u // 裁判系统接收缓冲区大小
 
+uint8_t UI_Seq; // 包序号，供整个referee文件使用
+
 static USARTInstance *referee_usart_instance; // 裁判系统串口实例
 static DaemonInstance *referee_daemon;        // 裁判系统守护进程
 static referee_info_t referee_info;           // 裁判系统数据
@@ -117,8 +119,13 @@ static void RefereeLostCallback(void *arg)
     LOGWARNING("[rm_ref] lost referee data");
 }
 
-/* 裁判系统通信初始化 */
-referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle)
+/**
+ * @brief 裁判系统通信初始化,该函数会初始化裁判系统串口,开启中断
+ *
+ * @param referee_usart_handle 串口handle,C板一般用串口6
+ * @return referee_info_t* 返回裁判系统反馈的数据,包括热量/血量/状态等
+ */
+referee_info_t *RefereeHardwareInit(UART_HandleTypeDef *referee_usart_handle)
 {
     USART_Init_Config_s conf;
     conf.module_callback   = RefereeRxCallback;
@@ -135,7 +142,6 @@ referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle)
 
     return &referee_info;
 }
-
 /**
  * @brief 裁判系统数据发送函数
  * @param

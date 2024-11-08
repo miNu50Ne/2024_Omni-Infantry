@@ -21,7 +21,7 @@ void RobotCMDInit()
 void RobotCMDTask()
 {
     DeterminRobotID();
-    AutoControlSwitch();
+    GimbalModeSwitch();
     CalcOffsetAngle();
     PitchAngleLimit();
     YawControlProcess();
