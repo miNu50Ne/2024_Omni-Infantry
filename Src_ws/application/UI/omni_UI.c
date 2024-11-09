@@ -13,7 +13,8 @@
 
 void UIInit()
 {
-    while (UIDeviceInit());
+    // while (UIDeviceInit());
+    UIDeviceInit();
     UIMsgInit();
 }
 

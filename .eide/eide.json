@@ -105,7 +105,7 @@
           "Src_ws/modules/daemon",
           "Src_ws/modules/vofa",
           "Src_ws/modules/ramp",
-          "Src_ws/modules/power_control",
+          "Src_ws/modules/power_calc",
           "Src_ws/application",
           "Src_ws/application/chassis",
           "Src_ws/application/cmd",

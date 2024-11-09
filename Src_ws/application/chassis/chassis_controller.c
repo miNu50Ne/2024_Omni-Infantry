@@ -17,6 +17,7 @@
 #include "dji_motor.h"
 #include "super_cap.h"
 #include "message_center.h"
+#include "power_calc.h"
 
 #include "general_def.h"
 #include "arm_math.h"
@@ -60,23 +61,19 @@ void ChassisDeviceInit()
     };
     //  @todo: 当前还没有设置电机的正反转,仍然需要手动添加reference的正负号,需要电机module的支持,待修改.
     chassis_motor_config.can_init_config.tx_id                             = 1;
-    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     motor_lf                                                               = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 2;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    // chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
-
-    motor_rf = DJIMotorInit(&chassis_motor_config);
+    motor_rf                                                               = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 3;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    // chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
-
-    motor_rb = DJIMotorInit(&chassis_motor_config);
+    motor_rb                                                               = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 4;
-    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     motor_lb                                                               = DJIMotorInit(&chassis_motor_config);
 
     SuperCap_Init_Config_s cap_conf = {
@@ -86,14 +83,16 @@ void ChassisDeviceInit()
             .rx_id      = 0x300, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
+
+    PowerCalcInit();
 }
 
 void ChassisParamInit()
 {
     memset(chassis_media_param, 0, sizeof(ChassisInstance));
     // 为了方便调试加入的量
-    chassis_media_param->center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
-    chassis_media_param->center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
+    chassis_media_param->center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
+    chassis_media_param->center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 
     ramp_init(chassis_media_param->rotate_ramp, 200);
 }
@@ -107,13 +106,12 @@ void ChassisMsgInit()
 void OmniCalculate()
 {
     // 根据云台和底盘的角度offset将控制量映射到底盘坐标系上
-    // 底盘逆时针旋转为角度正方向;云台命令的方向以云台指向的方向为x,采用右手系(x指向正北时y在正东)
     chassis_media_param->chassis_vx = chassis_cmd_recv.vx * chassis_media_param->cos_theta - chassis_cmd_recv.vy * chassis_media_param->sin_theta;
     chassis_media_param->chassis_vy = chassis_cmd_recv.vx * chassis_media_param->sin_theta + chassis_cmd_recv.vy * chassis_media_param->cos_theta;
 
     chassis_media_param->vt_lf = chassis_media_param->chassis_vx + chassis_media_param->chassis_vy + chassis_cmd_recv.wz * LF_CENTER;
-    chassis_media_param->vt_rf = -chassis_media_param->chassis_vx + chassis_media_param->chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
-    chassis_media_param->vt_rb = chassis_media_param->chassis_vx + chassis_media_param->chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
+    chassis_media_param->vt_rf = chassis_media_param->chassis_vx - chassis_media_param->chassis_vy + chassis_cmd_recv.wz * RF_CENTER;
+    chassis_media_param->vt_rb = -chassis_media_param->chassis_vx - chassis_media_param->chassis_vy + chassis_cmd_recv.wz * RB_CENTER;
     chassis_media_param->vt_lb = -chassis_media_param->chassis_vx + chassis_media_param->chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
 
     // 设定速度参考值
@@ -157,6 +155,7 @@ void ChassisModeSet()
             // else {
             //     offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
             // }
+
             chassis_cmd_recv.wz = chassis_media_param->offset_angle * 20;
 
             chassis_media_param->cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);

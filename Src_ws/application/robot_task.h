@@ -86,6 +86,14 @@ __attribute__((noreturn)) void motorControlTask(void *argument)
     }
 }
 
+__attribute__((noreturn)) void _UITask(void *argument)
+{
+    while (1) {
+        UITask();
+        osDelay(100);
+    }
+}
+
 __attribute__((noreturn)) void _DaemonTask(void *argument)
 {
     for (;;) {

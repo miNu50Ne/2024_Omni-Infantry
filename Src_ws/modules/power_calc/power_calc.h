@@ -24,9 +24,10 @@ typedef struct {
     float torque_current_coefficient;
     float give_power;
     float power_scale;
-
+    // 输入功率
     Power_Input_t input_power_components;
 
+    // 更新值
     float reduction_ratio;
     uint16_t max_power;
 
@@ -42,6 +43,8 @@ typedef struct
     float predict_output[4];
     uint8_t count;
 } Power_Data_s;
+
+void PowerCalcInit();
 
 void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init);
 

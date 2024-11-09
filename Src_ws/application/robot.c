@@ -12,6 +12,7 @@
 #include "buzzer.h"
 
 #include "robot.h"
+#include "robot_task.h"
 
 #include "chassis.h"
 #include "gimbal.h"
@@ -35,13 +36,10 @@ void RobotInit()
     buzzer_one_note(Mi_freq, 0.1f);
     ShootInit();
     buzzer_one_note(Fa_freq, 0.1f);
-
     ChassisInit();
     buzzer_one_note(So_freq, 0.1f);
-
     MasterInit();
     buzzer_one_note(La_freq, 0.1f);
-
     UIInit();
     buzzer_one_note(Si_freq, 0.1f);
     // 初始化完成,开启中断

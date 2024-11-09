@@ -65,14 +65,14 @@ static void UIDynamicRefresh()
 
 int8_t UIDeviceInit()
 {
-    if (ui_cmd_recv.init_flag != 1) {
-        return -1; // 硬件未初始化
-    }
-
     MyuiInitLocal    = UIStaticRefresh;
     MyUIRefreshLocal = UIDynamicRefresh;
 
     (*MyuiInitLocal)();
+
+    if (ui_cmd_recv.init_flag != 1) {
+        return -1; // 硬件未初始化
+    }
 
     return 0;
 }
