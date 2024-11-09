@@ -71,6 +71,9 @@ int8_t UIDeviceInit()
 
     MyuiInitLocal    = UIStaticRefresh;
     MyUIRefreshLocal = UIDynamicRefresh;
+
+    (*MyuiInitLocal)();
+
     return 0;
 }
 

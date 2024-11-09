@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- * @brief
+ * @brief UI应用初始化
  *
  */
 void UIInit();
