@@ -20,7 +20,7 @@ void PowerCalcInit()
     memset(powercalcinstance, 0, sizeof(PowerCalcInstance));
     powercalcinstance->k1                                        = 1.704137214E-07f;
     powercalcinstance->k2                                        = 1.83e-07f;
-    powercalcinstance->torque_current_coefficient                = CURRENT_2_TORQUE * TORQUE_COEFFICIENT / powercalcinstance->reduction_ratio / CONVERSION_COEFFICIENT;
+    powercalcinstance->torque_current_coefficient                = CURRENT_2_TORQUE * TORQUE_COEFFICIENT * powercalcinstance->reduction_ratio / CONVERSION_COEFFICIENT;
     powercalcinstance->input_power_components.static_consumption = 1.0f;
 }
 
@@ -67,7 +67,7 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
         powercalcinstance->power_scale = powercalcinstance->max_power / powercalcinstance->input_power_components.total_power;
         powercalcinstance->give_power  = motor_power * powercalcinstance->power_scale;
         // 负功率不缩放，直接返回
-        // todo:也许可以删掉，我认为在计算值超功率状态下只有个别电机做负功的情况并不存在
+        // todo:也许可以删掉，在计算值超功率状态下只有个别电机做负功的情况大概率并不存在
         if (motor_power < 0) {
             if (motor_current > 15000) {
                 motor_current = 15000;

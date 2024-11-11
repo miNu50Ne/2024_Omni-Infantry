@@ -17,7 +17,6 @@
 #include "dji_motor.h"
 #include "super_cap.h"
 #include "message_center.h"
-#include "power_calc.h"
 
 #include "general_def.h"
 #include "arm_math.h"
@@ -84,7 +83,7 @@ void ChassisDeviceInit()
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
 
-    PowerCalcInit();
+    PowerCalcInit(); // 功率计算参数初始化
 }
 
 void ChassisParamInit()
