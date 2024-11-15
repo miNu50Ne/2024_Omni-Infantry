@@ -15,6 +15,12 @@
 #define LB_CENTER ((HALF_TRACK_WIDTH + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define RB_CENTER ((HALF_TRACK_WIDTH - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 
+// typedef struct {
+//     PID_Init_Config_s current_PID;
+//     PID_Init_Config_s speed_PID;
+//     PID_Init_Config_s angle_PID;
+// } ChassisController;
+
 typedef struct {
     uint8_t center_gimbal_offset_x; // 云台旋转中心距底盘几何中心的距离
     uint8_t center_gimbal_offset_y;
@@ -28,6 +34,8 @@ typedef struct {
     float sin_theta, cos_theta;
     ramp_t *rotate_ramp;
     float current_speed_vw;
+
+    // PIDInstance chasis;
 } ChassisInstance;
 
 /**

@@ -22,7 +22,7 @@
 #include "arm_math.h"
 #include "power_controller.h"
 #include "ramp.h"
-
+    
 /* 根据robot_def.h中的macro自动计算的参数 */
 
 static Publisher_t *chassis_pub;  // 用于发布底盘的数据
