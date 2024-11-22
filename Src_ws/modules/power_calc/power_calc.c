@@ -26,8 +26,8 @@ static void limit_output(float *current_output)
 
 void PowerCalcInit()
 {
-    powercalcinstance.k1                                        = 1.704137214E-07f;
-    powercalcinstance.k2                                        = 1.83e-07f;
+    powercalcinstance.k1                                        = 2.60e-07f;
+    powercalcinstance.k2                                        = 2.93e-08f;
     powercalcinstance.torque_current_coefficient                = CURRENT_2_TORQUE * TORQUE_COEFFICIENT * powercalcinstance.reduction_ratio / CONVERSION_COEFFICIENT;
     powercalcinstance.input_power_components.static_consumption = 1.0f;
 }

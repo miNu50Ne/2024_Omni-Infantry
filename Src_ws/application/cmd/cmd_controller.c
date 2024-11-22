@@ -308,8 +308,8 @@ static void remotecontrolset()
     }
 
     // 底盘参数
-    chassis_cmd_send.vx = 70.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
-    chassis_cmd_send.vy = 70.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
+    chassis_cmd_send.vx = 20000 / 660.0f * (float)rc_data[TEMP].rc.rocker_r_; // 水平方向
+    chassis_cmd_send.vy = 20000 / 660.0f * (float)rc_data[TEMP].rc.rocker_r1; // 竖直方向
 
     // 云台参数
     gimbal_cmd_send.yaw   = cmd_media_param.yaw_control;

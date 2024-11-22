@@ -32,7 +32,8 @@ static void LimitChassisOutput(uint16_t power_buffer, uint16_t power_limit)
     else if (power_buffer == 60)
         Plimit = 1;
 
-    Power_Output = power_limit - 10 + 20 * Plimit;
+    Power_Output = power_limit;
+    // Power_Output = power_limit - 10 + 20 * Plimit;
     PowerControlupdate(Power_Output, REDUCTION_RATIO_WHEEL);
 
     ramp_init(super_ramp, 300);
@@ -46,7 +47,7 @@ static void SuperLimitOutput(float cap_voltage)
 {
     static float power_output;
     Power_Output = (power_output + (250 - 20 + 40 * (cap_voltage - 17.0f) / 6.0f - power_output) * ramp_calc(super_ramp));
-    PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate(Power_Output, REDUCTION_RATIO_WHEEL);
     power_output = Power_Output;
 }
 

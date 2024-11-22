@@ -92,6 +92,7 @@ void ChassisParamInit()
         .IntegralLimit = 3000,
         .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
         .MaxOut        = 20000,
+        .DeadBand      = 10,
     };
 
     PIDInit(&chassis_media_param.chassis_follow_cotroller, &follow_pid);
