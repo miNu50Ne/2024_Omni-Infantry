@@ -24,8 +24,7 @@ void RobotCMDTask()
     GimbalModeSwitch();
     CalcOffsetAngle();
     PitchAngleLimit();
-    YawControlProcess();
-    ShootHeatControl();
+    ShootControl();
     CmdModeSet();
     CmdMsgComm();
 }

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-// #include "motor_def.h"
-// #include "controller.h"
+#include "controller.h"
 #include "ramp.h"
 
 #define LF        0
@@ -26,8 +25,11 @@ typedef struct {
     /*模式参数 */
     float offset_angle;
     float sin_theta, cos_theta;
-    ramp_t *rotate_ramp;
+    ramp_t rotate_ramp;
     float current_speed_vw;
+    PIDInstance chassis_follow_cotroller;
+
+    // PIDInstance chasis;
 } ChassisInstance;
 
 /**

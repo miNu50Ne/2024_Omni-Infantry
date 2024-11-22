@@ -27,7 +27,7 @@ static Subscriber_t *shoot_sub;
 static Shoot_Ctrl_Cmd_s shoot_cmd_recv;         // 来自cmd的发射控制信息
 static Shoot_Upload_Data_s shoot_feedback_data; // 来自cmd的发射控制信息
 
-static ShootInstance *shoot_media_param; // 发射中介变量
+static ShootInstance shoot_media_param; // 发射中介变量
 
 void ShootDeviceInit()
 {
@@ -103,15 +103,13 @@ void ShootMsgInit()
 
 void ShootParamInit()
 {
-    memset(shoot_media_param, 0, sizeof(ShootInstance));
+    shoot_media_param.heat_control    = 25; // 热量控制
+    shoot_media_param.local_heat      = 0;  // 本地热量
+    shoot_media_param.One_bullet_heat = 10; // 打一发消耗热量
+    shoot_media_param.shoot_count     = 0;  // 已发弹量
 
-    shoot_media_param->heat_control    = 25; // 热量控制
-    shoot_media_param->local_heat      = 0;  // 本地热量
-    shoot_media_param->One_bullet_heat = 10; // 打一发消耗热量
-    shoot_media_param->shoot_count     = 0;  // 已发弹量
-
-    ramp_init(shoot_media_param->fric_on_ramp, 200);
-    ramp_init(shoot_media_param->fric_off_ramp, 200);
+    ramp_init(&shoot_media_param.fric_on_ramp, 200);
+    ramp_init(&shoot_media_param.fric_off_ramp, 200);
 }
 
 void loader_status_update(void)
@@ -121,41 +119,41 @@ void loader_status_update(void)
     static uint8_t loader_reverse_count;  // 反转计时
     static uint8_t loader_weakjam_count;  // 轻微卡弹计时
     // 获取拨弹盘转速
-    shoot_media_param->loader_velocity = shoot_cmd_recv.shoot_rate;
+    shoot_media_param.loader_velocity = shoot_cmd_recv.shoot_rate;
 
-    switch (shoot_media_param->loader_status) {
+    switch (shoot_media_param.loader_status) {
         case LOADER_IDLE:
             loader_normal_count  = 0;
             loader_weakjam_count = 0;
             loader_jam_count     = 0;
             loader_reverse_count = 0;
 
-            if (shoot_media_param->loader_velocity > 25) {
-                shoot_media_param->loader_status = LOADER_NORMAL;
+            if (shoot_media_param.loader_velocity > 25) {
+                shoot_media_param.loader_status = LOADER_NORMAL;
             }
             break;
         case LOADER_NORMAL:
             loader_normal_count++;
             if (loader_normal_count > 40) {
-                if (shoot_media_param->loader_current < -2000) {
-                    shoot_media_param->loader_status = LOADER_JAM;
-                } else if (abs(shoot_media_param->loader_current) < 200) {
-                    shoot_media_param->loader_status = LOADER_IDLE;
+                if (shoot_media_param.loader_current < -2000) {
+                    shoot_media_param.loader_status = LOADER_JAM;
+                } else if (abs(shoot_media_param.loader_current) < 200) {
+                    shoot_media_param.loader_status = LOADER_IDLE;
                 }
             }
             break;
         case LOADER_JAM:
             shoot_cmd_recv.load_mode = LOAD_JAM;
 
-            if (shoot_media_param->loader_current > -400) {
+            if (shoot_media_param.loader_current > -400) {
                 loader_weakjam_count++;
                 if (loader_weakjam_count > 100)
-                    shoot_media_param->loader_status = LOADER_IDLE;
+                    shoot_media_param.loader_status = LOADER_IDLE;
             } else {
                 loader_jam_count--;
             }
             if (loader_jam_count == 0) {
-                shoot_media_param->loader_status = LOADER_ROLLBACK;
+                shoot_media_param.loader_status = LOADER_ROLLBACK;
             }
             break;
         case LOADER_ROLLBACK:
@@ -163,89 +161,88 @@ void loader_status_update(void)
             loader_reverse_count++;
             // 反转时间
             if (loader_reverse_count > 100) {
-                shoot_media_param->loader_status = LOADER_IDLE;
+                shoot_media_param.loader_status = LOADER_IDLE;
             }
             break;
         default:
-            shoot_media_param->loader_status = LOADER_IDLE;
+            shoot_media_param.loader_status = LOADER_IDLE;
             break;
     }
 }
 
 void ShootModeSet()
 {
-    // 对shoot mode等于SHOOT_STOP的情况特殊处理,直接停止所有电机(紧急停止)
-    if (shoot_cmd_recv.shoot_mode == SHOOT_OFF) {
-        DJIMotorStop(friction_l);
-        DJIMotorStop(friction_r);
-        DJIMotorStop(loader);
-    } else // 恢复运行
-    {
-        DJIMotorEnable(friction_l);
-        DJIMotorEnable(friction_r);
-        DJIMotorEnable(loader);
+    switch (shoot_cmd_recv.shoot_mode) {
+        case SHOOT_OFF:
+            DJIMotorStop(friction_l);
+            DJIMotorStop(friction_r);
+            DJIMotorStop(loader);
+            break;
+        case SHOOT_ON:
+            DJIMotorEnable(friction_l);
+            DJIMotorEnable(friction_r);
+            DJIMotorEnable(loader);
+
+            break;
     }
 
-    // 如果上一次触发单发或3发指令的时间加上不应期仍然大于当前时间(尚未休眠完毕),直接返回即可
-    // 单发模式主要提供给能量机关激活使用(以及英雄的射击大部分处于单发)
-    if (shoot_media_param->hibernate_time + shoot_media_param->dead_time > DWT_GetTimeline_ms())
+    if (shoot_media_param.hibernate_time + shoot_media_param.dead_time > DWT_GetTimeline_ms())
         return;
 
     switch (shoot_cmd_recv.load_mode) {
         // 停止拨盘
         case LOAD_STOP:
-            DJIMotorSetRef(loader, 0); // 同时设定参考值为0,这样停止的速度最快
-            shoot_media_param->shoot_heat_count[0] = shoot_media_param->shoot_count;
-            shoot_media_param->shoot_heat_count[1] = shoot_media_param->shoot_heat_count[0];
-            shoot_media_param->one_bullet          = 0;
+            DJIMotorSetRef(loader, 0);
+            shoot_media_param.shoot_heat_count[0] = shoot_media_param.shoot_count;
+            shoot_media_param.shoot_heat_count[1] = shoot_media_param.shoot_heat_count[0];
+            shoot_media_param.one_bullet          = 0;
             break;
         // 激活能量机关
         case LOAD_1_BULLET:
-            shoot_media_param->hibernate_time      = DWT_GetTimeline_ms(); // 记录触发指令的时间
-            shoot_media_param->dead_time           = 150;
-            shoot_media_param->shoot_heat_count[1] = shoot_media_param->shoot_count;
-            if (shoot_media_param->shoot_heat_count[1] - shoot_media_param->shoot_heat_count[0] >= 1) {
-                shoot_media_param->one_bullet = 1;
+            shoot_media_param.hibernate_time      = DWT_GetTimeline_ms();
+            shoot_media_param.dead_time           = 150;
+            shoot_media_param.shoot_heat_count[1] = shoot_media_param.shoot_count;
+            if (shoot_media_param.shoot_heat_count[1] - shoot_media_param.shoot_heat_count[0] >= 1) {
+                shoot_media_param.one_bullet = 1;
             }
-            switch (shoot_media_param->one_bullet) {
+            switch (shoot_media_param.one_bullet) {
                 case 1:
                     DJIMotorSetRef(loader, 0);
                     break;
                 case 0:
-                    DJIMotorSetRef(loader, 5000);
+                    DJIMotorSetRef(loader, shoot_cmd_recv.loader_rate / shoot_cmd_recv.shoot_rate);
                     break;
             }
             break;
         // 连发模式
         case LOAD_BURSTFIRE:
-            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate * 360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE);
-            // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
+            DJIMotorSetRef(loader, shoot_cmd_recv.loader_rate);
             break;
         case LOAD_JAM:
-            DJIMotorSetRef(loader, shoot_cmd_recv.shoot_rate / 3 * 360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE);
+            DJIMotorSetRef(loader, shoot_cmd_recv.loader_rate / 3);
             break;
         case LOAD_REVERSE:
-            DJIMotorSetRef(loader, -shoot_cmd_recv.shoot_rate / 3 * 360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE);
-            // x颗/秒换算成速度: 已知一圈的载弹量,由此计算出1s需要转的角度,注意换算角速度(DJIMotor的速度单位是angle per second)
+            DJIMotorSetRef(loader, -shoot_cmd_recv.loader_rate / 3);
             break;
         default:
-            while (1); // 未知模式,停止运行,检查指针越界,内存溢出等问题
+            while (1);
     }
 
-    // 确定是否开启摩擦轮,后续可能修改为键鼠模式下始终开启摩擦轮(上场时建议一直开启)
-    if (shoot_cmd_recv.friction_mode == FRICTION_ON) {
-        // 根据收到的弹速设置设定摩擦轮电机参考值,需实测后填入
-        shoot_media_param->fric_speed_ref = (shoot_media_param->current_fric_speed + (35500 - shoot_media_param->current_fric_speed) * ramp_calc(shoot_media_param->fric_on_ramp));
-        ramp_init(shoot_media_param->fric_off_ramp, 300);
-    } else if (shoot_cmd_recv.friction_mode == FRICTION_OFF) {
-        shoot_media_param->fric_speed_ref = (shoot_media_param->current_fric_speed + (0 - shoot_media_param->current_fric_speed) * ramp_calc(shoot_media_param->fric_off_ramp));
-        ramp_init(shoot_media_param->fric_on_ramp, 300);
+    switch (shoot_cmd_recv.friction_mode) {
+        case FRICTION_OFF:
+            shoot_media_param.fric_speed_ref = (shoot_media_param.current_fric_speed + (0 - shoot_media_param.current_fric_speed) * ramp_calc(&shoot_media_param.fric_off_ramp));
+            ramp_init(&shoot_media_param.fric_on_ramp, 300);
+            break;
+        case FRICTION_ON:
+            shoot_media_param.fric_speed_ref = (shoot_media_param.current_fric_speed + (35500 - shoot_media_param.current_fric_speed) * ramp_calc(&shoot_media_param.fric_on_ramp));
+            ramp_init(&shoot_media_param.fric_off_ramp, 300);
+            break;
     }
 
-    shoot_media_param->current_fric_speed = shoot_media_param->fric_speed_ref;
+    shoot_media_param.current_fric_speed = shoot_media_param.fric_speed_ref;
 
-    DJIMotorSetRef(friction_l, shoot_media_param->fric_speed_ref);
-    DJIMotorSetRef(friction_r, shoot_media_param->fric_speed_ref);
+    DJIMotorSetRef(friction_l, shoot_media_param.fric_speed_ref);
+    DJIMotorSetRef(friction_r, shoot_media_param.fric_speed_ref);
 }
 
 void ShootMsgComm()
@@ -254,8 +251,8 @@ void ShootMsgComm()
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 
     // 反馈数据
-    memcpy(&shoot_feedback_data.shooter_local_heat, &shoot_media_param->local_heat, sizeof(float));
-    memcpy(&shoot_feedback_data.shooter_heat_control, &shoot_media_param->heat_control, sizeof(int));
+    memcpy(&shoot_feedback_data.shooter_local_heat, &shoot_media_param.local_heat, sizeof(float));
+    memcpy(&shoot_feedback_data.shooter_heat_control, &shoot_media_param.heat_control, sizeof(int));
 
     PubPushMessage(shoot_pub, (void *)&shoot_feedback_data);
 }
@@ -333,8 +330,8 @@ static void shoot_Fric_data_process(void)
             bullet_waiting_confirm = true;
         } else if (derivative > 30) {
             if (bullet_waiting_confirm == true) {
-                shoot_media_param->local_heat += shoot_media_param->One_bullet_heat; // 确认打出
-                shoot_media_param->shoot_count++;
+                shoot_media_param.local_heat += shoot_media_param.One_bullet_heat; // 确认打出
+                shoot_media_param.shoot_count++;
                 bullet_waiting_confirm = false;
             }
         }
@@ -362,16 +359,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     /* USER CODE BEGIN Callback 1 */
     if (htim->Instance == TIM6) {
         /*-------------------------------------------热量控制部分---------------------------------------------*/
-        shoot_media_param->local_heat -= (shoot_cmd_recv.shooter_heat_cooling_rate / 1000.0f); // 1000Hz冷却
-        if (shoot_media_param->local_heat < 0) {
-            shoot_media_param->local_heat = 0;
+        shoot_media_param.local_heat -= (shoot_cmd_recv.shooter_heat_cooling_rate / 1000.0f); // 1000Hz冷却
+        if (shoot_media_param.local_heat < 0) {
+            shoot_media_param.local_heat = 0;
         }
         if (shoot_cmd_recv.shooter_referee_heat - shoot_cmd_recv.shooter_cooling_limit >= 15) // 裁判系统判断已经超了热量
         {
-            shoot_media_param->local_heat = shoot_cmd_recv.shooter_referee_heat;
+            shoot_media_param.local_heat = shoot_cmd_recv.shooter_referee_heat;
         }
         shoot_Fric_data_process();
-        shoot_media_param->loader_current = loader_cunrrent_mean_filter();
+        shoot_media_param.loader_current = loader_cunrrent_mean_filter();
     }
     /* USER CODE END Callback 1 */
 }

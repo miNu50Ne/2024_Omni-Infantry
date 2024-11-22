@@ -28,9 +28,10 @@ typedef struct {
     float loader_velocity;         // 当前电机转速
     float loader_current;          // 电机电流值
     loader_status_e loader_status; // 拨弹盘状态
+    float loader_rate;             // 拨弹盘转速
 
     uint8_t one_bullet;
-    ramp_t *fric_on_ramp, *fric_off_ramp;
+    ramp_t fric_on_ramp, fric_off_ramp;
     float fric_speed_ref; // 摩擦轮转速参考值
     uint32_t shoot_heat_count[2];
     float current_fric_speed;

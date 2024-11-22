@@ -45,8 +45,8 @@ typedef struct {
     float yaw_control;   // 遥控器YAW自由度输入值
     float pitch_control; // 遥控器PITCH自由度输入值
     float heat_coef;
-    ramp_t *fb_ramp;
-    ramp_t *lr_ramp;
+    ramp_t fb_ramp;
+    ramp_t lr_ramp;
 } CmdInstance;
 
 /* 初始化 */
@@ -96,16 +96,10 @@ void CalcOffsetAngle();
 void PitchAngleLimit();
 
 /**
- * @brief 云台Yaw轴反馈值改单圈角度后过圈处理
- *
- */
-void YawControlProcess();
-
-/**
  * @brief 发射启动、热量控制
  *
  */
-void ShootHeatControl();
+void ShootControl();
 
 /**
  * @brief cmd模式切换

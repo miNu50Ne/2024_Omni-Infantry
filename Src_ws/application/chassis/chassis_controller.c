@@ -11,20 +11,18 @@
  *
  */
 
+#include "controller.h"
 #include "robot_def.h"
 #include "chassis_controller.h"
 
 #include "dji_motor.h"
 #include "super_cap.h"
 #include "message_center.h"
-#include "power_calc.h"
 
 #include "general_def.h"
 #include "arm_math.h"
 #include "power_controller.h"
 #include "ramp.h"
-
-/* 根据robot_def.h中的macro自动计算的参数 */
 
 static Publisher_t *chassis_pub;  // 用于发布底盘的数据
 static Subscriber_t *chassis_sub; // 用于订阅底盘的控制命令
@@ -35,11 +33,10 @@ static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数�
 static SuperCapInstance *cap;                                       // 超级电容
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
-static ChassisInstance *chassis_media_param; // 底盘中介变量
+static ChassisInstance chassis_media_param; // 底盘中介变量
 
 void ChassisDeviceInit()
 {
-    // 四个轮子的参数一样,改tx_id和反转标志位即可
     Motor_Init_Config_s chassis_motor_config = {
         .can_init_config.can_handle   = &hcan1,
         .controller_param_init_config = {
@@ -59,7 +56,6 @@ void ChassisDeviceInit()
         },
         .motor_type = M3508,
     };
-    //  @todo: 当前还没有设置电机的正反转,仍然需要手动添加reference的正负号,需要电机module的支持,待修改.
     chassis_motor_config.can_init_config.tx_id                             = 1;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     motor_lf                                                               = DJIMotorInit(&chassis_motor_config);
@@ -84,17 +80,26 @@ void ChassisDeviceInit()
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
 
-    PowerCalcInit();
+    PowerCalcInit(); // 功率计算参数初始化
 }
 
 void ChassisParamInit()
 {
-    memset(chassis_media_param, 0, sizeof(ChassisInstance));
-    // 为了方便调试加入的量
-    chassis_media_param->center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
-    chassis_media_param->center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
+    PID_Init_Config_s follow_pid = {
+        .Kp            = 1.0,
+        .Ki            = 0,
+        .Kd            = 0,
+        .IntegralLimit = 3000,
+        .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
+        .MaxOut        = 20000,
+    };
 
-    ramp_init(chassis_media_param->rotate_ramp, 200);
+    PIDInit(&chassis_media_param.chassis_follow_cotroller, &follow_pid);
+    // 为了方便调试加入的量
+    chassis_media_param.center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
+    chassis_media_param.center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
+
+    ramp_init(&chassis_media_param.rotate_ramp, 200);
 }
 
 void ChassisMsgInit()
@@ -105,79 +110,81 @@ void ChassisMsgInit()
 
 void OmniCalculate()
 {
-    // 根据云台和底盘的角度offset将控制量映射到底盘坐标系上
-    chassis_media_param->chassis_vx = chassis_cmd_recv.vx * chassis_media_param->cos_theta - chassis_cmd_recv.vy * chassis_media_param->sin_theta;
-    chassis_media_param->chassis_vy = chassis_cmd_recv.vx * chassis_media_param->sin_theta + chassis_cmd_recv.vy * chassis_media_param->cos_theta;
+    chassis_media_param.chassis_vx = chassis_cmd_recv.vx * chassis_media_param.cos_theta - chassis_cmd_recv.vy * chassis_media_param.sin_theta;
+    chassis_media_param.chassis_vy = chassis_cmd_recv.vx * chassis_media_param.sin_theta + chassis_cmd_recv.vy * chassis_media_param.cos_theta;
 
-    chassis_media_param->vt_lf = chassis_media_param->chassis_vx + chassis_media_param->chassis_vy + chassis_cmd_recv.wz * LF_CENTER;
-    chassis_media_param->vt_rf = chassis_media_param->chassis_vx - chassis_media_param->chassis_vy + chassis_cmd_recv.wz * RF_CENTER;
-    chassis_media_param->vt_rb = -chassis_media_param->chassis_vx - chassis_media_param->chassis_vy + chassis_cmd_recv.wz * RB_CENTER;
-    chassis_media_param->vt_lb = -chassis_media_param->chassis_vx + chassis_media_param->chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
+    chassis_media_param.vt_lf = chassis_media_param.chassis_vx + chassis_media_param.chassis_vy + chassis_cmd_recv.wz * LF_CENTER;
+    chassis_media_param.vt_rf = chassis_media_param.chassis_vx - chassis_media_param.chassis_vy + chassis_cmd_recv.wz * RF_CENTER;
+    chassis_media_param.vt_rb = -chassis_media_param.chassis_vx - chassis_media_param.chassis_vy + chassis_cmd_recv.wz * RB_CENTER;
+    chassis_media_param.vt_lb = -chassis_media_param.chassis_vx + chassis_media_param.chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
 
-    // 设定速度参考值
-    DJIMotorSetRef(motor_lf, chassis_media_param->vt_lf);
-    DJIMotorSetRef(motor_rf, chassis_media_param->vt_rf);
-    DJIMotorSetRef(motor_lb, chassis_media_param->vt_lb);
-    DJIMotorSetRef(motor_rb, chassis_media_param->vt_rb);
+    DJIMotorSetRef(motor_lf, chassis_media_param.vt_lf);
+    DJIMotorSetRef(motor_rf, chassis_media_param.vt_rf);
+    DJIMotorSetRef(motor_lb, chassis_media_param.vt_lb);
+    DJIMotorSetRef(motor_rb, chassis_media_param.vt_rb);
 }
 
 void ChassisModeSet()
 {
-    if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) { // 如果出现重要模块离线或遥控器设置为急停,让电机停止
+    if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) {
         DJIMotorStop(motor_lf);
         DJIMotorStop(motor_rf);
         DJIMotorStop(motor_lb);
         DJIMotorStop(motor_rb);
-    } else { // 正常工作
+    } else {
         DJIMotorEnable(motor_lf);
         DJIMotorEnable(motor_rf);
         DJIMotorEnable(motor_lb);
         DJIMotorEnable(motor_rb);
     }
 
-    // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     PowerController(cap, chassis_cmd_recv.power_buffer, chassis_cmd_recv.power_limit, chassis_cmd_recv.SuperCap_flag_from_user);
 
-    // 根据控制模式设定旋转速度
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
-            // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
             chassis_cmd_recv.wz = 0;
 
-            chassis_media_param->cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-            chassis_media_param->sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-            ramp_init(chassis_media_param->rotate_ramp, 250);
+            chassis_media_param.cos_theta = arm_cos_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+            chassis_media_param.sin_theta = arm_sin_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+            ramp_init(&chassis_media_param.rotate_ramp, 250);
             break;
-        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台
+        case CHASSIS_FOLLOW_GIMBAL_YAW:
 
-            // if (chassis_cmd_recv.offset_angle <= 90 && chassis_cmd_recv.offset_angle >= -90) // 0附近
-            //     offset_angle = chassis_cmd_recv.offset_angle;
+            // if (chassis_cmd_recv.gimbal_error_angle <= 90 && chassis_cmd_recv.gimbal_error_angle >= -90) // 0附近
+            //     gimbal_error_angle = chassis_cmd_recv.gimbal_error_angle;
             // else {
-            //     offset_angle = chassis_cmd_recv.offset_angle >= 0 ? chassis_cmd_recv.offset_angle - 180 : chassis_cmd_recv.offset_angle + 180;
+            //     gimbal_error_angle = chassis_cmd_recv.gimbal_error_angle >= 0 ? chassis_cmd_recv.gimbal_error_angle - 180 : chassis_cmd_recv.gimbal_error_angle + 180;
             // }
 
-            chassis_cmd_recv.wz = chassis_media_param->offset_angle * 20;
+            chassis_media_param.chassis_vw = chassis_media_param.current_speed_vw +
+                                             (PIDCalculate(&chassis_media_param.chassis_follow_cotroller, chassis_cmd_recv.gimbal_error_angle * 100, 0) -
+                                              chassis_media_param.current_speed_vw) +
+                                             ramp_calc(&chassis_media_param.rotate_ramp);
+            chassis_media_param.current_speed_vw = chassis_media_param.chassis_vw;
 
-            chassis_media_param->cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-            chassis_media_param->sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
+            chassis_cmd_recv.wz = chassis_media_param.chassis_vw;
 
-            ramp_init(chassis_media_param->rotate_ramp, 250);
+            chassis_media_param.cos_theta = arm_cos_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+            chassis_media_param.sin_theta = arm_sin_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+
             break;
-        case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-            chassis_media_param->chassis_vw       = (chassis_media_param->current_speed_vw + (5000 - chassis_media_param->current_speed_vw) * ramp_calc(chassis_media_param->rotate_ramp));
-            chassis_media_param->current_speed_vw = chassis_media_param->chassis_vw;
-
-            chassis_cmd_recv.wz            = chassis_media_param->chassis_vw;
-            chassis_media_param->cos_theta = arm_cos_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
-            chassis_media_param->sin_theta = arm_sin_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD);
+        case CHASSIS_ROTATE:
+            chassis_cmd_recv.wz           = 5000;
+            chassis_media_param.cos_theta = arm_cos_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
+            chassis_media_param.sin_theta = arm_sin_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD);
             chassis_cmd_recv.vx *= 0.6;
             chassis_cmd_recv.vy *= 0.6;
             break;
+            ramp_init(&chassis_media_param.rotate_ramp, 250);
 
         case CHASSIS_REVERSE_ROTATE:
-            chassis_cmd_recv.wz            = -5000;
-            chassis_media_param->cos_theta = arm_cos_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
-            chassis_media_param->sin_theta = arm_sin_f32((chassis_cmd_recv.offset_angle + 22) * DEGREE_2_RAD);
+            chassis_cmd_recv.wz           = -5000;
+            chassis_media_param.cos_theta = arm_cos_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
+            chassis_media_param.sin_theta = arm_sin_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD);
+            chassis_cmd_recv.vx *= 0.6;
+            chassis_cmd_recv.vy *= 0.6;
+            ramp_init(&chassis_media_param.rotate_ramp, 250);
+            break;
         default:
             break;
     }

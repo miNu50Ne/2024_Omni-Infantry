@@ -33,7 +33,7 @@ static void LimitChassisOutput(uint16_t power_buffer, uint16_t power_limit)
         Plimit = 1;
 
     Power_Output = power_limit - 10 + 20 * Plimit;
-    PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
+    PowerControlupdate(Power_Output, REDUCTION_RATIO_WHEEL);
 
     ramp_init(super_ramp, 300);
 }
@@ -47,7 +47,6 @@ static void SuperLimitOutput(float cap_voltage)
     static float power_output;
     Power_Output = (power_output + (250 - 20 + 40 * (cap_voltage - 17.0f) / 6.0f - power_output) * ramp_calc(super_ramp));
     PowerControlupdate(Power_Output, 1.0f / REDUCTION_RATIO_WHEEL);
-
     power_output = Power_Output;
 }
 
@@ -88,12 +87,15 @@ void PowerController(SuperCapInstance *cap, uint16_t power_buffer, uint16_t powe
     }
 
     // User允许开启电容 且 电压充足
-    if (switch_from_user == SUPER_USER_OPEN) {
-        cap->cap_msg_g.enabled = SUPER_CMD_OPEN;
-        SuperLimitOutput(cap->cap_msg_s.CapVot);
-    } else {
-        cap->cap_msg_g.enabled = SUPER_CMD_CLOSE;
-        LimitChassisOutput(power_buffer, power_limit);
+    switch (switch_from_user) {
+        case SUPER_USER_OPEN:
+            cap->cap_msg_g.enabled = SUPER_CMD_OPEN;
+            SuperLimitOutput(cap->cap_msg_s.CapVot);
+            break;
+        case SUPER_USER_CLOSE:
+            cap->cap_msg_g.enabled = SUPER_CMD_CLOSE;
+            LimitChassisOutput(power_buffer, power_limit);
+            break;
     }
 
     // 获得功率挡位

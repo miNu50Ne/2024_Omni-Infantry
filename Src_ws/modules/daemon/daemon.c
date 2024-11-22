@@ -6,19 +6,19 @@
 
 // 用于保存所有的daemon instance
 static DaemonInstance *daemon_instances[DAEMON_MX_CNT] = {NULL};
-static uint8_t idx = 0; // 用于记录当前的daemon instance数量,配合回调使用
+static uint8_t idx                                     = 0; // 用于记录当前的daemon instance数量,配合回调使用
 
 DaemonInstance *DaemonRegister(Daemon_Init_Config_s *config)
 {
     DaemonInstance *instance = (DaemonInstance *)malloc(sizeof(DaemonInstance));
     memset(instance, 0, sizeof(DaemonInstance));
 
-    instance->owner_id = config->owner_id;
+    instance->owner_id     = config->owner_id;
     instance->reload_count = config->reload_count == 0 ? 100 : config->reload_count; // 默认值为100
-    instance->callback = config->callback;
-    instance->temp_count = config->init_count == 0 ? 100 : config->init_count; // 默认值为100,初始计数
+    instance->callback     = config->callback;
+    instance->temp_count   = config->init_count == 0 ? 100 : config->init_count; // 默认值为100,初始计数
 
-    instance->temp_count = config->reload_count;
+    instance->temp_count    = config->reload_count;
     daemon_instances[idx++] = instance;
     return instance;
 }
@@ -37,8 +37,7 @@ uint8_t DaemonIsOnline(DaemonInstance *instance)
 void DaemonTask()
 {
     DaemonInstance *dins; // 提高可读性同时降低访存开销
-    for (size_t i = 0; i < idx; ++i)
-    {
+    for (size_t i = 0; i < idx; ++i) {
 
         dins = daemon_instances[i];
         if (dins->temp_count > 0) // 如果计数器还有值,说明上一次喂狗后还没有超时,则计数器减一

@@ -68,24 +68,23 @@ void GimbalDeviceInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 0.6, // 0.24, // 0.31, // 0.45
-                .Ki            = 0,
-                .Kd            = 0.0,
+                .Kp            = 220.0,
+                .Ki            = 3.0,
+                .Kd            = 7.0,
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
-                .MaxOut        = 10,
+                .MaxOut        = 100,
             },
             .speed_PID = {
-                .Kp            = 7000, // 18000, // 10500,//1000,//10000,// 11000
-                .Ki            = 0,    // 0
-                .Kd            = 0,    // 10, // 30
+                .Kp            = 2400.0,
+                .Ki            = 0,
+                .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 5000,
-                .MaxOut        = 20000, // 20000
+                .MaxOut        = 20000,
             },
-            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle_deg[INS_YAW_ADDRESS_OFFSET], // yaw反馈角度值
-            // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
+            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_YAW_ADDRESS_OFFSET],
             .other_speed_feedback_ptr = &gimbal_IMU_data->INS_data.INS_gyro[INS_YAW_ADDRESS_OFFSET],
         },
         .controller_setting_init_config = {
@@ -93,7 +92,7 @@ void GimbalDeviceInit()
             .speed_feedback_source = OTHER_FEED,
             .outer_loop_type       = ANGLE_LOOP,
             .close_loop_type       = ANGLE_LOOP | SPEED_LOOP,
-            .motor_reverse_flag    = MOTOR_DIRECTION_REVERSE,
+            .motor_reverse_flag    = MOTOR_DIRECTION_NORMAL,
         },
         .motor_type = GM6020};
     // PITCH
@@ -104,23 +103,22 @@ void GimbalDeviceInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 40,
-                .Ki            = 0,
-                .Kd            = 0,
+                .Kp            = 250,
+                .Ki            = 2,
+                .Kd            = 6,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10,
                 .MaxOut        = 20,
             },
             .speed_PID = {
-                .Kp            = 6000,
+                .Kp            = 1200,
                 .Ki            = 0,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,
                 .IntegralLimit = 3000,
                 .MaxOut        = 20000,
             },
-            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET], // pitch反馈弧度制
-            // 还需要增加角速度额外反馈指针,注意方向,ins_task.md中有c板的bodyframe坐标系说明
+            .other_angle_feedback_ptr = &gimbal_IMU_data->output.INS_angle[INS_PITCH_ADDRESS_OFFSET],
             .other_speed_feedback_ptr = &gimbal_IMU_data->INS_data.INS_gyro[INS_PITCH_ADDRESS_OFFSET],
         },
         .controller_setting_init_config = {
@@ -128,7 +126,7 @@ void GimbalDeviceInit()
             .speed_feedback_source = OTHER_FEED,
             .outer_loop_type       = ANGLE_LOOP,
             .close_loop_type       = SPEED_LOOP | ANGLE_LOOP,
-            .motor_reverse_flag    = MOTOR_DIRECTION_REVERSE,
+            .motor_reverse_flag    = MOTOR_DIRECTION_NORMAL,
         },
         .motor_type = GM6020,
     };
