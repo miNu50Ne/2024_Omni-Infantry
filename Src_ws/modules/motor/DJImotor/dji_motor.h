@@ -16,18 +16,16 @@
 #define DJI_MOTOR_H
 
 #include "bsp_can.h"
-#include "controller.h"
 #include "motor_def.h"
 #include "stdint.h"
 #include "daemon.h"
-#include "power_calc.h"
 
 #define DJI_MOTOR_CNT 12
 
 /* 滤波系数设置为1的时候即关闭滤波 */
-#define SPEED_SMOOTH_COEF 0.85f      // 最好大于0.85
-#define CURRENT_SMOOTH_COEF 0.9f     // 必须大于0.9
-#define ECD_ANGLE_COEF_DJI 0.043945f // (360/8192),将编码器值转化为角度制
+#define SPEED_SMOOTH_COEF   0.85f     // 最好大于0.85
+#define CURRENT_SMOOTH_COEF 0.9f      // 必须大于0.9
+#define ECD_ANGLE_COEF_DJI  0.043945f // (360/8192),将编码器值转化为角度制
 
 /* DJI电机CAN反馈信息*/
 typedef struct
@@ -62,7 +60,7 @@ typedef struct
     Motor_Type_e motor_type;        // 电机类型
     Motor_Working_Type_e stop_flag; // 启停标志
 
-    DaemonInstance* daemon;
+    DaemonInstance *daemon;
     uint32_t feed_cnt;
     float dt;
 } DJIMotorInstance;

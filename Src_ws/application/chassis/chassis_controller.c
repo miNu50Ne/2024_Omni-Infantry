@@ -14,14 +14,15 @@
 #include "controller.h"
 #include "robot_def.h"
 #include "chassis_controller.h"
+#include "power_controller.h"
 
 #include "dji_motor.h"
 #include "super_cap.h"
 #include "message_center.h"
 
+#include "power_calc.h"
 #include "general_def.h"
 #include "arm_math.h"
-#include "power_controller.h"
 #include "ramp.h"
 
 static Publisher_t *chassis_pub;  // 用于发布底盘的数据
