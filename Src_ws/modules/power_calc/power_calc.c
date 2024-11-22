@@ -26,8 +26,8 @@ static void limit_output(float *current_output)
 
 void PowerCalcInit()
 {
-    powercalcinstance.k1                                        = 2.60e-07f;
-    powercalcinstance.k2                                        = 2.93e-08f;
+    powercalcinstance.k1                                        = 2.93e-08f;
+    powercalcinstance.k2                                        = 2.60e-07f;
     powercalcinstance.torque_current_coefficient                = CURRENT_2_TORQUE * TORQUE_COEFFICIENT * powercalcinstance.reduction_ratio / CONVERSION_COEFFICIENT;
     powercalcinstance.input_power_components.static_consumption = 1.0f;
 }
@@ -42,8 +42,8 @@ void PowerControlupdate(uint16_t max_power_init, float reduction_ratio_init)
 float PowerInputCalc(float motor_speed, float motor_current)
 {
     powercalcinstance.input_power_components.machine_power = motor_current * powercalcinstance.torque_current_coefficient * motor_speed;
-    powercalcinstance.input_power_components.current_power = powercalcinstance.k2 * motor_current * motor_current;
-    powercalcinstance.input_power_components.speed_power   = powercalcinstance.k1 * motor_speed * motor_speed;
+    powercalcinstance.input_power_components.current_power = powercalcinstance.k1 * motor_current * motor_current;
+    powercalcinstance.input_power_components.speed_power   = powercalcinstance.k2 * motor_speed * motor_speed;
     powercalcinstance.input_power_components.input_power =
         powercalcinstance.input_power_components.machine_power +
         powercalcinstance.input_power_components.speed_power +
@@ -78,9 +78,9 @@ float CurrentOutputCalc(float motor_power, float motor_speed, float motor_curren
             return motor_current;
         }
         // 计算电流值
-        float a = powercalcinstance.k2;
+        float a = powercalcinstance.k1 * motor_current;
         float b = motor_speed * powercalcinstance.torque_current_coefficient;
-        float c = powercalcinstance.k1 * motor_speed * motor_speed - powercalcinstance.give_power + powercalcinstance.input_power_components.static_consumption;
+        float c = powercalcinstance.k2 * motor_speed * motor_speed - powercalcinstance.give_power + powercalcinstance.input_power_components.static_consumption;
         (motor_current > 0) ? (powercalcinstance.torque_output = (-b + sqrtf(b * b - 4 * a * c)) / (2 * a))
                             : (powercalcinstance.torque_output = (-b - sqrtf(b * b - 4 * a * c)) / (2 * a));
         // 限幅
