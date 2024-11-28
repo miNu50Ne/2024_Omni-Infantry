@@ -21,6 +21,6 @@ void ShootInit()
 void ShootTask()
 {
     ShootModeSet();
-    loader_status_update();
+    // loader_status_update();
     ShootMsgComm();
 }

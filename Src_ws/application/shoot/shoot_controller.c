@@ -114,13 +114,33 @@ void ShootParamInit()
 
 void loader_status_update(void)
 {
-    static uint8_t loader_normal_count;   // 正常工作计时
-    static uint8_t loader_jam_count = 50; // 卡弹计时
-    static uint8_t loader_reverse_count;  // 反转计时
-    static uint8_t loader_weakjam_count;  // 轻微卡弹计时
-    // 获取拨弹盘转速
-    shoot_media_param.loader_velocity = shoot_cmd_recv.shoot_rate;
 
+    // 获取拨弹盘转速
+    shoot_media_param.loader_velocity = loader->measure.speed_aps * NUM_PER_CIRCLE /
+                                        REDUCTION_RATIO_LOADER / 360;
+
+#if LOADER_2006
+    switch (shoot_media_param.loader_status) {
+        case LOADER_IDLE:
+            // if (expression) {
+            // }
+            break;
+        case LOADER_NORMAL:
+            break;
+        case LOADER_JAM:
+            break;
+        case LOADER_ROLLBACK:
+            break;
+        default:
+            shoot_media_param.loader_status = LOADER_IDLE;
+            break;
+    }
+#else
+    static uint8_t loader_normal_count;        // 正常工作计时
+    static uint8_t loader_jam_count = 50;      // 卡弹计时
+    static uint8_t loader_reverse_count;       // 反转计时
+    static uint8_t loader_weakjam_count;       // 轻微卡弹计时
+    static uint8_t loader_startjam_count = 50; // 启动卡弹计时
     switch (shoot_media_param.loader_status) {
         case LOADER_IDLE:
             loader_normal_count  = 0;
@@ -128,14 +148,14 @@ void loader_status_update(void)
             loader_jam_count     = 0;
             loader_reverse_count = 0;
 
-            if (shoot_media_param.loader_velocity > 25) {
+            if (shoot_media_param.loader_velocity > 20) {
                 shoot_media_param.loader_status = LOADER_NORMAL;
             }
             break;
         case LOADER_NORMAL:
             loader_normal_count++;
             if (loader_normal_count > 40) {
-                if (shoot_media_param.loader_current < -2000) {
+                if (shoot_media_param.loader_current > 6000) {
                     shoot_media_param.loader_status = LOADER_JAM;
                 } else if (abs(shoot_media_param.loader_current) < 200) {
                     shoot_media_param.loader_status = LOADER_IDLE;
@@ -145,7 +165,7 @@ void loader_status_update(void)
         case LOADER_JAM:
             shoot_cmd_recv.load_mode = LOAD_JAM;
 
-            if (shoot_media_param.loader_current > -400) {
+            if (shoot_media_param.loader_current < 8000) {
                 loader_weakjam_count++;
                 if (loader_weakjam_count > 100)
                     shoot_media_param.loader_status = LOADER_IDLE;
@@ -168,6 +188,7 @@ void loader_status_update(void)
             shoot_media_param.loader_status = LOADER_IDLE;
             break;
     }
+#endif
 }
 
 void ShootModeSet()
@@ -210,7 +231,7 @@ void ShootModeSet()
                     DJIMotorSetRef(loader, 0);
                     break;
                 case 0:
-                    DJIMotorSetRef(loader, shoot_cmd_recv.loader_rate / shoot_cmd_recv.shoot_rate);
+                    DJIMotorSetRef(loader, shoot_cmd_recv.loader_rate / 3);
                     break;
             }
             break;
@@ -234,7 +255,7 @@ void ShootModeSet()
             ramp_init(&shoot_media_param.fric_on_ramp, 300);
             break;
         case FRICTION_ON:
-            shoot_media_param.fric_speed_ref = (shoot_media_param.current_fric_speed + (35500 - shoot_media_param.current_fric_speed) * ramp_calc(&shoot_media_param.fric_on_ramp));
+            shoot_media_param.fric_speed_ref = (shoot_media_param.current_fric_speed + (37700 - shoot_media_param.current_fric_speed) * ramp_calc(&shoot_media_param.fric_on_ramp));
             ramp_init(&shoot_media_param.fric_off_ramp, 300);
             break;
     }
@@ -292,6 +313,7 @@ static float loader_cunrrent_mean_filter(void)
  * @brief 摩擦轮检测记录发弹量
  *
  */
+float watch;
 static void shoot_Fric_data_process(void)
 {
     /*----------------------------------变量常量------------------------------------------*/
@@ -325,8 +347,9 @@ static void shoot_Fric_data_process(void)
         moving_average[1] /= Fliter_windowSize;
         /*滤波求导*/
         derivative = moving_average[1] - moving_average[0];
+        watch      = derivative;
         /*导数比较*/
-        if (derivative < -300) {
+        if (derivative < -220) {
             bullet_waiting_confirm = true;
         } else if (derivative > 30) {
             if (bullet_waiting_confirm == true) {

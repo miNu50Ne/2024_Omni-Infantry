@@ -167,9 +167,9 @@ void GimbalModeSwitch()
         }
     }
 
-    if (cmd_media_param.yaw_control - gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_YAW_ADDRESS_OFFSET] > PI) {
+    if (cmd_media_param.yaw_control - gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_YAW_ADDRESS_OFFSET] >= PI) {
         cmd_media_param.yaw_control -= PI2;
-    } else if (cmd_media_param.yaw_control - gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_YAW_ADDRESS_OFFSET] < -PI) {
+    } else if (cmd_media_param.yaw_control - gimbal_fetch_data.gimbal_imu_data->output.INS_angle[INS_YAW_ADDRESS_OFFSET] <= -PI) {
         cmd_media_param.yaw_control += PI2;
     }
 }
@@ -182,20 +182,20 @@ void ShootControl()
     shoot_cmd_send.loader_rate = shoot_cmd_send.shoot_rate *
                                  360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE;
 
-    float rate_coef = 0;
-    if (cmd_media_param.heat_coef == 1)
-        rate_coef = 1;
-    else if (cmd_media_param.heat_coef >= 0.8 && cmd_media_param.heat_coef < 1)
-        rate_coef = 0.8;
-    else if (cmd_media_param.heat_coef >= 0.6 && cmd_media_param.heat_coef < 0.8)
-        rate_coef = 0.6;
-    else if (cmd_media_param.heat_coef < 0.6)
-        rate_coef = 0.4;
-    cmd_media_param.heat_coef = ((referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - referee_data->PowerHeatData.shooter_17mm_heat0 + rate_coef * referee_data->GameRobotState.shooter_id1_17mm_cooling_rate) * 1.0f) / (1.0f * referee_data->GameRobotState.shooter_id1_17mm_cooling_limit);
-    // 新热量管理
-    if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - 40 + 30 * cmd_media_param.heat_coef - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
-        shoot_cmd_send.load_mode = LOAD_STOP;
-    }
+    // float rate_coef = 0;
+    // if (cmd_media_param.heat_coef == 1)
+    //     rate_coef = 1;
+    // else if (cmd_media_param.heat_coef >= 0.8 && cmd_media_param.heat_coef < 1)
+    //     rate_coef = 0.8;
+    // else if (cmd_media_param.heat_coef >= 0.6 && cmd_media_param.heat_coef < 0.8)
+    //     rate_coef = 0.6;
+    // else if (cmd_media_param.heat_coef < 0.6)
+    //     rate_coef = 0.4;
+    // cmd_media_param.heat_coef = ((referee_data->GameRobotState.shooter_id1_17mm_cooling_limit -
+    //                               referee_data->PowerHeatData.shooter_17mm_heat0 +
+    //                               rate_coef * referee_data->GameRobotState.shooter_id1_17mm_cooling_rate) *
+    //                              1.0f) /
+    //                             (1.0f * referee_data->GameRobotState.shooter_id1_17mm_cooling_limit);
 }
 
 /**
@@ -302,6 +302,10 @@ static void remotecontrolset()
             if (shoot_cmd_send.friction_mode == FRICTION_ON) {
                 (rc_data[TEMP].rc.dial < -400) ? (shoot_cmd_send.load_mode = LOAD_BURSTFIRE)
                                                : (shoot_cmd_send.load_mode = LOAD_1_BULLET);
+                // 新热量管理
+                if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
+                    shoot_cmd_send.load_mode = LOAD_STOP;
+                }
             }
         default:
             break;
@@ -371,7 +375,6 @@ static void shootset()
 {
     // 仅在摩擦轮开启时有效
     if (shoot_cmd_send.friction_mode == FRICTION_ON) {
-        // 打弹，单击左键单发，长按连发
         if (rc_data[TEMP].mouse.press_l) {
             // 打符，单发
             switch (cmd_media_param.auto_rune) {
@@ -385,6 +388,10 @@ static void shootset()
         } else {
             shoot_cmd_send.load_mode = LOAD_STOP;
         }
+        // 新热量管理
+        if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
+            shoot_cmd_send.load_mode = LOAD_STOP;
+        }   
     } else {
         shoot_cmd_send.load_mode = LOAD_STOP;
     }

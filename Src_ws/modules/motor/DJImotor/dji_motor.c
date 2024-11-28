@@ -4,13 +4,12 @@
 #include "bsp_log.h"
 #include "power_calc.h"
 #include <stdint.h>
-#include "power_calc.h"
 
 static uint8_t idx = 0; // register idx,是该文件的全局电机索引,在注册时使用
 /* DJI电机的实例,此处仅保存指针,内存的分配将通过电机实例初始化时通过malloc()进行 */
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在control任务中遍历该指针数组进行pid计算
+// static Power_Data_s power_data;
 
-Power_Data_s power_data; // 电机功率数据
 /**
  * @brief 由于DJI电机发送以四个一组的形式进行,故对其进行特殊处理,用6个(2can*3group)can_instance专门负责发送
  *        该变量将在 DJIMotorControl() 中使用,分组在 MotorSenderGrouping()中进行
@@ -295,31 +294,28 @@ void DJIMotorControl()
         sender_assignment[group].tx_buff[2 * num]     = (uint8_t)(set >> 8);     // 低八位
         sender_assignment[group].tx_buff[2 * num + 1] = (uint8_t)(set & 0x00ff); // 高八位
 
-        if (group == 1) {
-            power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
-            power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
-            power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
-            power_data.count++;
-            if (power_data.count > 3) {
-                power_data.count = 0;
-            }
-        }
-
         // 若该电机处于停止状态,直接将buff置零
         if (motor->stop_flag == MOTOR_STOP)
             memset(sender_assignment[group].tx_buff + 2 * num, 0, 16u);
-    }
-
-    int index = 0;
-    if (dji_motor_instance[index]->stop_flag == MOTOR_ENABLED) {
-        power_data.total_power = TotalPowerCalc(power_data.input_power);
-        // for (int i = 0; i < 4; i++) {
-        //     set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
-        //     sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
-        //     sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
-        //     motorset[i]                             = set;
+        // if (group == 1) {
+        //     power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
+        //     power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
+        //     power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
+        //     power_data.count++;
+        //     if (power_data.count > 3) {
+        //         power_data.count = 0;
+        //     }
         // }
     }
+
+    // power_data.total_power = TotalPowerCalc(&power_data);
+
+    // for (int i = 0; i < 4; i++) {
+    // set                                     = CurrentOutputCalc(power_data.input_power[i], power_data.wheel_speed[i], power_data.predict_output[i]);
+    // sender_assignment[1].tx_buff[2 * i]     = (uint8_t)(set >> 8);     // 低八位
+    // sender_assignment[1].tx_buff[2 * i + 1] = (uint8_t)(set & 0x00ff); // 高八位
+    // motorset[i]                             = set;
+    // }
 
     // 遍历flag,检查是否要发送这一帧报文
     for (size_t i = 0; i < 6; ++i) {

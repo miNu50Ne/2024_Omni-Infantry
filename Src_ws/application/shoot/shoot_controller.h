@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "ramp.h"
 
+#define LOADER_2006       1
+
 #define MAX_HISTROY       10
 #define Fliter_windowSize 5.0f
 #define BLOCK_CURRENT     10000

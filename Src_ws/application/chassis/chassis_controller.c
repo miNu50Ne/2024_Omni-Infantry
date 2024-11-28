@@ -81,7 +81,7 @@ void ChassisDeviceInit()
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
 
-    PowerCalcInit(); // 功率计算参数初始化
+    // PowerCalcInit(REDUCTION_RATIO_WHEEL); // 功率计算参数初始化
 }
 
 void ChassisParamInit()
@@ -93,7 +93,7 @@ void ChassisParamInit()
         .IntegralLimit = 3000,
         .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
         .MaxOut        = 20000,
-        .DeadBand      = 10,
+        .DeadBand      = 800,
     };
 
     PIDInit(&chassis_media_param.chassis_follow_cotroller, &follow_pid);
@@ -140,7 +140,7 @@ void ChassisModeSet()
         DJIMotorEnable(motor_rb);
     }
 
-    PowerController(cap, chassis_cmd_recv.power_buffer, chassis_cmd_recv.power_limit, chassis_cmd_recv.SuperCap_flag_from_user);
+    CapController(cap, chassis_cmd_recv.power_buffer, chassis_cmd_recv.power_limit, chassis_cmd_recv.SuperCap_flag_from_user);
 
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:

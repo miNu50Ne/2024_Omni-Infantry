@@ -68,16 +68,16 @@ void GimbalDeviceInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp            = 220.0,
-                .Ki            = 3.0,
-                .Kd            = 7.0,
+                .Kp            = 100.0,
+                .Ki            = 0.0,
+                .Kd            = 3.50,
                 .DeadBand      = 0.0f,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 20,
                 .MaxOut        = 100,
             },
             .speed_PID = {
-                .Kp            = 2400.0,
+                .Kp            = 2000.0,
                 .Ki            = 0,
                 .Kd            = 0,
                 .Improve       = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement | PID_OutputFilter,

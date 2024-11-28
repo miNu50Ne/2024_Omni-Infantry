@@ -32,9 +32,10 @@ static void LimitChassisOutput(uint16_t power_buffer, uint16_t power_limit)
     else if (power_buffer == 60)
         Plimit = 1;
 
-    Power_Output = power_limit;
+    // Power_Output = power_limit;
+    Power_Output = 80;
     // Power_Output = power_limit - 10 + 20 * Plimit;
-    PowerControlupdate(Power_Output, REDUCTION_RATIO_WHEEL);
+    // PowerControlupdate(Power_Output);
 
     ramp_init(super_ramp, 300);
 }
@@ -47,7 +48,7 @@ static void SuperLimitOutput(float cap_voltage)
 {
     static float power_output;
     Power_Output = (power_output + (250 - 20 + 40 * (cap_voltage - 17.0f) / 6.0f - power_output) * ramp_calc(super_ramp));
-    PowerControlupdate(Power_Output, REDUCTION_RATIO_WHEEL);
+    // PowerControlupdate(Power_Output);
     power_output = Power_Output;
 }
 
@@ -58,7 +59,7 @@ static void SuperLimitOutput(float cap_voltage)
  */
 uint8_t Super_Voltage_Allow_Flag;
 
-void PowerController(SuperCapInstance *cap, uint16_t power_buffer, uint16_t power_limit, uint8_t switch_from_user)
+void CapController(SuperCapInstance *cap, uint16_t power_buffer, uint16_t power_limit, uint8_t switch_from_user)
 {
     SuperCap_State_e SuperCap_state = SUPER_STATE_LOW;
     // 状态机逻辑,滞回

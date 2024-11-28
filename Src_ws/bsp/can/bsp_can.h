@@ -5,15 +5,14 @@
 #include "can.h"
 
 // 最多能够支持的CAN设备数
-#define CAN_MX_REGISTER_CNT 16     // 这个数量取决于CAN总线的负载
-#define MX_CAN_FILTER_CNT (2 * 14) // 最多可以使用的CAN过滤器数量,目前远不会用到这么多
-#define DEVICE_CAN_CNT 2           // 根据板子设定,F407IG有CAN1,CAN2,因此为2;F334只有一个,则设为1
+#define CAN_MX_REGISTER_CNT 16       // 这个数量取决于CAN总线的负载
+#define MX_CAN_FILTER_CNT   (2 * 14) // 最多可以使用的CAN过滤器数量,目前远不会用到这么多
+#define DEVICE_CAN_CNT      2        // 根据板子设定,F407IG有CAN1,CAN2,因此为2;F334只有一个,则设为1
 // 如果只有1个CAN,还需要把bsp_can.c中所有的hcan2变量改为hcan1(别担心,主要是总线和FIFO的负载均衡,不影响功能)
 
 /* can instance typedef, every module registered to CAN should have this variable */
 #pragma pack(1)
-typedef struct _
-{
+typedef struct _ {
     CAN_HandleTypeDef *can_handle; // can句柄
     CAN_TxHeaderTypeDef txconf;    // CAN报文发送配置
     uint32_t tx_id;                // 发送id
@@ -57,11 +56,11 @@ void CANSetDLC(CANInstance *_instance, uint8_t length);
 /**
  * @brief transmit mesg through CAN device,通过can实例发送消息
  *        发送前需要向CAN实例的tx_buff写入发送数据
- * 
+ *
  * @attention 超时时间不应该超过调用此函数的任务的周期,否则会导致任务阻塞
- * 
+ *
  * @param timeout 超时时间,单位为ms;后续改为us,获得更精确的控制
  * @param _instance* can instance owned by module
  */
-uint8_t CANTransmit(CANInstance *_instance,float timeout);
+uint8_t CANTransmit(CANInstance *_instance, float timeout);
 #endif

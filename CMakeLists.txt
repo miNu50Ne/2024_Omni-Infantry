@@ -75,12 +75,12 @@ include_sub_directories_recursively(${CMAKE_SOURCE_DIR}/Inc)
 
 # add source, only surfix .c
 file(GLOB_RECURSE SOURCES
-    "Drivers/*.c"
-    "Src/*.c"
-    "Middlewares/*.c"
-    "Src_ws/bsp/*.c"
-    "Src_ws/modules/*.c"
-    "Src_ws/application/*.c"
+        "Drivers/*.c"
+        "Src/*.c"   
+        "Middlewares/*.c"
+        "Src_ws/bsp/*.c"
+        "Src_ws/modules/*.c"
+        "Src_ws/application/*.c"
 )
 
 # 汇编文件路径
