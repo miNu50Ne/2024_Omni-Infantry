@@ -8,7 +8,7 @@
 static uint8_t idx = 0; // register idx,是该文件的全局电机索引,在注册时使用
 /* DJI电机的实例,此处仅保存指针,内存的分配将通过电机实例初始化时通过malloc()进行 */
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在control任务中遍历该指针数组进行pid计算
-// static Power_Data_s power_data;
+static Power_Data_s power_data;
 
 /**
  * @brief 由于DJI电机发送以四个一组的形式进行,故对其进行特殊处理,用6个(2can*3group)can_instance专门负责发送
@@ -297,15 +297,12 @@ void DJIMotorControl()
         // 若该电机处于停止状态,直接将buff置零
         if (motor->stop_flag == MOTOR_STOP)
             memset(sender_assignment[group].tx_buff + 2 * num, 0, 16u);
-        // if (group == 1) {
-        //     power_data.input_power[power_data.count]    = PowerInputCalc(motor->measure.speed_rpm, motor->motor_controller.speed_PID.Output);
-        //     power_data.wheel_speed[power_data.count]    = motor->measure.speed_rpm;
-        //     power_data.predict_output[power_data.count] = motor->motor_controller.speed_PID.Output;
-        //     power_data.count++;
-        //     if (power_data.count > 3) {
-        //         power_data.count = 0;
-        //     }
-        // }
+
+        if (group == 1) {
+            power_data.cmd_current[power_data.count]    = motor->motor_controller.speed_PID.Output;
+            power_data.wheel_velocity[power_data.count] = motor->measure.speed_rpm;
+            if (++power_data.count > 3) power_data.count = 0;
+        }
     }
 
     // power_data.total_power = TotalPowerCalc(&power_data);

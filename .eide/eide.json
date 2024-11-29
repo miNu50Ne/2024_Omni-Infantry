@@ -137,7 +137,7 @@
           "c/cpp-compiler": {
             "language-c": "gnu17",
             "language-cpp": "gnu++17",
-            "optimization": "level-fast",
+            "optimization": "level-0",
             "warnings": "all-warnings",
             "one-elf-section-per-function": true,
             "one-elf-section-per-data": true
