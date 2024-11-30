@@ -4,11 +4,6 @@
 #include "controller.h"
 #include "ramp.h"
 
-#define LF        0
-#define RF        1
-#define RB        2
-#define LB        3
-
 #define LF_CENTER ((HALF_TRACK_WIDTH + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE - CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define RF_CENTER ((HALF_TRACK_WIDTH - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE - CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define LB_CENTER ((HALF_TRACK_WIDTH + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
@@ -25,11 +20,8 @@ typedef struct {
     /*模式参数 */
     float offset_angle;
     float sin_theta, cos_theta;
-    ramp_t rotate_ramp;
     float current_speed_vw;
     PIDInstance chassis_follow_cotroller;
-
-    // PIDInstance chasis;
 } ChassisInstance;
 
 /**
@@ -54,6 +46,12 @@ void ChassisMsgInit();
  *
  */
 void ChassisModeSet();
+
+/**
+ * @brief 功率计算
+ *
+ */
+void PowerController();
 
 /**
  * @brief 计算每个轮毂电机的输出,全向轮正运动学解算

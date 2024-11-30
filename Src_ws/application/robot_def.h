@@ -44,11 +44,11 @@
 #define RADIUS_WHEEL           153  // 轮子半径
 #define REDUCTION_RATIO_WHEEL  0.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
+#define MOTOR_OUTPUT_DIRECTION 0 // 转子与输出同向为1，反向为0
+
 #define HALF_WHEEL_BASE        (WHEEL_BASE / 2.0f)     // 半轴距
 #define HALF_TRACK_WIDTH       (TRACK_WIDTH / 2.0f)    // 半轮距
 #define PERIMETER_WHEEL        (RADIUS_WHEEL * 2 * PI) // 轮子周长
-
-// #define CHASSIS_CMD_VELOCITY_VECTER 40000 // 底盘速度矢量控制值，单位m/s
 
 // 其他参数(尽量所有参数集中到此文件)
 #define BUZZER_SILENCE           0 // 蜂鸣器静音,1为静音,0为正常
@@ -70,7 +70,6 @@ typedef enum {
     CHASSIS_ROTATE,            // 小陀螺模式
     CHASSIS_NO_FOLLOW,         // 不跟随，允许全向平移
     CHASSIS_FOLLOW_GIMBAL_YAW, // 跟随模式，底盘叠加角度环控制
-    CHASSIS_REVERSE_ROTATE,    // 反方向小陀螺
 } chassis_mode_e;
 
 typedef enum {
@@ -111,17 +110,22 @@ typedef enum {
 typedef struct
 {
     // 控制部分
-    uint16_t power_buffer;             // 60焦耳缓冲能量
-    float chassis_power;               // 底盘瞬时功率
-    uint8_t level;                     // 机器人等级
-    uint16_t power_limit;              // 底盘功率限制
-    uint8_t SuperCap_flag_from_user;   // 超电的标志位
-    float vx;                          // 前进方向控制量
-    float vy;                          // 横移方向控制量
-    float chassis_cmd_velocity_vector; // 底盘速度控制矢量 单位:m/s
-    float wz;                          // 旋转速度
-    float offset_angle;                // 底盘和归中位置的夹角
+    uint16_t power_buffer;           // 60焦耳缓冲能量
+    float chassis_power;             // 底盘瞬时功率
+    uint8_t level;                   // 机器人等级
+    uint16_t power_limit;            // 底盘功率限制
+    uint8_t SuperCap_flag_from_user; // 超电的标志位
+
+    float vx; // 前进方向控制量
+    float vy; // 横移方向控制量
+    float wz; // 旋转速度
+
+    uint8_t reverse_flag; // 小陀螺反转
+
+    // float chassis_cmd_velocity_vector; // 底盘速度控制矢量 单位:m/s
+
     float gimbal_error_angle;
+
     chassis_mode_e chassis_mode;
     // UI部分
     //  ...

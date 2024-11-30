@@ -113,14 +113,13 @@ void CalcOffsetAngle()
     float gimbal_error_angle = (gimbal_yaw_set_angle - gimbal_yaw_current_angle) * RAD_2_DEGREE;
 
 #if YAW_ECD_GREATER_THAN_4096 // 如果大于180度
-    (angle < 180.0f + YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f) ? (chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE)
-                                                                            : (chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE + 360.0f);
+    float offset_angle = angle < 180.0f + YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f ? angle - YAW_ALIGN_ANGLE
+                                                                                               : angle - YAW_ALIGN_ANGLE + 360.0f;
 #else // 小于180度
-    angle >= YAW_ALIGN_ANGLE - 180.0f &&angle <= YAW_ALIGN_ANGLE + 180.0f ? chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE
-                                                                          : chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE - 360.0f;
+    float offset_angle = angle >= YAW_ALIGN_ANGLE - 180.0f && angle <= YAW_ALIGN_ANGLE + 180.0f ? angle - YAW_ALIGN_ANGLE
+                                                                                                : angle - YAW_ALIGN_ANGLE - 360.0f;
 #endif
-    // if()
-    chassis_cmd_send.gimbal_error_angle = chassis_cmd_send.offset_angle + gimbal_error_angle;
+    chassis_cmd_send.gimbal_error_angle = offset_angle + gimbal_error_angle;
 }
 
 void PitchAngleLimit()
@@ -182,20 +181,20 @@ void ShootControl()
     shoot_cmd_send.loader_rate = shoot_cmd_send.shoot_rate *
                                  360 * REDUCTION_RATIO_LOADER / NUM_PER_CIRCLE;
 
-    // float rate_coef = 0;
-    // if (cmd_media_param.heat_coef == 1)
-    //     rate_coef = 1;
-    // else if (cmd_media_param.heat_coef >= 0.8 && cmd_media_param.heat_coef < 1)
-    //     rate_coef = 0.8;
-    // else if (cmd_media_param.heat_coef >= 0.6 && cmd_media_param.heat_coef < 0.8)
-    //     rate_coef = 0.6;
-    // else if (cmd_media_param.heat_coef < 0.6)
-    //     rate_coef = 0.4;
-    // cmd_media_param.heat_coef = ((referee_data->GameRobotState.shooter_id1_17mm_cooling_limit -
-    //                               referee_data->PowerHeatData.shooter_17mm_heat0 +
-    //                               rate_coef * referee_data->GameRobotState.shooter_id1_17mm_cooling_rate) *
-    //                              1.0f) /
-    //                             (1.0f * referee_data->GameRobotState.shooter_id1_17mm_cooling_limit);
+    float rate_coef = 0;
+    if (cmd_media_param.heat_coef == 1)
+        rate_coef = 1;
+    else if (cmd_media_param.heat_coef >= 0.8 && cmd_media_param.heat_coef < 1)
+        rate_coef = 0.8;
+    else if (cmd_media_param.heat_coef >= 0.6 && cmd_media_param.heat_coef < 0.8)
+        rate_coef = 0.6;
+    else if (cmd_media_param.heat_coef < 0.6)
+        rate_coef = 0.4;
+    cmd_media_param.heat_coef = ((referee_data->GameRobotState.shooter_id1_17mm_cooling_limit -
+                                  referee_data->PowerHeatData.shooter_17mm_heat0 +
+                                  rate_coef * referee_data->GameRobotState.shooter_id1_17mm_cooling_rate) *
+                                 1.0f) /
+                                (1.0f * referee_data->GameRobotState.shooter_id1_17mm_cooling_limit);
 }
 
 /**
@@ -254,9 +253,8 @@ static void remotecontrolset()
                     chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
                     break;
                 case 1:
-                    (rc_data[TEMP].rc.dial < -400) ? (chassis_cmd_send.chassis_mode = CHASSIS_REVERSE_ROTATE)
-                                                   : (chassis_cmd_send.chassis_mode = CHASSIS_ROTATE);
-
+                    chassis_cmd_send.wz           = 5000;
+                    chassis_cmd_send.reverse_flag = rc_data[TEMP].rc.dial < -400 ? 1 : -1;
                     break;
             }
             break;
@@ -327,6 +325,7 @@ static void remotecontrolset()
 static void chassisset()
 {
     chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+    chassis_cmd_send.wz           = 5000;
 
     // 底盘移动
     static float current_speed_x = 0;
@@ -391,7 +390,7 @@ static void shootset()
         // 新热量管理
         if (referee_data->GameRobotState.shooter_id1_17mm_cooling_limit - shoot_fetch_data.shooter_local_heat <= shoot_fetch_data.shooter_heat_control) {
             shoot_cmd_send.load_mode = LOAD_STOP;
-        }   
+        }
     } else {
         shoot_cmd_send.load_mode = LOAD_STOP;
     }

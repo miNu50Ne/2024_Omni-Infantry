@@ -14,9 +14,10 @@
 #include "controller.h"
 #include "robot_def.h"
 #include "chassis_controller.h"
-#include "power_controller.h"
+#include "cap_controller.h"
 
 #include "dji_motor.h"
+#include "stdlib.h"
 #include "super_cap.h"
 #include "message_center.h"
 
@@ -24,6 +25,8 @@
 #include "general_def.h"
 #include "arm_math.h"
 #include "ramp.h"
+#include <math.h>
+#include <stdint.h>
 
 static Publisher_t *chassis_pub;  // 用于发布底盘的数据
 static Subscriber_t *chassis_sub; // 用于订阅底盘的控制命令
@@ -31,10 +34,14 @@ static Subscriber_t *chassis_sub; // 用于订阅底盘的控制命令
 static Chassis_Ctrl_Cmd_s chassis_cmd_recv;         // 底盘接收到的控制命令
 static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数据
 
-static SuperCapInstance *cap;                                       // 超级电容
-static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
-
 static ChassisInstance chassis_media_param; // 底盘中介变量
+static Power_Data_s motors_data;
+
+static SuperCapInstance *cap; // 超级电容
+static DJIMotorInstance *motors[4];
+
+// left right forward back
+static const uint8_t joint_lf = 0, joint_rf = 1, joint_rb = 2, joint_lb = 3;
 
 void ChassisDeviceInit()
 {
@@ -59,19 +66,19 @@ void ChassisDeviceInit()
     };
     chassis_motor_config.can_init_config.tx_id                             = 1;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    motor_lf                                                               = DJIMotorInit(&chassis_motor_config);
+    motors[joint_lf]                                                       = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 2;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    motor_rf                                                               = DJIMotorInit(&chassis_motor_config);
+    motors[joint_rf]                                                       = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 3;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    motor_rb                                                               = DJIMotorInit(&chassis_motor_config);
+    motors[joint_rb]                                                       = DJIMotorInit(&chassis_motor_config);
 
     chassis_motor_config.can_init_config.tx_id                             = 4;
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    motor_lb                                                               = DJIMotorInit(&chassis_motor_config);
+    motors[joint_rb]                                                       = DJIMotorInit(&chassis_motor_config);
 
     SuperCap_Init_Config_s cap_conf = {
         .can_config = {
@@ -80,8 +87,6 @@ void ChassisDeviceInit()
             .rx_id      = 0x300, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
         }};
     cap = SuperCapInit(&cap_conf); // 超级电容初始化
-
-    // PowerCalcInit(REDUCTION_RATIO_WHEEL); // 功率计算参数初始化
 }
 
 void ChassisParamInit()
@@ -101,7 +106,7 @@ void ChassisParamInit()
     chassis_media_param.center_gimbal_offset_x = CENTER_GIMBAL_OFFSET_X; // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
     chassis_media_param.center_gimbal_offset_y = CENTER_GIMBAL_OFFSET_Y; // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 
-    ramp_init(&chassis_media_param.rotate_ramp, 200);
+    power_calc_params_init(REDUCTION_RATIO_WHEEL, MOTOR_OUTPUT_DIRECTION); // 功率计算参数初始化
 }
 
 void ChassisMsgInit()
@@ -112,6 +117,9 @@ void ChassisMsgInit()
 
 void OmniCalculate()
 {
+    chassis_media_param.cos_theta = arm_cos_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+    chassis_media_param.sin_theta = arm_sin_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
+
     chassis_media_param.chassis_vx = chassis_cmd_recv.vx * chassis_media_param.cos_theta - chassis_cmd_recv.vy * chassis_media_param.sin_theta;
     chassis_media_param.chassis_vy = chassis_cmd_recv.vx * chassis_media_param.sin_theta + chassis_cmd_recv.vy * chassis_media_param.cos_theta;
 
@@ -119,77 +127,65 @@ void OmniCalculate()
     chassis_media_param.vt_rf = chassis_media_param.chassis_vx - chassis_media_param.chassis_vy + chassis_cmd_recv.wz * RF_CENTER;
     chassis_media_param.vt_rb = -chassis_media_param.chassis_vx - chassis_media_param.chassis_vy + chassis_cmd_recv.wz * RB_CENTER;
     chassis_media_param.vt_lb = -chassis_media_param.chassis_vx + chassis_media_param.chassis_vy + chassis_cmd_recv.wz * LB_CENTER;
-
-    DJIMotorSetRef(motor_lf, chassis_media_param.vt_lf);
-    DJIMotorSetRef(motor_rf, chassis_media_param.vt_rf);
-    DJIMotorSetRef(motor_lb, chassis_media_param.vt_lb);
-    DJIMotorSetRef(motor_rb, chassis_media_param.vt_rb);
 }
 
 void ChassisModeSet()
 {
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) {
-        DJIMotorStop(motor_lf);
-        DJIMotorStop(motor_rf);
-        DJIMotorStop(motor_lb);
-        DJIMotorStop(motor_rb);
+        DJIMotorStop(motors[joint_lf]);
+        DJIMotorStop(motors[joint_rf]);
+        DJIMotorStop(motors[joint_lb]);
+        DJIMotorStop(motors[joint_rb]);
     } else {
-        DJIMotorEnable(motor_lf);
-        DJIMotorEnable(motor_rf);
-        DJIMotorEnable(motor_lb);
-        DJIMotorEnable(motor_rb);
+        DJIMotorEnable(motors[joint_lf]);
+        DJIMotorEnable(motors[joint_rf]);
+        DJIMotorEnable(motors[joint_lb]);
+        DJIMotorEnable(motors[joint_rb]);
     }
-
-    CapController(cap, chassis_cmd_recv.power_buffer, chassis_cmd_recv.power_limit, chassis_cmd_recv.SuperCap_flag_from_user);
 
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
             chassis_cmd_recv.wz = 0;
-
-            chassis_media_param.cos_theta = arm_cos_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
-            chassis_media_param.sin_theta = arm_sin_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
-            ramp_init(&chassis_media_param.rotate_ramp, 250);
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW:
-
-            // if (chassis_cmd_recv.gimbal_error_angle <= 90 && chassis_cmd_recv.gimbal_error_angle >= -90) // 0附近
-            //     gimbal_error_angle = chassis_cmd_recv.gimbal_error_angle;
-            // else {
-            //     gimbal_error_angle = chassis_cmd_recv.gimbal_error_angle >= 0 ? chassis_cmd_recv.gimbal_error_angle - 180 : chassis_cmd_recv.gimbal_error_angle + 180;
-            // }
-
-            chassis_media_param.chassis_vw = chassis_media_param.current_speed_vw +
-                                             (PIDCalculate(&chassis_media_param.chassis_follow_cotroller, chassis_cmd_recv.gimbal_error_angle * 100, 0) -
-                                              chassis_media_param.current_speed_vw) +
-                                             ramp_calc(&chassis_media_param.rotate_ramp);
-            chassis_media_param.current_speed_vw = chassis_media_param.chassis_vw;
-
-            chassis_cmd_recv.wz = chassis_media_param.chassis_vw;
-
-            chassis_media_param.cos_theta = arm_cos_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
-            chassis_media_param.sin_theta = arm_sin_f32(chassis_cmd_recv.gimbal_error_angle * DEGREE_2_RAD);
-
+            float offset_angle;
+            if (chassis_cmd_recv.gimbal_error_angle <= PI / 2 && chassis_cmd_recv.gimbal_error_angle >= -PI / 2) // 0附近
+                offset_angle = chassis_cmd_recv.gimbal_error_angle;
+            else {
+                offset_angle = chassis_cmd_recv.gimbal_error_angle >= 0 ? chassis_cmd_recv.gimbal_error_angle - PI
+                                                                        : chassis_cmd_recv.gimbal_error_angle + PI;
+            }
+            chassis_cmd_recv.wz = PIDCalculate(&chassis_media_param.chassis_follow_cotroller, pow(offset_angle, 2.0), 0);
             break;
         case CHASSIS_ROTATE:
-            chassis_cmd_recv.wz           = 5000;
-            chassis_media_param.cos_theta = arm_cos_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
-            chassis_media_param.sin_theta = arm_sin_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD);
-            chassis_cmd_recv.vx *= 0.6;
-            chassis_cmd_recv.vy *= 0.6;
-            break;
-            ramp_init(&chassis_media_param.rotate_ramp, 250);
-
-        case CHASSIS_REVERSE_ROTATE:
-            chassis_cmd_recv.wz           = -5000;
-            chassis_media_param.cos_theta = arm_cos_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD); // 矫正小陀螺偏心
-            chassis_media_param.sin_theta = arm_sin_f32((chassis_cmd_recv.gimbal_error_angle + 22) * DEGREE_2_RAD);
-            chassis_cmd_recv.vx *= 0.6;
-            chassis_cmd_recv.vy *= 0.6;
-            ramp_init(&chassis_media_param.rotate_ramp, 250);
+            chassis_cmd_recv.wz *= -1 * chassis_cmd_recv.reverse_flag;
             break;
         default:
             break;
     }
+}
+
+void PowerController()
+{
+    uint16_t *power_limit_  = &chassis_cmd_recv.power_limit;
+    uint16_t *power_buffer_ = &chassis_cmd_recv.power_buffer;
+    uint8_t *cap_swtich_    = &chassis_cmd_recv.SuperCap_flag_from_user;
+
+    cap_controller(cap, *power_buffer_, *power_limit_, *cap_swtich_);
+
+    motors_data.motor_id = 0;
+    do {
+        motors_data.cmd_current[motors_data.motor_id]    = motors[motors_data.motor_id]->motor_controller.speed_PID.Output;
+        motors_data.wheel_velocity[motors_data.motor_id] = motors[motors_data.motor_id]->measure.speed_rpm * RPM_2_RAD_PER_SEC;
+    } while (++motors_data.motor_id > joint_lb);
+
+    for (size_t index                                    = 0; index > joint_lb;
+         motors[++index]->motor_controller.set_zoom_coef = current_output_calc(&motors_data)) {}
+
+    DJIMotorSetRef(motors[joint_lf], chassis_media_param.vt_lf);
+    DJIMotorSetRef(motors[joint_rf], chassis_media_param.vt_rf);
+    DJIMotorSetRef(motors[joint_lb], chassis_media_param.vt_lb);
+    DJIMotorSetRef(motors[joint_rb], chassis_media_param.vt_rb);
 }
 
 void ChassisMsgComm()

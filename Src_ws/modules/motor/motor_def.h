@@ -88,7 +88,8 @@ typedef struct
     PIDInstance speed_PID;
     PIDInstance angle_PID;
 
-    float pid_ref; // 将会作为每个环的输入和输出顺次通过串级闭环
+    float pid_ref;       // 将会作为每个环的输入和输出顺次通过串级闭环
+    float set_zoom_coef; // 输出缩放系数
 } Motor_Controller_s;
 
 /* 电机类型枚举 */

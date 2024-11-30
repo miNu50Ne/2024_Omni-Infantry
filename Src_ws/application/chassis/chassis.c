@@ -1,6 +1,6 @@
 /**
  * @file chassis.c
- * @author miNu59Ne (minun50ne@qq.com)
+ * @author miNu50Ne (minun50ne@qq.com)
  * @brief
  * @version 0.1
  * @date 2024-11-05
@@ -21,5 +21,6 @@ void ChassisTask()
 {
     ChassisModeSet();
     OmniCalculate();
+    PowerController();
     ChassisMsgComm();
 }

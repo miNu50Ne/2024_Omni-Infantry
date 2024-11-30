@@ -114,6 +114,6 @@ float AverageFilter(float new_data, float *buf, uint8_t len);
 
 #define rad_format(Ang) loop_float_constrain((Ang), -PI, PI)
 // 正弦扫频生成器
-float sin_signal_generate(float F_start, float F_end, float repeat_time, uint8_t *SE_signal,float *F_out);
+float sin_signal_generate(float F_start, float F_end, float repeat_time, uint8_t *SE_signal, float *F_out);
 
 #endif
