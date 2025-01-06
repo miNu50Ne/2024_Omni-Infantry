@@ -1,6 +1,5 @@
 #include "super_cap.h"
 #include "ramp.h"
-
 #include "robot_def.h"
 #include "power_calc.h"
 
