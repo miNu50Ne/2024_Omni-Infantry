@@ -1,7 +1,0 @@
-{
-    recheck = false,
-    options = {
-        trybuild = "cmake"
-    },
-    mtimes = { }
-}
